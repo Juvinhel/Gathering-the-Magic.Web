@@ -11145,18 +11145,15 @@ var Views;
         }
         Workbench.dragEnd = dragEnd;
         function getDragData(element) {
-            if (element.classList.contains("entry")) {
-                const entry = element;
-                const quantity = parseInt(entry.querySelector(".quantity")?.value);
-                const name = entry.querySelector(".name")?.textContent || "";
-                return { quantity, name };
+            if (element instanceof Workbench.EntryElement)
+                return { quantity: element.quantity, name: element.card.name };
+            else if (element instanceof Workbench.SectionElement) {
+                const title = element.title;
+                const children = [...element.querySelector(".list").children];
+                return { title, items: children.map(getDragData) };
             }
-            else if (element.classList.contains("section")) {
-                const section = element;
-                const title = section.querySelector(".title")?.textContent || "";
-                const list = section.querySelector(".list");
-                return { title, items: [...list.children].map(getDragData).filter(x => x != null) };
-            }
+            else
+                throw new Error("Cannot get dragdata of Element!");
         }
         function buildDragData(elements) {
             if (Array.isArray(elements)) {
