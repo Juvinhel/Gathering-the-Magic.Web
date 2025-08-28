@@ -1,6 +1,6 @@
 {
   "name": "gathering-the-magic.web",
-  "version": "1.3.0",
+  "version": "1.0.0",
   "description": "",
   "main": "",
   "scripts": {
@@ -9,8 +9,8 @@
   "author": "Juvinhel",
   "license": "ISC",
   "dependencies": {
-    "@peach/helper": "file:../../Peach/Helper",
-    "@peach/ui": "file:../../Peach/UI",
-    "@peach/ui.components": "file:../../Peach/UI.Components"
+    "@peach/helper": "file:../Peach/Helper",
+    "@peach/ui": "file:../Peach/UI",
+    "@peach/ui.components": "file:../Peach/UI.Components"
   }
 }
