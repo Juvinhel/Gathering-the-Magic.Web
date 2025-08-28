@@ -9,6 +9,11 @@
             "label": "$(notebook-move-down) Build",
             "task": "Build",
             "tooltip": "Build"
+        },
+        {
+            "label": "$(notebook-move-down) Publish",
+            "task": "Publish",
+            "tooltip": "Publish"
         }
     ],
 }

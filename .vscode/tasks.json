@@ -169,5 +169,69 @@
                 "isDefault": false
             },
         },
+        {
+            "label": "Init publish",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "dependsOn": [
+                "Create publish",
+            ],
+            "command": "Remove-Item",
+            "type": "shell",
+            "args": [
+                "publish/*",
+                "-Recurse",
+                "-Force"
+            ],
+            "hide": true,
+        },
+        {
+            "label": "Create publish",
+            "type": "shell",
+            "command": "New-Item",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "args": [
+                "-ItemType",
+                "Directory",
+                "-Force",
+                "-Path",
+                "publish"
+            ],
+            "hide": true,
+        },
+        {
+            "label": "Zip publish",
+            "type": "shell",
+            "command": "Compress-Archive",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "args": [
+                "-Path",
+                "dist/*",
+                "-DestinationPath",
+                "publish/web.zip"
+            ],
+            "hide": true,
+        },
+        {
+            "label": "Publish",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build",
+                "Init publish",
+                "Zip publish"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+        },
     ]
 }
