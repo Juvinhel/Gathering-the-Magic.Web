@@ -141,20 +141,15 @@ namespace Views.Workbench
 
     function getDragData(element: HTMLElement): any
     {
-        if (element.classList.contains("entry"))
+        if (element instanceof EntryElement)
+            return { quantity: element.quantity, name: element.card.name };
+        else if (element instanceof SectionElement)
         {
-            const entry = element as HTMLDivElement;
-            const quantity = parseInt((entry.querySelector(".quantity") as HTMLInputElement)?.value);
-            const name = entry.querySelector(".name")?.textContent || "";
-            return { quantity, name };
+            const title = element.title;
+            const children = [...element.querySelector(".list").children];
+            return { title, items: children.map(getDragData) };
         }
-        else if (element.classList.contains("section"))
-        {
-            const section = element as HTMLDivElement;
-            const title = section.querySelector(".title")?.textContent || "";
-            const list = section.querySelector(".list");
-            return { title, items: [...list.children].map(getDragData).filter(x => x != null) };
-        }
+        else throw new Error("Cannot get dragdata of Element!");
     }
 
     export function buildDragData(elements: HTMLElement | HTMLElement[]): DragData
