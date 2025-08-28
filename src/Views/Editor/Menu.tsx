@@ -19,6 +19,7 @@ namespace Views.Editor
                 <drop-down>
                     <menu-button class={ ["show-mana", App.config.showMana ? "marked" : null] } onclick={ showMana } title="Show Mana"><color-icon src="img/icons/mana.svg" /><span>Show Mana</span></menu-button>
                     <menu-button class={ ["show-type", App.config.showType ? "marked" : null] } onclick={ showType } title="Show Type"><color-icon src="img/icons/type.svg" /><span>Show Type</span></menu-button>
+                    <menu-button class="clear-selection" title="Clear Selection" onclick={ clearSelection }><color-icon src="img/icons/hand-select.svg" /><span>Clear Selection</span></menu-button>
                 </drop-down>
             </menu-button>
             <menu-button title="Tools">
@@ -36,9 +37,7 @@ namespace Views.Editor
                 <color-icon src="img/icons/info.svg" />
                 <span>About</span>
                 <drop-down>
-                    <div>
-                        <menu-button onclick={ siteInfo } title="Site Info"><color-icon src="img/icons/info.svg" /><span>Site Info</span></menu-button>
-                    </div>
+                    <menu-button onclick={ siteInfo } title="Site Info"><color-icon src="img/icons/info.svg" /><span>Site Info</span></menu-button>
                 </drop-down>
             </menu-button>
         </div>;
@@ -239,6 +238,15 @@ namespace Views.Editor
         target.classList.toggle("marked", App.config.showType);
 
         workbench.refreshColumns();
+    }
+
+    async function clearSelection(event: Event)
+    {
+        const target = event.currentTarget as HTMLElement;
+        const editor = target.closest("my-editor") as Editor.EditorElement;
+
+        for (const element of editor.querySelectorAll(".card-container.selected"))
+            element.classList.remove("selected");
     }
 
     async function showDrawTest(event: Event)

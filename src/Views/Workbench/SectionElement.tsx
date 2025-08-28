@@ -12,19 +12,18 @@ namespace Views.Workbench
 
             this.append(...this.build(section));
 
-            this.addEventListener("rightclick", this.showContextMenu.bind(this));
+            const header = this.querySelector(".header") as HTMLElement;
+            header.addEventListener("click", this.clicked.bind(this));
+            header.addEventListener("rightclick", this.showContextMenu.bind(this));
+
             this.addEventListener("calccardcount", this.calcCardCount.bind(this));
             this.addEventListener("rendered", this.calcCardCount.bind(this));
-
-            this.draggable = true;
-            this.addEventListener("dragstart", dragStart);
-            this.addEventListener("dragend", dragEnd);
         }
 
         private build(section: Data.Section)
         {
             return [
-                <div class="header" ondragover={ dragOver } ondragleave={ dragLeave } ondrop={ drop }>
+                <div class="header" draggable={ true } ondragstart={ dragStart.bind(this) } ondragover={ dragOver.bind(this) } ondragleave={ dragLeave.bind(this) } ondragend={ dragEnd.bind(this) } ondrop={ drop.bind(this) }>
                     <div class={ ["move-actions", this.topLevel ? "none" : null] }>
                         <a class={ ["up-button"] } onclick={ this.moveUp.bind(this) }><color-icon src="img/icons/chevron-up.svg" /></a>
                         <a class={ ["down-button"] } onclick={ this.moveDown.bind(this) }><color-icon src="img/icons/chevron-down.svg" /></a>
@@ -51,6 +50,24 @@ namespace Views.Workbench
 
         public quantity: number;
         public get topLevel() { return this.classList.contains("top-level"); }
+        public get selected() { return this.classList.contains("selected"); }
+        public set selected(value: boolean)
+        {
+            this.classList.toggle("selected", value);
+            const list = this.querySelector(".list");
+            for (const child of list.children)
+            {
+                if (child instanceof SectionElement) child.selected = value;
+                if (child instanceof EntryElement) child.selected = value;
+            }
+        }
+
+        private clickables = ["INPUT", "A", "BUTTON"];
+        private clicked(event: Event)
+        {
+            if (event.composedPath().some(x => this.clickables.includes((x as HTMLElement).tagName))) return;
+            this.selected = !this.selected;
+        }
 
         private showContextMenu(event: PointerEvent)
         {
@@ -63,7 +80,6 @@ namespace Views.Workbench
                 this.topLevel ? null : <menu-button title="Move Section" onclick={ this.showMoveDialog.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Move to ...</span></menu-button>
             );
         }
-
 
         public moveUp()
         {
@@ -124,7 +140,7 @@ namespace Views.Workbench
             const sectionElements = [...workbench.querySelectorAll("my-section") as NodeListOf<SectionElement>].filter(x => x != this).filter(x => !this.contains(x));
             const sectionNames = sectionElements.map(x => getSectionPath(x));
 
-            const result = await selectSection(sectionNames);
+            const result = await selectSection("Insert 1 cards into Section", sectionNames);
             if (!result) return;
             const selectedSection = sectionElements[result.index];
 

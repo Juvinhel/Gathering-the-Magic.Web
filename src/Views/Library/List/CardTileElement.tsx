@@ -13,7 +13,7 @@ namespace Views.Library.List
 
             this.append(...this.build());
 
-            this.addEventListener("click", this.select.bind(this));
+            this.addEventListener("click", this.clicked.bind(this));
             this.addEventListener("rightclick", this.showContextMenu.bind(this));
             this.addEventListener("dblclick", this.addCard.bind(this));
             this.addEventListener("mouseenter", this.enter.bind(this));
@@ -32,43 +32,54 @@ namespace Views.Library.List
         }
 
         public card: Data.API.Card;
+        public get selected() { return this.classList.contains("selected"); }
+        public set selected(value: boolean)
+        {
+            this.classList.toggle("selected", value);
+
+            if (value)
+            {
+                const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: this.card } });
+                this.dispatchEvent(selectedEvent);
+            }
+        }
 
         private clickables = ["INPUT", "A", "BUTTON"];
-        private select(event: MouseEvent)
+        private clicked(event: MouseEvent)
         {
             if (event.composedPath().some(x => this.clickables.includes((x as HTMLElement).tagName))) return;
-
-            const result = this.classList.toggle("selected");
-            const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: result ? this.card : null } });
-            this.dispatchEvent(selectedEvent);
+            this.selected = !this.selected;
         }
 
         private showContextMenu(event: PointerEvent)
         {
             UI.ContextMenu.show(event,
-                <menu-button title="Insert Card" onclick={ this.showInsertCard.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Insert into ...</span></menu-button>,
+                <menu-button title="Insert Cards" onclick={ this.showInsertCards.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Insert into ...</span></menu-button>,
                 <menu-button title="Scryfall" onclick={ () => window.open(this.card.links.Scryfall, '_blank') }><color-icon src="img/icons/scryfall-black.svg" /><span>Scryfall</span></menu-button>,
                 this.card.links.EDHREC ? <menu-button title="EDHREC" onclick={ () => window.open(this.card.links.EDHREC, '_blank') }><color-icon src="img/icons/edhrec.svg" /><span>EDHREC</span></menu-button> : null,
             );
         }
 
-        private async showInsertCard(event: Event)
+        private async showInsertCards(event: Event)
         {
             const editor = this.closest("my-editor") as Editor.EditorElement;
             const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
             const sectionElements = [...workbench.querySelectorAll("my-section") as NodeListOf<Workbench.SectionElement>];
             const sectionTitles = sectionElements.map(x => Views.Workbench.getSectionPath(x));
 
-            const result = await Workbench.selectSection(sectionTitles);
+            const cardList = this.closest("my-card-list");
+            const selectedCards = [...cardList.querySelectorAll("my-card-tile.selected")] as CardTileElement[];
+            if (!selectedCards.length) selectedCards.push(this);
+
+            const result = await Workbench.selectSection("Insert " + selectedCards.length.toFixed(0) + " cards into Section", sectionTitles);
             if (!result) return;
             const selectedSection = sectionElements[result.index];
 
-            const entry: Data.Entry = Object.clone(this.card) as Data.Entry;
-            entry.quantity = 1;
+            const cards = selectedCards.map(x => Object.clone(x.card));
+            const entryElements = cards.map(c => new Workbench.EntryElement({ quantity: 1, ...c }));
             const list = selectedSection.querySelector(".list");
-            const entryElement = new Workbench.EntryElement(entry);
-            list.append(entryElement);
-            entryElement.scrollIntoView({ behavior: "smooth" });
+            list.append(...entryElements);
+            entryElements.last().scrollIntoView({ block: "center", behavior: "smooth" });
         }
 
         private enter(event: MouseEvent)

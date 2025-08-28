@@ -1,6 +1,6 @@
 namespace Views.Workbench
 {
-    export async function selectSection(sections: string[]): Promise<{ index: number, section: string; } | null>
+    export async function selectSection(title: string, sections: string[]): Promise<{ index: number, section: string; } | null>
     {
         const result = await UI.Dialog.show(<div class="section-select-dialog">
             <select class="move-to-section">
@@ -13,7 +13,7 @@ namespace Views.Workbench
                 UI.Dialog.close(event.currentTarget as Element);
             } }>OK</button>
             <button onclick={ (event: Event) => UI.Dialog.close(event.currentTarget as Element) }>Cancel</button>
-        </div>, { allowClose: true, title: "select section" });
+        </div>, { allowClose: true, title });
 
         const dialog = result as HTMLElement;
         const ok = dialog.classList.contains("ok");

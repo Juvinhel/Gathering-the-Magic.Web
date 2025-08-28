@@ -1,16 +1,15 @@
 namespace Views.Workbench
 {
-    export function preventDrag(event: DragEvent)
+    export function preventDrag(this: EntryElement | SectionElement, event: DragEvent)
     {
         event.preventDefault();
         event.stopPropagation();
     }
 
-    export function dragStart(event: DragEvent)
+    export function dragStart(this: EntryElement | SectionElement, event: DragEvent)
     {
         event.stopPropagation();
-        const target = event.currentTarget as HTMLElement;
-        if (target.closest("swipe-container"))
+        if (this.closest("swipe-container"))
         {
             event.preventDefault();
             event.stopPropagation();
@@ -18,57 +17,46 @@ namespace Views.Workbench
         }
 
         let data: DragData;
-        data = buildDragData(target);
+        data = buildDragData(this);
         event.dataTransfer.setData("text", JSON.stringify(data));
         event.dataTransfer.effectAllowed = "all";
     }
 
-    export function dragOver(event: DragEvent)
+    export function dragOver(this: EntryElement | SectionElement, event: DragEvent)
     {
-        const target = getDragTarget(event);
-        if (!target) return;
-
         event.preventDefault();
         event.stopPropagation();
         if (event.getModifierState("Control"))
             event.dataTransfer.dropEffect = "copy";
         else
             event.dataTransfer.dropEffect = "move";
-        target.classList.add("drag-over");
+        this.classList.add("drag-over");
     }
 
-    export function dragLeave(event: DragEvent)
+    export function dragLeave(this: EntryElement | SectionElement, event: DragEvent)
     {
-        const target = getDragTarget(event);
-        if (!target) return;
-
         event.preventDefault();
         event.stopPropagation();
-        target.classList.remove("drag-over");
+        this.classList.remove("drag-over");
     }
 
-    function getDragTarget(event: DragEvent): HTMLElement
+    function getDragTarget(event: DragEvent): SectionElement | EntryElement
     {
         if ((event.target as Element).tagName === "INPUT") return;
 
         let target = event.target as Element;
-        if (!target.hasAttribute("draggable"))
-            target = target.closest("[draggable]");
-        return target as HTMLElement;
+        return target.closest("my-section, my-entry");
     }
 
-    export async function drop(event: DragEvent)
+    export async function drop(this: EntryElement | SectionElement, event: DragEvent)
     {
         try
         {
-            const target = getDragTarget(event);
-            if (!target) return;
-
             event.preventDefault();
             event.stopPropagation();
 
-            target.classList.remove("drag-over");
-            const isSection = target.classList.contains("section");
+            this.classList.remove("drag-over");
+            const isSection = this instanceof SectionElement;
 
             const data = event.dataTransfer.getData("text");
             if (!data) return;
@@ -81,33 +69,33 @@ namespace Views.Workbench
                 {
                     if ("name" in dragItem)
                     {
-                        const newEntry = new EntryElement(dragItem as Data.Entry) as HTMLElement;
+                        const newEntry = new EntryElement(dragItem as Data.Entry);
                         newElements.push(newEntry);
                     }
                     else
                     {
-                        const newSection = new SectionElement(dragItem as Data.Section, false) as HTMLElement;
+                        const newSection = new SectionElement(dragItem as Data.Section, false);
                         newElements.push(newSection);
                     }
                 }
             }
             else if ("name" in draggedData)
             {
-                const newEntry = new EntryElement(draggedData as Data.Entry) as HTMLElement;
+                const newEntry = new EntryElement(draggedData as Data.Entry);
                 newElements.push(newEntry);
             } else
             {
-                const newSection = new SectionElement(draggedData as Data.Section, false) as HTMLElement;
+                const newSection = new SectionElement(draggedData as Data.Section, false);
                 newElements.push(newSection);
             }
 
             if (isSection)
             {
-                target.querySelector(".list").append(...newElements);
+                this.querySelector(".list").append(...newElements);
             }
             else
             {
-                target.after(...newElements);
+                this.after(...newElements);
             }
 
             newElements.last().scrollIntoView({ behavior: "smooth", block: "center" });
@@ -118,24 +106,26 @@ namespace Views.Workbench
         }
     }
 
-    export function dragEnd(event: DragEvent)
+    export function dragEnd(this: EntryElement | SectionElement, event: DragEvent)
     {
-        const target = getDragTarget(event);
-        if (!target) return;
-
         event.preventDefault();
         event.stopPropagation();
-        target.classList.remove("drag-over");
+        this.classList.remove("drag-over");
+
+        // clear all selections after drag'n'drop
+        const workbench = this.closest("my-workbench") as WorkbenchElement;
+        for (const element of workbench.querySelectorAll(".card-container.selected"))
+            element.classList.remove("selected");
 
         if (event.dataTransfer.dropEffect === "move")
         {
-            if (target.classList.contains("top-level"))
+            if (this.classList.contains("top-level"))
             {
-                const list = target.querySelector(".list");
+                const list = this.querySelector(".list");
                 list.clearChildren();
             }
             else
-                target.remove();
+                this.remove();
         }
     }
 

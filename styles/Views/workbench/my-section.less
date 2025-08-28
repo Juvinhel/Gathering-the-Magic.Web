@@ -22,6 +22,16 @@ my-section
         animation: blinking 0.5s ease-in-out;
         cursor: pointer;
 
+        &.sticky
+        {
+            z-index: 100000;
+            position: fixed;
+            position-anchor: --section-stick-top;
+            top: anchor(bottom);
+            right: anchor(right);
+            left: anchor(left);
+        }
+
         > .move-actions
         {
             grid-column: 1;
@@ -61,18 +71,13 @@ my-section
         padding-left: 1em;
     }
 
+    &.selected > .header
+    {
+        background-color: var(--accent-color);
+    }
+
     &.drag-over > .header
     {
         background-color: rgba(81, 221, 63);
     }
-}
-
-my-section > .header.sticky
-{
-    z-index: 100000;
-    position: fixed;
-    position-anchor: --section-stick-top;
-    top: anchor(bottom);
-    right: anchor(right);
-    left: anchor(left);
 }

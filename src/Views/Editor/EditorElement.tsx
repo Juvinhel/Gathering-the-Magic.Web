@@ -68,12 +68,7 @@ namespace Views.Editor
 
         private async cardSelected(event: CustomEvent) 
         {
-            const cardElement = event.target as HTMLElement;
             this.selectedCard = event.detail.card as Data.API.Card;
-
-            for (const element of this.querySelectorAll(".card-container.selected"))
-                if (element != cardElement)
-                    element.classList.remove("selected");
 
             const cardInfo = this.querySelector("my-card-info") as Info.CardInfoElement;
             cardInfo.loadData(this.hoveredCard ?? this.selectedCard);

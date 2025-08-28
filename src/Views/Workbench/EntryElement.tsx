@@ -17,17 +17,17 @@ namespace Views.Workbench
 
             this.append(...this.build());
 
-            this.addEventListener("click", this.select.bind(this));
+            this.addEventListener("click", this.clicked.bind(this));
             this.addEventListener("rightclick", this.showContextMenu.bind(this));
             this.addEventListener("mouseenter", this.enter.bind(this));
             this.addEventListener("mouseleave", this.leave.bind(this));
 
             this.draggable = true;
-            this.addEventListener("dragstart", dragStart);
-            this.addEventListener("dragover", dragOver);
-            this.addEventListener("dragleave", dragLeave);
-            this.addEventListener("drop", drop);
-            this.addEventListener("dragend", dragEnd);
+            this.addEventListener("dragstart", dragStart.bind(this));
+            this.addEventListener("dragover", dragOver.bind(this));
+            this.addEventListener("dragleave", dragLeave.bind(this));
+            this.addEventListener("drop", drop.bind(this));
+            this.addEventListener("dragend", dragEnd.bind(this));
         }
 
         private build()
@@ -51,6 +51,17 @@ namespace Views.Workbench
 
         public card: Data.API.Card;
         public quantity: number;
+        public get selected() { return this.classList.contains("selected"); }
+        public set selected(value: boolean)
+        {
+            this.classList.toggle("selected", value);
+
+            if (value)
+            {
+                const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: this.card } });
+                this.dispatchEvent(selectedEvent);
+            }
+        }
 
         private quantityChange(event: Event)
         {
@@ -60,14 +71,10 @@ namespace Views.Workbench
         }
 
         private clickables = ["INPUT", "A", "BUTTON"];
-        private select(event: MouseEvent)
+        private clicked(event: Event)
         {
             if (event.composedPath().some(x => this.clickables.includes((x as HTMLElement).tagName))) return;
-
-            const result = this.classList.toggle("selected");
-
-            const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: result ? this.card : null } });
-            this.dispatchEvent(selectedEvent);
+            this.selected = !this.selected;
         }
 
         private showContextMenu(event: PointerEvent)
@@ -129,7 +136,7 @@ namespace Views.Workbench
             const sectionElements = [...workbench.querySelectorAll("my-section") as NodeListOf<SectionElement>];
             const sectionTitles = sectionElements.map(x => getSectionPath(x));
 
-            const result = await selectSection(sectionTitles);
+            const result = await selectSection("Insert 1 cards into Section", sectionTitles);
             if (!result) return;
             const selectedSection = sectionElements[result.index] as HTMLElement;
 
