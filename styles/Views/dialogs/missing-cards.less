@@ -1,0 +1,58 @@
+.missing-cards
+{
+    display: grid;
+    grid-template-rows: 1fr auto;
+    grid-template-columns: 1fr;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    > table
+    {
+        width: 100%;
+        height: max-content;
+        border-collapse: collapse;
+
+        td
+        {
+            padding: 0.125em;
+
+            &:last-child
+            {
+                text-align: end;
+            }
+        }
+
+        thead
+        {
+            background: var(--background-color);
+        }
+
+        tfoot
+        {
+            z-index: initial;
+            position: relative;
+
+            td
+            {
+                border-top: 1px white solid;
+                font-weight: bold;
+            }
+        }
+    }
+
+    > div
+    {
+        display: flex;
+        position: sticky;
+        bottom: 0;
+        align-items: center;
+        justify-content: right;
+        height: 2em;
+        padding: 0.25em;
+        gap: 0.25em;
+        background-color: var(--background-color);
+        font-size: 1.125em;
+    }
+}

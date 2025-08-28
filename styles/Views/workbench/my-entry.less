@@ -1,0 +1,80 @@
+my-entry
+{
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: subgrid;
+    grid-auto-flow: column;
+    grid-column: 1 / -1;
+    align-items: center;
+    padding: 0.25em;
+    gap: 0.25em;
+    border-radius: 0.25em;
+    background-color: transparent;
+    animation: blinking 0.5s ease-in-out;
+    cursor: pointer;
+
+    > .move
+    {
+        grid-column: move;
+    }
+
+    > .quantity
+    {
+        grid-column: quantity;
+    }
+
+    > .name
+    {
+        grid-column: name;
+        justify-self: start;
+        min-width: 1em;
+        min-height: 1em;
+        padding: 0.25em;
+    }
+
+    > .type
+    {
+        grid-column: type;
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    > .mana
+    {
+        display: flex;
+        grid-column: mana;
+        justify-self: end;
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    > .actions
+    {
+        grid-column: actions;
+    }
+
+    > div
+    {
+        display: grid;
+        grid-template-rows: 1fr;
+        grid-auto-rows: auto;
+        grid-auto-flow: column;
+        align-items: center;
+        gap: 0.25em;
+    }
+
+    &.is-missing
+    {
+        background-color: var(--cancel-color);
+    }
+
+    &.selected
+    {
+        background-color: var(--accent-color);
+    }
+
+    &.drag-over
+    {
+        background-color: rgba(81, 221, 63);
+    }
+}

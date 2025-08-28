@@ -1,0 +1,74 @@
+my-workbench
+{
+    .counter
+    {
+        display: grid;
+        grid-template-rows: 1fr;
+        grid-template-columns: auto min-content min-content;
+        gap: 0.25em;
+    }
+
+    a[class*="button"]
+    {
+        height: 100%;
+
+        > color-icon
+        {
+            aspect-ratio: 1;
+            height: 100%;
+        }
+    }
+
+    .card-count
+    {
+        color: lightgray;
+    }
+
+    *:not(input)
+    {
+        user-select: none;
+    }
+
+    h1, h2, h3, h4, h5, h6, p
+    {
+        margin: 0;
+        padding: 0;
+    }
+
+    .double-click-to-edit
+    {
+        &:hover
+        {
+            &:not(input)
+            {
+                color: var(--accent-color);
+            }
+
+            &::after
+            {
+                display: block;
+                position: absolute;
+                top: 0;
+                right: -1em;
+                aspect-ratio: 1;
+                height: 1em;
+                background: center / contain url("img/icons/edit.svg");
+                content: "";
+                filter: brightness(0) invert(1);
+            }
+        }
+    }
+}
+
+@keyframes blinking
+{
+    0%
+    {
+        background-color: rgb(255, 255, 255);
+    }
+
+    100%
+    {
+        background-color: transparent;
+    }
+}

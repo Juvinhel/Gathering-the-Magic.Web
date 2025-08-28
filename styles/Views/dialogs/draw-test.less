@@ -1,0 +1,31 @@
+.draw-test
+{
+    display: grid;
+    grid-template-rows: 1fr auto;
+    grid-template-columns: 1fr;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow-y: auto;
+
+    > .list
+    {
+        display: flex;
+        flex-flow: wrap;
+        height: max-content;
+        gap: 1em;
+    }
+
+    > .actions
+    {
+        display: flex;
+        position: sticky;
+        bottom: 0;
+        align-items: center;
+        justify-content: right;
+        height: 2em;
+        padding: 0.25em;
+        gap: 0.25em;
+        background-color: var(--background-color);
+        font-size: 1.125em;
+    }
+}

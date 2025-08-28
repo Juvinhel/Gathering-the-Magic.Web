@@ -1,0 +1,18 @@
+my-workbench .commander-list
+{
+    display: flex;
+    gap: 0.25em;
+    list-style: none;
+
+    > li:not(:last-child)::after
+    {
+        content: "; "
+    }
+
+    > li:hover
+    {
+        color: var(--accent-color);
+        text-decoration: line-through;
+        cursor: pointer;
+    }
+}

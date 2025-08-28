@@ -1,0 +1,60 @@
+my-workbench
+{
+    --entry-columns: [move] auto [quantity] auto [name] 1fr [type] 0 [mana] 0 [actions] auto;
+
+    display: grid;
+    grid-template-rows: max-content 1fr;
+    grid-template-columns: 1fr;
+    grid-template-areas: "header" "list";
+    gap: 0.5em;
+    grid-column-gap: 1em;
+    width: calc(100% - 0.5em);
+    height: calc(100% - 0.5em);
+    margin: 0.25em 0;
+    padding: 0 0.25em;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    > .header
+    {
+        z-index: 1000;
+        position: sticky;
+        top: 0;
+        grid-area: header;
+        anchor-name: --section-stick-top;
+    }
+
+    > .list
+    {
+        grid-area: list;
+        height: max-content;
+    }
+}
+
+my-workbench > .header
+{
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    grid-auto-rows: auto;
+    align-items: center;
+    justify-items: start;
+    gap: 0.5em;
+    background-color: var(--page-background-color);
+
+    > *
+    {
+        grid-column: 2;
+        min-width: 1em;
+        min-height: 1em;
+    }
+
+    > input
+    {
+        width: 100%;
+    }
+
+    > label
+    {
+        grid-column: 1;
+    }
+}

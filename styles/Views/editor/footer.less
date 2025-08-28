@@ -1,0 +1,24 @@
+my-editor > .footer
+{
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-auto-columns: max-content;
+    grid-auto-flow: column;
+    align-items: center;
+    justify-items: start;
+    width: calc(100% - 0.5em);
+    height: 1.5em;
+    padding: 0.25em;
+    gap: 0.5em;
+    background-color: var(--footer-color);
+    font-size: 1.5em;
+
+    > .unsaved-progress
+    {
+        display: flex;
+        position: absolute;
+        right: 0.25em;
+        align-items: start;
+        gap: 0.25em;
+    }
+}

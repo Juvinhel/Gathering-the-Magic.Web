@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <PackageJsonName Condition="$(PackageJsonName) == ''">gathering-the-magic.web</PackageJsonName>
+    <PackageJsonVersion Condition="$(PackageJsonVersion) == ''">1.3.0</PackageJsonVersion>
+    <PackageJsonDescription Condition="$(PackageJsonDescription) == ''"></PackageJsonDescription>
+    <PackageJsonMain Condition="$(PackageJsonMain) == ''"></PackageJsonMain>
+    <PackageJsonScriptsTest Condition="$(PackageJsonScriptsTest) == ''">echo "Error: no test specified" &amp;&amp; exit 1</PackageJsonScriptsTest>
+    <PackageJsonAuthor Condition="$(PackageJsonAuthor) == ''">Juvinhel</PackageJsonAuthor>
+    <PackageJsonLicense Condition="$(PackageJsonLicense) == ''">ISC</PackageJsonLicense>
+    <PackageJsonDependenciesPeachHelper Condition="$(PackageJsonDependenciesPeachHelper) == ''">file:../../Peach/Helper</PackageJsonDependenciesPeachHelper>
+    <PackageJsonDependenciesPeachUi Condition="$(PackageJsonDependenciesPeachUi) == ''">file:../../Peach/UI</PackageJsonDependenciesPeachUi>
+    <PackageJsonDependenciesPeachUiComponents Condition="$(PackageJsonDependenciesPeachUiComponents) == ''">file:../../Peach/UI.Components</PackageJsonDependenciesPeachUiComponents>
+  </PropertyGroup>
+</Project>

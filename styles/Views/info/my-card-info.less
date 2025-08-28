@@ -1,0 +1,130 @@
+my-card-info
+{
+    display: grid;
+    grid-template-rows: max-content minmax(4em, 40%);
+    grid-template-columns: 1fr;
+    grid-auto-rows: max-content;
+    grid-auto-flow: row;
+    width: calc(100% - 0.5em);
+    height: calc(100% - 0.5em);
+    margin: 0.25em 0;
+    padding: 0 0.25em;
+    gap: 0.5em;
+
+    > .card-link
+    {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-row: 1;
+        align-items: center;
+        padding: 0 0.25em;
+        overflow: hidden;
+
+        > .card-name
+        {
+            overflow: hidden;
+            font-weight: bold;
+            font-size: 1.25em;
+            text-align: center;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    > .card-image
+    {
+        display: flex;
+        grid-row: 2;
+        justify-content: center;
+        width: 100%;
+
+        &.empty
+        {
+            background: transparent;
+            background-image: url(img/card-back.png);
+            background-position: center;
+            background-size: contain;
+            background-repeat: no-repeat;
+
+            > .card-face
+            {
+                display: none;
+            }
+        }
+
+        > .card-face
+        {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+
+            &.rot90
+            {
+                transform: rotate(90deg);
+            }
+
+            &.rot180
+            {
+                transform: rotate(180deg);
+            }
+        }
+    }
+
+    > .transform-card
+    {
+        position: absolute;
+        grid-row: 2;
+        align-self: start;
+        justify-self: end;
+        aspect-ratio: 1;
+        height: 2.5em;
+        margin: 0.25em;
+        border-radius: 100%;
+        background: transparent;
+
+        > *
+        {
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    > .card-types
+    {
+        white-space: pre-line;
+        user-select: text;
+    }
+
+    > .card-text
+    {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: pre-line;
+        user-select: text;
+
+        *
+        {
+            user-select: text;
+        }
+    }
+
+    > .links
+    {
+        list-style: none;
+
+        > li > a
+        {
+            display: grid;
+            grid-template-rows: 1fr;
+            grid-template-columns: 1em 1fr;
+            gap: 0.25em;
+
+            > img
+            {
+                aspect-ratio: 1;
+                height: 1em;
+            }
+        }
+    }
+}

@@ -1,0 +1,29 @@
+my-card-info .legalities
+{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6em, 1fr));
+    gap: 0.5em;
+}
+
+my-card-info .legal-badge
+{
+    padding: 0.25em;
+    border-radius: 0.25em;
+    background-color: gray;
+    text-align: center;
+
+    &.legal
+    {
+        background-color: #449944;
+    }
+
+    &.non-legal, &.banned
+    {
+        background-color: #99444f;
+    }
+
+    &.restricted
+    {
+        background-color: #445899;
+    }
+}

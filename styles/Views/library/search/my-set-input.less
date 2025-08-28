@@ -1,0 +1,57 @@
+my-set-input
+{
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr;
+    grid-auto-flow: column;
+    justify-content: start;
+    gap: 0.25em;
+
+    > .value-input
+    {
+        anchor-name: --set-input;
+    }
+
+    > drop-down
+    {
+        position-anchor: --set-input;
+        position-area: bottom center;
+        box-sizing: border-box;
+        max-height: 20em;
+        background-color: var(--foreground-color);
+
+        > .set-list
+        {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-auto-rows: auto;
+            grid-auto-flow: row;
+            overflow-x: hidden;
+            border: none;
+            list-style: none;
+
+            > li
+            {
+                display: grid;
+                grid-template-rows: 1fr;
+                grid-template-columns: auto auto 1fr auto;
+                align-items: center;
+                padding: 0.125em;
+                gap: 0.5em;
+                border-radius: 0.25em;
+                cursor: pointer;
+
+                &:hover
+                {
+                    background-color: var(--accent-color);
+                    color: var(--foreground-color);
+
+                    > span
+                    {
+                        color: var(--foreground-color);
+                    }
+                }
+            }
+        }
+    }
+}

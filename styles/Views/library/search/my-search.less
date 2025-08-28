@@ -1,0 +1,73 @@
+my-search
+{
+    z-index: 101;
+    height: 3em;
+    overflow: hidden;
+
+    &.expanded
+    {
+        overflow: visible; // weird but we need both overflows visible
+    }
+
+    > .search-content
+    {
+        display: grid;
+        grid-template-columns: max-content minmax(6em, 1fr);
+        grid-auto-rows: max-content;
+        align-items: center;
+        justify-items: start;
+        height: max-content;
+        padding-bottom: 0.25em;
+        gap: 0.25em;
+        border-radius: 0.25em;
+        background-color: var(--page-background-color);
+
+        > label
+        {
+            grid-column: 1;
+            align-self: baseline;
+            padding: 0.5em 0;
+        }
+
+        > *:not(label)
+        {
+            grid-column: 2;
+            max-width: 100%;
+        }
+
+        > input:not(input[type="checkbox"]):not(input[type="radio"]), select, *[class*="input"]
+        {
+            width: 100%;
+        }
+
+        > .query
+        {
+            grid-row: 1;
+            grid-column: 1 / -1;
+            width: 100%;
+        }
+
+        > .expander
+        {
+            display: grid;
+            grid-template-rows: 1fr;
+            grid-template-columns: 1fr auto;
+            grid-column: 1 / -1;
+            width: 100%;
+            gap: 0.25em;
+
+            &::before
+            {
+                align-self: center;
+                height: 1px;
+                background: var(--foreground-color);
+                content: "";
+            }
+
+            &:hover::before
+            {
+                background: var(--accent-color);
+            }
+        }
+    }
+}

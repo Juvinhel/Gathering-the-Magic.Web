@@ -1,0 +1,37 @@
+.deck-list
+{
+    display: grid;
+    grid-template-rows: 1fr auto;
+    grid-template-columns: 1fr;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-radius: var(--corner-radius);
+
+    > span
+    {
+        display: block;
+        height: max-content;
+        overflow: hidden;
+        border-radius: var(--corner-radius);
+        background-color: white;
+        color: black;
+        font-family: monospace;
+        white-space: pre;
+    }
+
+    > div
+    {
+        display: flex;
+        position: sticky;
+        bottom: 0;
+        align-items: center;
+        justify-content: right;
+        height: 2em;
+        padding: 0.25em;
+        gap: 0.25em;
+        background-color: var(--background-color);
+        font-size: 1.125em;
+    }
+}

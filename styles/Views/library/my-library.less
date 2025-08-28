@@ -1,0 +1,23 @@
+my-library
+{
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: 1fr;
+    grid-template-areas: "search" "list";
+    width: calc(100% - 0.5em);
+    height: calc(100% - 0.5em);
+    margin: 0.25em 0;
+    padding: 0 0.25em;
+    overflow: hidden;
+    gap: 0.5em;
+
+    > my-search
+    {
+        grid-area: search;
+    }
+
+    > my-card-list
+    {
+        grid-area: list;
+    }
+}
