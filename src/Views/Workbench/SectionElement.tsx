@@ -51,7 +51,12 @@ namespace Views.Workbench
         public quantity: number;
         public get topLevel() { return this.classList.contains("top-level"); }
         public get selected() { return this.classList.contains("selected"); }
-        public set selected(value: boolean) { this.classList.toggle("selected", value); }
+        public set selected(value: boolean)
+        {
+            this.classList.toggle("selected", value);
+            for (const line of this.lines)
+                line.selected = value;
+        }
 
         public get lines(): HTMLCollectionOf<SectionElement | EntryElement>
         {
@@ -98,7 +103,7 @@ namespace Views.Workbench
             this.title = input.value;
         }
 
-        private addSection()
+        public addSection()
         {
             const list = this.querySelector(".list");
             const newSection = new SectionElement({ title: "", items: [] }, false);

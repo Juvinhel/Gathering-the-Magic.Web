@@ -18,8 +18,7 @@ namespace Views.Workbench
                 <menu-button title="Sort Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Mana</span></menu-button>,
             );
         }
-
-        if (this instanceof EntryElement)
+        else if (this instanceof EntryElement)
         {
             menuButtons.push(
                 <menu-button title="Move Line Up" onclick={ this.moveUp.bind(this) }><color-icon src="img/icons/chevron-up.svg" /><span>Move Line Up</span></menu-button>,
@@ -31,12 +30,13 @@ namespace Views.Workbench
                 this.card.links.EDHREC ? <menu-button title="EDHREC" onclick={ () => window.open(this.card.links.EDHREC, '_blank') }><color-icon src="img/icons/edhrec.svg" /><span>EDHREC</span></menu-button> : null,
             );
         }
-        if (this instanceof SectionElement)
+        else if (this instanceof SectionElement)
         {
             if (this.topLevel)
                 menuButtons.push(
                     <menu-button title="Move Section Lines to ..." onclick={ this.moveTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Move Section Lines to ...</span></menu-button>,
                     <menu-button title="Clear Section Lines" onclick={ this.clear.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Clear Section Lines</span></menu-button>,
+                    <menu-button title="Add Section" onclick={ this.addSection.bind(this) }><color-icon src="img/icons/unlink.svg" /><span>Add Section</span></menu-button>,
                     <menu-button title="Sort Section Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Name</span></menu-button>,
                     <menu-button title="Sort Section Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Mana</span></menu-button>,
                 );
@@ -47,7 +47,8 @@ namespace Views.Workbench
                     <menu-button title="Move Section to ..." onclick={ this.moveTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Move Section to ...</span></menu-button>,
                     <menu-button title="Delete Section" onclick={ this.delete.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Delete Section</span></menu-button>,
                     <menu-button title="Clear Section Lines" onclick={ this.clear.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Clear Section</span></menu-button>,
-                    <menu-button title="Dissolve Section and move Lines to Parent Section" onclick={ this.dissolve.bind(this) }><color-icon src="img/icons/unlink.svg" /><span>Dissolve Section</span></menu-button>,
+                    <menu-button title="Dissolve Section and move Lines to Parent Section" onclick={ this.dissolve.bind(this) }><color-icon src="img/icons/add-section.svg" /><span>Dissolve Section</span></menu-button>,
+                    <menu-button title="Add Section" onclick={ this.addSection.bind(this) }><color-icon src="img/icons/unlink.svg" /><span>Add Section</span></menu-button>,
                     <menu-button title="Sort Section Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Name</span></menu-button>,
                     <menu-button title="Sort Section Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Mana</span></menu-button>,
                 );
@@ -134,7 +135,7 @@ namespace Views.Workbench
         for (const line of selectedLines)
             line.remove();
 
-        const sortedLines = selectedLines.orderBy(x => x instanceof EntryElement ? x.card.manaValue : -99999);
+        const sortedLines = selectedLines.orderBy(x => x instanceof EntryElement ? x.card.manaValue : Number.MAX_SAFE_INTEGER);
         if (insertPosition) insertPosition.after(...sortedLines);
         else parentElement.prepend(...sortedLines);
     }
