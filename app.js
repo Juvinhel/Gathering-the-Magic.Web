@@ -2361,17 +2361,13 @@ var UI;
                 return (UI.Generator.Hyperscript("slot", null));
             }
             static get observedAttributes() {
-                return ["open", "auto-attach"];
+                return ["open"];
             }
             attributeChangedCallback(name, oldValue, newValue) {
                 switch (name) {
                     case "open":
                         if (oldValue != newValue)
                             this.onOpenChanged(oldValue, newValue);
-                        break;
-                    case "auto-attach":
-                        if (this.autoAttach && this.parentElement)
-                            this.attach(this.parentElement);
                         break;
                 }
             }
@@ -2380,8 +2376,8 @@ var UI;
                 DropDown.dropDowns.push(this);
                 if (!this.getAttribute("popover"))
                     this.setAttribute("popover", "manual");
-                if (this.autoAttach)
-                    this.attach(this.parentElement, true);
+                if (!this.controlParent)
+                    this.controlParent = this.parentElement;
             }
             disconnectedCallback() {
                 DropDown.dropDowns.remove(this);
@@ -2397,9 +2393,7 @@ var UI;
             set open(value) { UI.Helper.SetFlagAttribute(this, "open", value); }
             get placement() { return this.getAttribute("placement"); }
             set placement(value) { this.setAttribute("placement", value); }
-            get autoAttach() { return UI.Helper.GetFlagAttribute(this, "auto-attach"); }
-            ;
-            set autoAttach(value) { UI.Helper.SetFlagAttribute(this, "auto-attach", value); }
+            controlParent;
             showDialog() {
                 return new Promise((resolve, reject) => {
                     this.addEventListener("close", () => resolve(), { once: true });
@@ -2415,8 +2409,9 @@ var UI;
             toggle(force) {
                 return this.togglePopover(force);
             }
-            toggled = function (e) {
-                if (e.newState == "open") {
+            toggled = function (event) {
+                if (event.newState == "open") {
+                    window.addEventListener("click", this.clickedOutside);
                     UI.Helper.SetFlagAttribute(this, "open", true);
                     this.dispatchEvent(new Event(Elements.openEventName));
                     // close other dropdowns
@@ -2424,7 +2419,8 @@ var UI;
                         if (dropDown != this && !dropDown.contains(this))
                             dropDown.close();
                 }
-                if (e.newState == "closed") {
+                if (event.newState == "closed") {
+                    window.removeEventListener("click", this.clickedOutside);
                     UI.Helper.SetFlagAttribute(this, "open", false);
                     this.dispatchEvent(new Event(Elements.closeEventName));
                 }
@@ -2445,36 +2441,14 @@ var UI;
                 this.internal_onopen = value;
                 this.addEventListener(Elements.openEventName, this.internal_onopen);
             }
-            attachedParent;
-            attach(parent, autoClose = true) {
-                if (this.attachedParent == parent)
+            clickedOutside = function (event) {
+                if (event.composedPath().includes(this))
                     return;
-                this.attachedParent = parent;
-                parent.addEventListener("focus", (event) => {
-                    this.show();
-                });
-                parent.addEventListener("keyup", (event) => {
-                    if (event.code == "Escape")
-                        this.close();
-                });
-                if (autoClose) {
-                    const clickOutside = (event) => {
-                        if (event.composedPath().includes(parent))
-                            return;
-                        if (event.composedPath().includes(this))
-                            return;
-                        event.stopPropagation();
-                        event.preventDefault();
-                        this.close();
-                    };
-                    this.addEventListener(Elements.openEventName, (event) => {
-                        window.addEventListener("click", clickOutside);
-                    });
-                    this.addEventListener(Elements.closeEventName, (event) => {
-                        window.removeEventListener("click", clickOutside);
-                    });
-                }
-            }
+                if (event.composedPath().includes(this.controlParent))
+                    return;
+                if (this.open)
+                    this.open = false;
+            }.bind(this);
             static closeAll() {
                 for (const dropDown of this.dropDowns)
                     dropDown.close();
@@ -2575,116 +2549,45 @@ var UI;
 (function (UI) {
     var Elements;
     (function (Elements) {
-        class DropDownButton extends Elements.CustomElement {
+        class IconButton extends UI.Elements.CustomElement {
             constructor() {
                 super();
-                this.anchorName = "--drop-down-" + GUID.Create();
                 this.shadowRoot.appendChild(this.build());
-                this.root = this.shadowRoot.getElementById("drop-down-button-root");
-                this.addEventListener("click", this.clicked);
+                this.root = this.shadowRoot.getElementById("icon-button-root");
+                this.iconDiv = this.shadowRoot.getElementById("icon-button-icon");
+                this.textSpan = this.shadowRoot.getElementById("icon-button-text");
             }
-            anchorName;
             root;
+            iconDiv;
+            textSpan;
             build() {
-                return (UI.Generator.Hyperscript("div", { id: "drop-down-button-root" },
+                return (UI.Generator.Hyperscript("div", { id: "icon-button-root" },
+                    UI.Generator.Hyperscript("div", { id: "icon-button-icon" }),
+                    UI.Generator.Hyperscript("span", { id: "icon-button-text" }),
                     UI.Generator.Hyperscript("slot", null)));
             }
-            static get observedAttributes() {
-                return ["open"];
-            }
-            connectedCallback() {
-                this.style.setProperty("anchor-name", this.anchorName);
-                this.addEventListener(UI.Events.childrenChangedEventName, this.childrenChanged);
-                this.dropDown = this.querySelector(":scope > drop-down");
-            }
-            disconnectedCallback() {
-                this.removeEventListener(UI.Events.childrenChangedEventName, this.childrenChanged);
-                this.dropDown = null;
-            }
+            static get observedAttributes() { return ["text", "icon"]; }
             attributeChangedCallback(name, oldValue, newValue) {
+                if (oldValue == newValue)
+                    return;
                 switch (name) {
-                    case "open":
-                        if (oldValue != newValue && this.internalDropDown)
-                            this.internalDropDown.open = this.open;
+                    case "text":
+                        this.textSpan.textContent = newValue;
+                        break;
+                    case "icon":
+                        this.iconDiv.style.backgroundImage = "url('" + newValue + "')";
                         break;
                 }
             }
-            get open() { return UI.Helper.GetFlagAttribute(this, "open"); }
-            set open(value) { UI.Helper.SetFlagAttribute(this, "open", value); }
-            internalDropDown;
-            get dropDown() { return this.internalDropDown; }
-            set dropDown(dropDown) {
-                if (this.internalDropDown) {
-                    this.internalDropDown.style.setProperty("position-anchor", null);
-                    this.internalDropDown.removeEventListener(Elements.openEventName, this.dropDownOpen);
-                    this.internalDropDown.removeEventListener(Elements.closeEventName, this.dropDownClose);
-                }
-                this.internalDropDown = dropDown;
-                if (this.internalDropDown) {
-                    this.internalDropDown.style.setProperty("position-anchor", this.anchorName);
-                    this.internalDropDown.open = this.open;
-                    this.internalDropDown.attach(this, true);
-                    this.internalDropDown.addEventListener(Elements.openEventName, this.dropDownOpen);
-                    this.internalDropDown.addEventListener(Elements.closeEventName, this.dropDownClose);
-                }
-            }
-            dropDownOpen = function (event) {
-                this.open = true;
-            }.bind(this);
-            dropDownClose = function (event) {
-                this.open = false;
-            }.bind(this);
-            childrenChanged = function (event) {
-                this.dropDown = this.querySelector(":scope > drop-down");
-            }.bind(this);
-            clicked = function (e) {
-                this.dropDown.open = !this.dropDown.open;
-            }.bind(this);
+            get text() { return this.getAttribute("text"); }
+            set text(value) { this.setAttribute("text", value); }
+            get icon() { return this.getAttribute("icon"); }
+            set icon(value) { this.setAttribute("icon", value); }
         }
-        Elements.DropDownButton = DropDownButton;
+        Elements.IconButton = IconButton;
     })(Elements = UI.Elements || (UI.Elements = {}));
 })(UI || (UI = {}));
-customElements.define("drop-down-button", UI.Elements.DropDownButton);
-var Views;
-(function (Views) {
-    class IconButton extends UI.Elements.CustomElement {
-        constructor() {
-            super();
-            this.shadowRoot.appendChild(this.build());
-            this.root = this.shadowRoot.getElementById("icon-button-root");
-            this.iconDiv = this.shadowRoot.getElementById("icon-button-icon");
-            this.textSpan = this.shadowRoot.getElementById("icon-button-text");
-        }
-        root;
-        iconDiv;
-        textSpan;
-        build() {
-            return (UI.Generator.Hyperscript("div", { id: "icon-button-root" },
-                UI.Generator.Hyperscript("div", { id: "icon-button-icon" }),
-                UI.Generator.Hyperscript("span", { id: "icon-button-text" }),
-                UI.Generator.Hyperscript("slot", null)));
-        }
-        static get observedAttributes() { return ["text", "icon"]; }
-        attributeChangedCallback(name, oldValue, newValue) {
-            if (oldValue == newValue)
-                return;
-            switch (name) {
-                case "text":
-                    this.textSpan.textContent = newValue;
-                    break;
-                case "icon":
-                    this.iconDiv.style.backgroundImage = "url('" + newValue + "')";
-                    break;
-            }
-        }
-        get text() { return this.getAttribute("text"); }
-        set text(value) { this.setAttribute("text", value); }
-        get icon() { return this.getAttribute("icon"); }
-        set icon(value) { this.setAttribute("icon", value); }
-    }
-    Views.IconButton = IconButton;
-})(Views || (Views = {}));
-customElements.define("icon-button", Views.IconButton);
+customElements.define("icon-button", UI.Elements.IconButton);
 var UI;
 (function (UI) {
     var Elements;
@@ -2735,7 +2638,6 @@ var UI;
                 if (this.internalDropDown) {
                     this.internalDropDown.style.setProperty("position-anchor", this.anchorName);
                     this.internalDropDown.open = this.open;
-                    this.internalDropDown.attach(this, true);
                     this.internalDropDown.addEventListener(Elements.openEventName, this.dropDownOpen);
                     this.internalDropDown.addEventListener(Elements.closeEventName, this.dropDownClose);
                 }
@@ -2749,7 +2651,7 @@ var UI;
             childrenChanged = function (event) {
                 this.dropDown = this.querySelector(":scope > drop-down");
             }.bind(this);
-            clicked = function (e) {
+            clicked = function (event) {
                 if (this.dropDown)
                     this.dropDown.open = !this.dropDown.open;
                 else {
@@ -2757,8 +2659,8 @@ var UI;
                         if (dropDown.contains(this))
                             dropDown.close();
                 }
-                e.preventDefault();
-                e.stopPropagation();
+                event.preventDefault();
+                event.stopPropagation();
             }.bind(this);
         }
         Elements.MenuButton = MenuButton;
@@ -9762,11 +9664,7 @@ var Views;
                 cardInfo.loadData(this.hoveredCard ?? this.selectedCard);
             }
             async cardSelected(event) {
-                const cardElement = event.target;
                 this.selectedCard = event.detail.card;
-                for (const element of this.querySelectorAll(".card-container.selected"))
-                    if (element != cardElement)
-                        element.classList.remove("selected");
                 const cardInfo = this.querySelector("my-card-info");
                 cardInfo.loadData(this.hoveredCard ?? this.selectedCard);
             }
@@ -9832,7 +9730,10 @@ var Views;
                             UI.Generator.Hyperscript("span", null, "Show Mana")),
                         UI.Generator.Hyperscript("menu-button", { class: ["show-type", App.config.showType ? "marked" : null], onclick: showType, title: "Show Type" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/type.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Show Type")))),
+                            UI.Generator.Hyperscript("span", null, "Show Type")),
+                        UI.Generator.Hyperscript("menu-button", { class: "clear-selection", title: "Clear Selection", onclick: clearSelection },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/hand-select.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Clear Selection")))),
                 UI.Generator.Hyperscript("menu-button", { title: "Tools" },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/tools.svg" }),
                     UI.Generator.Hyperscript("span", null, "Tools"),
@@ -9856,10 +9757,9 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/info.svg" }),
                     UI.Generator.Hyperscript("span", null, "About"),
                     UI.Generator.Hyperscript("drop-down", null,
-                        UI.Generator.Hyperscript("div", null,
-                            UI.Generator.Hyperscript("menu-button", { onclick: siteInfo, title: "Site Info" },
-                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/info.svg" }),
-                                UI.Generator.Hyperscript("span", null, "Site Info"))))));
+                        UI.Generator.Hyperscript("menu-button", { onclick: siteInfo, title: "Site Info" },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/info.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Site Info")))));
         }
         Editor.Menu = Menu;
         async function newDeck(event) {
@@ -10012,6 +9912,12 @@ var Views;
             Data.saveConfig(App.config);
             target.classList.toggle("marked", App.config.showType);
             workbench.refreshColumns();
+        }
+        async function clearSelection(event) {
+            const target = event.currentTarget;
+            const editor = target.closest("my-editor");
+            for (const element of editor.querySelectorAll(".card-container.selected"))
+                element.classList.remove("selected");
         }
         async function showDrawTest(event) {
             const target = event.currentTarget;
@@ -10262,7 +10168,7 @@ var Views;
                     this.title = card.name;
                     this.card = card;
                     this.append(...this.build());
-                    this.addEventListener("click", this.select.bind(this));
+                    this.addEventListener("click", this.clicked.bind(this));
                     this.addEventListener("rightclick", this.showContextMenu.bind(this));
                     this.addEventListener("dblclick", this.addCard.bind(this));
                     this.addEventListener("mouseenter", this.enter.bind(this));
@@ -10278,16 +10184,22 @@ var Views;
                     ];
                 }
                 card;
+                get selected() { return this.classList.contains("selected"); }
+                set selected(value) {
+                    this.classList.toggle("selected", value);
+                    if (value) {
+                        const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: this.card } });
+                        this.dispatchEvent(selectedEvent);
+                    }
+                }
                 clickables = ["INPUT", "A", "BUTTON"];
-                select(event) {
+                clicked(event) {
                     if (event.composedPath().some(x => this.clickables.includes(x.tagName)))
                         return;
-                    const result = this.classList.toggle("selected");
-                    const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: result ? this.card : null } });
-                    this.dispatchEvent(selectedEvent);
+                    this.selected = !this.selected;
                 }
                 showContextMenu(event) {
-                    UI.ContextMenu.show(event, UI.Generator.Hyperscript("menu-button", { title: "Insert Card", onclick: this.showInsertCard.bind(this) },
+                    UI.ContextMenu.show(event, UI.Generator.Hyperscript("menu-button", { title: "Insert Cards", onclick: this.showInsertCards.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
                         UI.Generator.Hyperscript("span", null, "Insert into ...")), UI.Generator.Hyperscript("menu-button", { title: "Scryfall", onclick: () => window.open(this.card.links.Scryfall, '_blank') },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/scryfall-black.svg" }),
@@ -10295,21 +10207,24 @@ var Views;
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/edhrec.svg" }),
                         UI.Generator.Hyperscript("span", null, "EDHREC")) : null);
                 }
-                async showInsertCard(event) {
+                async showInsertCards(event) {
                     const editor = this.closest("my-editor");
                     const workbench = editor.querySelector("my-workbench");
                     const sectionElements = [...workbench.querySelectorAll("my-section")];
-                    const sectionTitles = sectionElements.map(x => Views.Workbench.getSectionPath(x));
-                    const result = await Views.Workbench.selectSection(sectionTitles);
+                    const sectionTitles = sectionElements.map(s => s.path);
+                    const cardList = this.closest("my-card-list");
+                    const selectedCards = [...cardList.querySelectorAll("my-card-tile.selected")];
+                    if (!selectedCards.length)
+                        selectedCards.push(this);
+                    const result = await Views.Workbench.selectSection("Insert " + selectedCards.length.toFixed(0) + " cards into Section", sectionTitles);
                     if (!result)
                         return;
                     const selectedSection = sectionElements[result.index];
-                    const entry = Object.clone(this.card);
-                    entry.quantity = 1;
+                    const cards = selectedCards.map(x => Object.clone(x.card));
+                    const entryElements = cards.map(c => new Views.Workbench.EntryElement({ quantity: 1, ...c }));
                     const list = selectedSection.querySelector(".list");
-                    const entryElement = new Views.Workbench.EntryElement(entry);
-                    list.append(entryElement);
-                    entryElement.scrollIntoView({ behavior: "smooth" });
+                    list.append(...entryElements);
+                    entryElements.last().scrollIntoView({ block: "center", behavior: "smooth" });
                 }
                 enter(event) {
                     const selectedEvent = new CustomEvent("cardhovered", { bubbles: true, detail: { card: this.card } });
@@ -11038,57 +10953,45 @@ var Views;
         Workbench.preventDrag = preventDrag;
         function dragStart(event) {
             event.stopPropagation();
-            const target = event.currentTarget;
-            if (target.closest("swipe-container")) {
+            if (this.closest("swipe-container")) {
                 event.preventDefault();
                 event.stopPropagation();
                 return;
             }
             let data;
-            data = buildDragData(target);
+            data = buildDragData(this);
             event.dataTransfer.setData("text", JSON.stringify(data));
             event.dataTransfer.effectAllowed = "all";
         }
         Workbench.dragStart = dragStart;
         function dragOver(event) {
-            const target = getDragTarget(event);
-            if (!target)
-                return;
             event.preventDefault();
             event.stopPropagation();
             if (event.getModifierState("Control"))
                 event.dataTransfer.dropEffect = "copy";
             else
                 event.dataTransfer.dropEffect = "move";
-            target.classList.add("drag-over");
+            this.classList.add("drag-over");
         }
         Workbench.dragOver = dragOver;
         function dragLeave(event) {
-            const target = getDragTarget(event);
-            if (!target)
-                return;
             event.preventDefault();
             event.stopPropagation();
-            target.classList.remove("drag-over");
+            this.classList.remove("drag-over");
         }
         Workbench.dragLeave = dragLeave;
         function getDragTarget(event) {
             if (event.target.tagName === "INPUT")
                 return;
             let target = event.target;
-            if (!target.hasAttribute("draggable"))
-                target = target.closest("[draggable]");
-            return target;
+            return target.closest("my-section, my-entry");
         }
         async function drop(event) {
             try {
-                const target = getDragTarget(event);
-                if (!target)
-                    return;
                 event.preventDefault();
                 event.stopPropagation();
-                target.classList.remove("drag-over");
-                const isSection = target.classList.contains("section");
+                this.classList.remove("drag-over");
+                const isSection = this instanceof Workbench.SectionElement;
                 const data = event.dataTransfer.getData("text");
                 if (!data)
                     return;
@@ -11115,10 +11018,10 @@ var Views;
                     newElements.push(newSection);
                 }
                 if (isSection) {
-                    target.querySelector(".list").append(...newElements);
+                    this.querySelector(".list").append(...newElements);
                 }
                 else {
-                    target.after(...newElements);
+                    this.after(...newElements);
                 }
                 newElements.last().scrollIntoView({ behavior: "smooth", block: "center" });
             }
@@ -11128,19 +11031,20 @@ var Views;
         }
         Workbench.drop = drop;
         function dragEnd(event) {
-            const target = getDragTarget(event);
-            if (!target)
-                return;
             event.preventDefault();
             event.stopPropagation();
-            target.classList.remove("drag-over");
+            this.classList.remove("drag-over");
+            // clear all selections after drag'n'drop
+            const workbench = this.closest("my-workbench");
+            for (const element of workbench.querySelectorAll(".card-container.selected"))
+                element.classList.remove("selected");
             if (event.dataTransfer.dropEffect === "move") {
-                if (target.classList.contains("top-level")) {
-                    const list = target.querySelector(".list");
+                if (this.classList.contains("top-level")) {
+                    const list = this.querySelector(".list");
                     list.clearChildren();
                 }
                 else
-                    target.remove();
+                    this.remove();
             }
         }
         Workbench.dragEnd = dragEnd;
@@ -11256,16 +11160,16 @@ var Views;
                 this.card = card;
                 this.quantity = entry.quantity;
                 this.append(...this.build());
-                this.addEventListener("click", this.select.bind(this));
-                this.addEventListener("rightclick", this.showContextMenu.bind(this));
+                this.addEventListener("click", this.clicked.bind(this));
+                this.addEventListener("rightclick", Workbench.showContextMenu.bind(this));
                 this.addEventListener("mouseenter", this.enter.bind(this));
                 this.addEventListener("mouseleave", this.leave.bind(this));
                 this.draggable = true;
-                this.addEventListener("dragstart", Workbench.dragStart);
-                this.addEventListener("dragover", Workbench.dragOver);
-                this.addEventListener("dragleave", Workbench.dragLeave);
-                this.addEventListener("drop", Workbench.drop);
-                this.addEventListener("dragend", Workbench.dragEnd);
+                this.addEventListener("dragstart", Workbench.dragStart.bind(this));
+                this.addEventListener("dragover", Workbench.dragOver.bind(this));
+                this.addEventListener("dragleave", Workbench.dragLeave.bind(this));
+                this.addEventListener("drop", Workbench.drop.bind(this));
+                this.addEventListener("dragend", Workbench.dragEnd.bind(this));
             }
             build() {
                 return [
@@ -11283,43 +11187,37 @@ var Views;
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/helmet.svg" })),
                         UI.Generator.Hyperscript("a", { class: "delete-button", onclick: this.delete.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" })),
-                        UI.Generator.Hyperscript("a", { class: "move-to-button", onclick: this.showMoveDialog.bind(this) },
+                        UI.Generator.Hyperscript("a", { class: "move-to-button", onclick: this.moveTo.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" })))
                 ];
             }
             card;
             quantity;
+            get selected() { return this.classList.contains("selected"); }
+            set selected(value) {
+                this.classList.toggle("selected", value);
+                if (value) {
+                    const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: this.card } });
+                    this.dispatchEvent(selectedEvent);
+                }
+            }
+            get path() {
+                let title = this.title;
+                for (const parent of this.findParents())
+                    if (parent != this && parent instanceof Workbench.SectionElement)
+                        title = parent.title + " > " + title;
+                return title;
+            }
             quantityChange(event) {
                 const input = event.currentTarget;
                 this.quantity = parseInt(input.value);
                 input.dispatchEvent(new Event("calccardcount", { bubbles: true }));
             }
             clickables = ["INPUT", "A", "BUTTON"];
-            select(event) {
+            clicked(event) {
                 if (event.composedPath().some(x => this.clickables.includes(x.tagName)))
                     return;
-                const result = this.classList.toggle("selected");
-                const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: result ? this.card : null } });
-                this.dispatchEvent(selectedEvent);
-            }
-            showContextMenu(event) {
-                UI.ContextMenu.show(event, UI.Generator.Hyperscript("menu-button", { title: "Move Up", onclick: this.moveUp.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Move Up")), UI.Generator.Hyperscript("menu-button", { title: "Move Down", onclick: this.moveDown.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-down.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Move Down")), UI.Generator.Hyperscript("menu-button", { title: "Set as Commander", onclick: this.setAsCommander.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/helmet.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Set as Commander")), UI.Generator.Hyperscript("menu-button", { title: "Delete", onclick: this.delete.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Delete")), UI.Generator.Hyperscript("menu-button", { title: "Move Entry", onclick: this.showMoveDialog.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Move to ...")), UI.Generator.Hyperscript("menu-button", { title: "Scryfall", onclick: () => window.open(this.card.links.Scryfall, '_blank') },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/scryfall-black.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Scryfall")), this.card.links.EDHREC ? UI.Generator.Hyperscript("menu-button", { title: "EDHREC", onclick: () => window.open(this.card.links.EDHREC, '_blank') },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/edhrec.svg" }),
-                    UI.Generator.Hyperscript("span", null, "EDHREC")) : null);
-                event.stopPropagation();
-                event.preventDefault();
+                this.selected = !this.selected;
             }
             moveUp() {
                 let sibling = this.previousElementSibling;
@@ -11350,11 +11248,11 @@ var Views;
             delete() {
                 this.remove();
             }
-            async showMoveDialog() {
+            async moveTo() {
                 const workbench = this.closest("my-workbench");
                 const sectionElements = [...workbench.querySelectorAll("my-section")];
-                const sectionTitles = sectionElements.map(x => getSectionPath(x));
-                const result = await Workbench.selectSection(sectionTitles);
+                const sectionTitles = sectionElements.map(s => s.path);
+                const result = await Workbench.selectSection("Move this Card to ...", sectionTitles);
                 if (!result)
                     return;
                 const selectedSection = sectionElements[result.index];
@@ -11372,15 +11270,162 @@ var Views;
             }
         }
         Workbench.EntryElement = EntryElement;
-        function getSectionPath(section) {
-            let title = section.querySelector(".title").textContent;
-            for (const parent of section.findParents())
-                if (parent != section && parent.classList.contains("section"))
-                    title = parent.querySelector(".title").textContent + " > " + title;
-            return title;
-        }
-        Workbench.getSectionPath = getSectionPath;
         customElements.define("my-entry", EntryElement);
+    })(Workbench = Views.Workbench || (Views.Workbench = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Workbench;
+    (function (Workbench) {
+        function showContextMenu(event) {
+            const workbench = this.closest("my-workbench");
+            const hasSelection = workbench.querySelectorAll("my-section.selected, my-entry.selected").length > 0;
+            const menuButtons = [];
+            if (hasSelection) {
+                menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Lines Up", onclick: moveLinesUp.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Move Lines Up")), UI.Generator.Hyperscript("menu-button", { title: "Move Lines Down", onclick: moveLinesDown.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-down.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Move Lines Down")), UI.Generator.Hyperscript("menu-button", { title: "Move Lines to ...", onclick: moveLinesTo.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Move Lines to ...")), UI.Generator.Hyperscript("menu-button", { title: "Delete Lines", onclick: deleteLines.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Delete Lines")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Name", onclick: sortByName.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Sort by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Mana", onclick: sortByMana.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Sort by Mana")));
+            }
+            if (this instanceof Workbench.EntryElement) {
+                menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Line Up", onclick: this.moveUp.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Move Line Up")), UI.Generator.Hyperscript("menu-button", { title: "Move Line Down", onclick: this.moveDown.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-down.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Move Line Down")), UI.Generator.Hyperscript("menu-button", { title: "Move Line to ...", onclick: this.moveTo.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Move Line to ...")), UI.Generator.Hyperscript("menu-button", { title: "Delete Line", onclick: this.delete.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Delete Line")), UI.Generator.Hyperscript("menu-button", { title: "Set as Commander", onclick: this.setAsCommander.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/helmet.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Set as Commander")), UI.Generator.Hyperscript("menu-button", { title: "Scryfall", onclick: () => window.open(this.card.links.Scryfall, '_blank') },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/scryfall-black.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Scryfall")), this.card.links.EDHREC ? UI.Generator.Hyperscript("menu-button", { title: "EDHREC", onclick: () => window.open(this.card.links.EDHREC, '_blank') },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/edhrec.svg" }),
+                    UI.Generator.Hyperscript("span", null, "EDHREC")) : null);
+            }
+            if (this instanceof Workbench.SectionElement) {
+                if (this.topLevel)
+                    menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Section Lines to ...", onclick: this.moveTo.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Move Section Lines to ...")), UI.Generator.Hyperscript("menu-button", { title: "Clear Section Lines", onclick: this.clear.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Clear Section Lines")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Mana", onclick: sortByMana.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Mana")));
+                else
+                    menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Section Up", onclick: this.moveUp.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Move Section Up")), UI.Generator.Hyperscript("menu-button", { title: "Move Section Down", onclick: this.moveDown.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-down.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Move Section Down")), UI.Generator.Hyperscript("menu-button", { title: "Move Section to ...", onclick: this.moveTo.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Move Section to ...")), UI.Generator.Hyperscript("menu-button", { title: "Delete Section", onclick: this.delete.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Delete Section")), UI.Generator.Hyperscript("menu-button", { title: "Clear Section Lines", onclick: this.clear.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Clear Section")), UI.Generator.Hyperscript("menu-button", { title: "Dissolve Section and move Lines to Parent Section", onclick: this.dissolve.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Dissolve Section")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Mana", onclick: sortByMana.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Mana")));
+            }
+            UI.ContextMenu.show(event, ...menuButtons);
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        Workbench.showContextMenu = showContextMenu;
+        function moveLinesUp() {
+            const workbench = this.closest("my-workbench");
+            const selectedLines = getSelectedLines(workbench) ?? [this];
+            for (const line of selectedLines)
+                line.moveUp();
+        }
+        Workbench.moveLinesUp = moveLinesUp;
+        function moveLinesDown() {
+            const workbench = this.closest("my-workbench");
+            const selectedLines = getSelectedLines(workbench) ?? [this];
+            for (const line of selectedLines.reverse())
+                line.moveDown();
+        }
+        Workbench.moveLinesDown = moveLinesDown;
+        async function moveLinesTo() {
+            const workbench = this.closest("my-workbench");
+            const selectedLines = [...workbench.querySelectorAll("my-entry.selected")];
+            const sectionElements = [...workbench.querySelectorAll("my-section")];
+            const sectionNames = sectionElements.map(s => s.path);
+            const result = await Workbench.selectSection("Move " + selectedLines.length.toFixed(0) + " cards to ...", sectionNames);
+            if (!result)
+                return;
+            const selectedSection = sectionElements[result.index];
+            for (const line of selectedLines)
+                line.remove();
+            selectedSection.querySelector(".list").append(...selectedLines);
+        }
+        Workbench.moveLinesTo = moveLinesTo;
+        function deleteLines() {
+            const workbench = this.closest("my-workbench");
+            const selectedLines = getSelectedLines(workbench, false) ?? [this];
+            for (const line of selectedLines)
+                line.delete();
+        }
+        Workbench.deleteLines = deleteLines;
+        async function sortByName() {
+            const workbench = this.closest("my-workbench");
+            const selectedLines = getSelectedLines(workbench) ?? (this instanceof Workbench.SectionElement ? [...this.lines] : [this]);
+            if (selectedLines.length == 1)
+                throw new Error("Only one line selected!");
+            const parentElement = selectedLines[0].parentElement;
+            const insertPosition = selectedLines[0].previousElementSibling;
+            for (const line of selectedLines)
+                line.remove();
+            const sortedLines = selectedLines.orderBy(x => x.title);
+            if (insertPosition)
+                insertPosition.after(...sortedLines);
+            else
+                parentElement.prepend(...sortedLines);
+        }
+        Workbench.sortByName = sortByName;
+        async function sortByMana() {
+            const workbench = this.closest("my-workbench");
+            const selectedLines = getSelectedLines(workbench) ?? (this instanceof Workbench.SectionElement ? [...this.lines] : [this]);
+            if (selectedLines.length == 1)
+                throw new Error("Only one line selected!");
+            const parentElement = selectedLines[0].parentElement;
+            const insertPosition = selectedLines[0].previousElementSibling;
+            for (const line of selectedLines)
+                line.remove();
+            const sortedLines = selectedLines.orderBy(x => x instanceof Workbench.EntryElement ? x.card.manaValue : -99999);
+            if (insertPosition)
+                insertPosition.after(...sortedLines);
+            else
+                parentElement.prepend(...sortedLines);
+        }
+        Workbench.sortByMana = sortByMana;
+        function getSelectedLines(workbench, checkLayer = true) {
+            const selectedLines = [...workbench.querySelectorAll("my-section.selected:not(.top-level), my-entry.selected")];
+            if (!selectedLines.length)
+                return null;
+            if (checkLayer) {
+                const parent = selectedLines[0].parentElement;
+                if (!selectedLines.every(l => l.parentElement == parent))
+                    throw new Error("Some lines have different parents!");
+            }
+            return selectedLines;
+        }
     })(Workbench = Views.Workbench || (Views.Workbench = {}));
 })(Views || (Views = {}));
 var Views;
@@ -11395,16 +11440,15 @@ var Views;
                     this.classList.add("top-level");
                 this.title = section.title;
                 this.append(...this.build(section));
-                this.addEventListener("rightclick", this.showContextMenu.bind(this));
+                const header = this.querySelector(".header");
+                header.addEventListener("click", this.clicked.bind(this));
+                header.addEventListener("rightclick", Workbench.showContextMenu.bind(this));
                 this.addEventListener("calccardcount", this.calcCardCount.bind(this));
                 this.addEventListener("rendered", this.calcCardCount.bind(this));
-                this.draggable = true;
-                this.addEventListener("dragstart", Workbench.dragStart);
-                this.addEventListener("dragend", Workbench.dragEnd);
             }
             build(section) {
                 return [
-                    UI.Generator.Hyperscript("div", { class: "header", ondragover: Workbench.dragOver, ondragleave: Workbench.dragLeave, ondrop: Workbench.drop },
+                    UI.Generator.Hyperscript("div", { class: "header", draggable: true, ondragstart: Workbench.dragStart.bind(this), ondragover: Workbench.dragOver.bind(this), ondragleave: Workbench.dragLeave.bind(this), ondragend: Workbench.dragEnd.bind(this), ondrop: Workbench.drop.bind(this) },
                         UI.Generator.Hyperscript("div", { class: ["move-actions", this.topLevel ? "none" : null] },
                             UI.Generator.Hyperscript("a", { class: ["up-button"], onclick: this.moveUp.bind(this) },
                                 UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" })),
@@ -11415,11 +11459,11 @@ var Views;
                             UI.Generator.Hyperscript("span", { class: "card-count" }, "0"),
                             UI.Generator.Hyperscript("a", { class: ["add-section-button"], onclick: this.addSection.bind(this) },
                                 UI.Generator.Hyperscript("color-icon", { src: "img/icons/add-section.svg" })),
-                            UI.Generator.Hyperscript("a", { class: ["dissolve-button", this.topLevel ? "none" : null], onclick: this.dissolve.bind(this) },
+                            UI.Generator.Hyperscript("a", { class: ["dissolve-button", this.topLevel ? "none" : null], onclick: this.dissolveClick.bind(this) },
                                 UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" })),
-                            UI.Generator.Hyperscript("a", { class: ["delete-button", this.topLevel ? "none" : null], onclick: this.delete.bind(this) },
+                            UI.Generator.Hyperscript("a", { class: ["delete-button", this.topLevel ? "none" : null], onclick: this.deleteClick.bind(this) },
                                 UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" })),
-                            UI.Generator.Hyperscript("a", { class: ["move-to-button", this.topLevel ? "none" : null], onclick: this.showMoveDialog.bind(this) },
+                            UI.Generator.Hyperscript("a", { class: ["move-to-button", this.topLevel ? "none" : null], onclick: this.moveTo.bind(this) },
                                 UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" })))),
                     UI.Generator.Hyperscript("div", { class: "list", onchildrenchanged: (event) => {
                             const list = event.currentTarget;
@@ -11429,20 +11473,23 @@ var Views;
             }
             quantity;
             get topLevel() { return this.classList.contains("top-level"); }
-            showContextMenu(event) {
-                UI.ContextMenu.show(event, this.topLevel ? null : UI.Generator.Hyperscript("menu-button", { title: "Move Up", onclick: this.moveUp.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Move Up")), this.topLevel ? null : UI.Generator.Hyperscript("menu-button", { title: "Move Down", onclick: this.moveDown.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-down.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Move Down")), UI.Generator.Hyperscript("menu-button", { title: "Add Sub-Section", onclick: this.addSection.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/add-section.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Add Sub-Section")), this.topLevel ? null : UI.Generator.Hyperscript("menu-button", { title: "Dissolve Section", onclick: this.dissolve.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Dissolve")), this.topLevel ? null : UI.Generator.Hyperscript("menu-button", { title: "Delete Section", onclick: this.delete.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Delete")), this.topLevel ? null : UI.Generator.Hyperscript("menu-button", { title: "Move Section", onclick: this.showMoveDialog.bind(this) },
-                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Move to ...")));
+            get selected() { return this.classList.contains("selected"); }
+            set selected(value) { this.classList.toggle("selected", value); }
+            get lines() {
+                return this.querySelector(".list").children;
+            }
+            get path() {
+                let title = this.title;
+                for (const parent of this.findParents())
+                    if (parent != this && parent instanceof SectionElement)
+                        title = parent.title + " > " + title;
+                return title;
+            }
+            clickables = ["INPUT", "A", "BUTTON"];
+            clicked(event) {
+                if (event.composedPath().some(x => this.clickables.includes(x.tagName)))
+                    return;
+                this.selected = !this.selected;
             }
             moveUp() {
                 let sibling = this.previousElementSibling;
@@ -11470,26 +11517,35 @@ var Views;
                 title.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }));
                 title.scrollIntoView({ behavior: "smooth", block: "center" });
             }
-            async dissolve() {
+            async dissolveClick() {
                 const result = await UI.Dialog.confirm({ title: "Dissolve Section", text: "Do you really want to delete this section and move all of its contents to the parent?" });
                 if (!result)
                     return;
+                this.dissolve();
+            }
+            dissolve() {
                 const listElement = this.querySelector(".list");
                 const items = [...listElement.children];
                 this.replaceWith(...items);
             }
-            async delete() {
+            async deleteClick() {
                 const result = await UI.Dialog.confirm({ title: "Delete Section", text: "Do you really want to delete this section and all of its contents?" });
                 if (!result)
                     return;
-                if (this)
-                    this.remove();
+                this.delete();
             }
-            async showMoveDialog() {
+            delete() {
+                this.remove();
+            }
+            clear() {
+                const list = this.querySelector(".list");
+                list.clearChildren();
+            }
+            async moveTo() {
                 const workbench = this.closest("my-workbench");
                 const sectionElements = [...workbench.querySelectorAll("my-section")].filter(x => x != this).filter(x => !this.contains(x));
-                const sectionNames = sectionElements.map(x => Workbench.getSectionPath(x));
-                const result = await Workbench.selectSection(sectionNames);
+                const sectionNames = sectionElements.map(s => s.path);
+                const result = await Workbench.selectSection("Move this Section to ...", sectionNames);
                 if (!result)
                     return;
                 const selectedSection = sectionElements[result.index];
@@ -11511,7 +11567,7 @@ var Views;
 (function (Views) {
     var Workbench;
     (function (Workbench) {
-        async function selectSection(sections) {
+        async function selectSection(title, sections) {
             const result = await UI.Dialog.show(UI.Generator.Hyperscript("div", { class: "section-select-dialog" },
                 UI.Generator.Hyperscript("select", { class: "move-to-section" }, sections.map((section, index) => UI.Generator.Hyperscript("option", { value: index }, section))),
                 UI.Generator.Hyperscript("button", { onclick: (event) => {
@@ -11519,7 +11575,7 @@ var Views;
                         dialog.classList.add("ok");
                         UI.Dialog.close(event.currentTarget);
                     } }, "OK"),
-                UI.Generator.Hyperscript("button", { onclick: (event) => UI.Dialog.close(event.currentTarget) }, "Cancel")), { allowClose: true, title: "select section" });
+                UI.Generator.Hyperscript("button", { onclick: (event) => UI.Dialog.close(event.currentTarget) }, "Cancel")), { allowClose: true, title });
             const dialog = result;
             const ok = dialog.classList.contains("ok");
             if (!ok)
@@ -11640,8 +11696,9 @@ var Views;
                 let offSection;
                 for (const section of sections) {
                     const area = section.getBoundingClientRect();
-                    const offset = area.top - topOffset;
-                    if (offset < 0)
+                    const top = area.top - topOffset;
+                    const bottom = area.bottom - topOffset;
+                    if (top < 0 && bottom >= 0)
                         offSection = section;
                 }
                 for (const section of sections) {
