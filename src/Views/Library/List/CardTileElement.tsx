@@ -65,7 +65,7 @@ namespace Views.Library.List
             const editor = this.closest("my-editor") as Editor.EditorElement;
             const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
             const sectionElements = [...workbench.querySelectorAll("my-section") as NodeListOf<Workbench.SectionElement>];
-            const sectionTitles = sectionElements.map(x => Views.Workbench.getSectionPath(x));
+            const sectionTitles = sectionElements.map(s => s.path);
 
             const cardList = this.closest("my-card-list");
             const selectedCards = [...cardList.querySelectorAll("my-card-tile.selected")] as CardTileElement[];

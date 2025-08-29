@@ -130,8 +130,9 @@ namespace Views.Workbench
             for (const section of sections)
             {
                 const area = section.getBoundingClientRect();
-                const offset = area.top - topOffset;
-                if (offset < 0) offSection = section;
+                const top = area.top - topOffset;
+                const bottom = area.bottom - topOffset;
+                if (top < 0 && bottom >= 0) offSection = section;
             }
 
             for (const section of sections)

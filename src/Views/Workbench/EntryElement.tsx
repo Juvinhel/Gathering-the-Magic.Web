@@ -18,7 +18,7 @@ namespace Views.Workbench
             this.append(...this.build());
 
             this.addEventListener("click", this.clicked.bind(this));
-            this.addEventListener("rightclick", this.showContextMenu.bind(this));
+            this.addEventListener("rightclick", showContextMenu.bind(this));
             this.addEventListener("mouseenter", this.enter.bind(this));
             this.addEventListener("mouseleave", this.leave.bind(this));
 
@@ -44,7 +44,7 @@ namespace Views.Workbench
                 <div class="actions">
                     <a class="commander-button" onclick={ this.setAsCommander.bind(this) }><color-icon src="img/icons/helmet.svg" /></a>
                     <a class="delete-button" onclick={ this.delete.bind(this) }><color-icon src="img/icons/delete.svg" /></a>
-                    <a class="move-to-button" onclick={ this.showMoveDialog.bind(this) }><color-icon src="img/icons/arrow-right.svg" /></a>
+                    <a class="move-to-button" onclick={ this.moveTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /></a>
                 </div>
             ];
         }
@@ -63,6 +63,15 @@ namespace Views.Workbench
             }
         }
 
+        public get path(): string
+        {
+            let title = this.title;
+            for (const parent of this.findParents())
+                if (parent != this && parent instanceof SectionElement)
+                    title = parent.title + " > " + title;
+            return title;
+        }
+
         private quantityChange(event: Event)
         {
             const input = event.currentTarget as HTMLInputElement;
@@ -75,21 +84,6 @@ namespace Views.Workbench
         {
             if (event.composedPath().some(x => this.clickables.includes((x as HTMLElement).tagName))) return;
             this.selected = !this.selected;
-        }
-
-        private showContextMenu(event: PointerEvent)
-        {
-            UI.ContextMenu.show(event,
-                <menu-button title="Move Up" onclick={ this.moveUp.bind(this) }><color-icon src="img/icons/chevron-up.svg" /><span>Move Up</span></menu-button>,
-                <menu-button title="Move Down" onclick={ this.moveDown.bind(this) }><color-icon src="img/icons/chevron-down.svg" /><span>Move Down</span></menu-button>,
-                <menu-button title="Set as Commander" onclick={ this.setAsCommander.bind(this) }><color-icon src="img/icons/helmet.svg" /><span>Set as Commander</span></menu-button>,
-                <menu-button title="Delete" onclick={ this.delete.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Delete</span></menu-button>,
-                <menu-button title="Move Entry" onclick={ this.showMoveDialog.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Move to ...</span></menu-button>,
-                <menu-button title="Scryfall" onclick={ () => window.open(this.card.links.Scryfall, '_blank') }><color-icon src="img/icons/scryfall-black.svg" /><span>Scryfall</span></menu-button>,
-                this.card.links.EDHREC ? <menu-button title="EDHREC" onclick={ () => window.open(this.card.links.EDHREC, '_blank') }><color-icon src="img/icons/edhrec.svg" /><span>EDHREC</span></menu-button> : null,
-            );
-            event.stopPropagation();
-            event.preventDefault();
         }
 
         public moveUp()
@@ -130,13 +124,13 @@ namespace Views.Workbench
             this.remove();
         }
 
-        public async showMoveDialog()
+        public async moveTo()
         {
             const workbench = this.closest("my-workbench") as WorkbenchElement;
             const sectionElements = [...workbench.querySelectorAll("my-section") as NodeListOf<SectionElement>];
-            const sectionTitles = sectionElements.map(x => getSectionPath(x));
+            const sectionTitles = sectionElements.map(s => s.path);
 
-            const result = await selectSection("Insert 1 cards into Section", sectionTitles);
+            const result = await selectSection("Move this Card to ...", sectionTitles);
             if (!result) return;
             const selectedSection = sectionElements[result.index] as HTMLElement;
 
@@ -156,15 +150,6 @@ namespace Views.Workbench
             const selectedEvent = new CustomEvent("cardhovered", { bubbles: true, detail: { card: null } });
             this.dispatchEvent(selectedEvent);
         }
-    }
-
-    export function getSectionPath(section: Element): string
-    {
-        let title = section.querySelector(".title").textContent;
-        for (const parent of section.findParents())
-            if (parent != section && parent.classList.contains("section"))
-                title = parent.querySelector(".title").textContent + " > " + title;
-        return title;
     }
 
     customElements.define("my-entry", EntryElement);
