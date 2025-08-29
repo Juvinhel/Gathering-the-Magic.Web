@@ -11296,7 +11296,7 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                     UI.Generator.Hyperscript("span", null, "Sort by Mana")));
             }
-            if (this instanceof Workbench.EntryElement) {
+            else if (this instanceof Workbench.EntryElement) {
                 menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Line Up", onclick: this.moveUp.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" }),
                     UI.Generator.Hyperscript("span", null, "Move Line Up")), UI.Generator.Hyperscript("menu-button", { title: "Move Line Down", onclick: this.moveDown.bind(this) },
@@ -11313,13 +11313,15 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/edhrec.svg" }),
                     UI.Generator.Hyperscript("span", null, "EDHREC")) : null);
             }
-            if (this instanceof Workbench.SectionElement) {
+            else if (this instanceof Workbench.SectionElement) {
                 if (this.topLevel)
                     menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Section Lines to ...", onclick: this.moveTo.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
                         UI.Generator.Hyperscript("span", null, "Move Section Lines to ...")), UI.Generator.Hyperscript("menu-button", { title: "Clear Section Lines", onclick: this.clear.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Clear Section Lines")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
+                        UI.Generator.Hyperscript("span", null, "Clear Section Lines")), UI.Generator.Hyperscript("menu-button", { title: "Add Section", onclick: this.addSection.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Add Section")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                         UI.Generator.Hyperscript("span", null, "Sort Section Lines by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Mana", onclick: sortByMana.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
@@ -11336,8 +11338,10 @@ var Views;
                         UI.Generator.Hyperscript("span", null, "Delete Section")), UI.Generator.Hyperscript("menu-button", { title: "Clear Section Lines", onclick: this.clear.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
                         UI.Generator.Hyperscript("span", null, "Clear Section")), UI.Generator.Hyperscript("menu-button", { title: "Dissolve Section and move Lines to Parent Section", onclick: this.dissolve.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/add-section.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Dissolve Section")), UI.Generator.Hyperscript("menu-button", { title: "Add Section", onclick: this.addSection.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Dissolve Section")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
+                        UI.Generator.Hyperscript("span", null, "Add Section")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                         UI.Generator.Hyperscript("span", null, "Sort Section Lines by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Mana", onclick: sortByMana.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
@@ -11408,7 +11412,7 @@ var Views;
             const insertPosition = selectedLines[0].previousElementSibling;
             for (const line of selectedLines)
                 line.remove();
-            const sortedLines = selectedLines.orderBy(x => x instanceof Workbench.EntryElement ? x.card.manaValue : -99999);
+            const sortedLines = selectedLines.orderBy(x => x instanceof Workbench.EntryElement ? x.card.manaValue : Number.MAX_SAFE_INTEGER);
             if (insertPosition)
                 insertPosition.after(...sortedLines);
             else
@@ -11474,7 +11478,11 @@ var Views;
             quantity;
             get topLevel() { return this.classList.contains("top-level"); }
             get selected() { return this.classList.contains("selected"); }
-            set selected(value) { this.classList.toggle("selected", value); }
+            set selected(value) {
+                this.classList.toggle("selected", value);
+                for (const line of this.lines)
+                    line.selected = value;
+            }
             get lines() {
                 return this.querySelector(".list").children;
             }
