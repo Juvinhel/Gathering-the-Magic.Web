@@ -28,10 +28,10 @@ namespace Views.Editor
                 <drop-down>
                     <menu-button onclick={ sortCards } title="Sort Cards"><color-icon src="img/icons/sort.svg" /><span>Sort Cards</span></menu-button>
                     <menu-button onclick={ showDeckList } title="Show Deck List"><color-icon src="img/icons/numbered-list.svg" /><span>Show Deck List</span></menu-button>
-                    <menu-button onclick={ showMissingCards } title="Show Missing Cards"><color-icon src="img/icons/missing-card.svg" /><span>Show Missing Cards</span></menu-button>
+                    <menu-button class="show-missing-cards" onclick={ showMissingCards } title="Show Missing Cards"><color-icon src="img/icons/missing-card.svg" /><span>Show Missing Cards</span></menu-button>
                     <menu-button onclick={ showDrawTest } title="Show Draw Test"><color-icon src="img/icons/cards.svg" /><span>Show Draw Test</span></menu-button>
                     <menu-button onclick={ showDeckStatistics } title="Show Deck Statistics"><color-icon src="img/icons/pie-chart.svg" /><span>Show Deck Statistics</span></menu-button>
-                    <menu-button class="show-collections-overview" title="Show Collections" onclick={ showCollectionsOverview }><color-icon src="img/icons/collection.svg" /><span>Show Collections</span></menu-button>
+                    <menu-button onclick={ showCollectionsOverview } title="Show Collections"><color-icon src="img/icons/collection.svg" /><span>Show Collections</span></menu-button>
                 </drop-down>
             </menu-button>
             <menu-button title="About">
