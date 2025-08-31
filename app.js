@@ -8029,6 +8029,9 @@ class App {
         UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
         UI.LazyLoad.Start();
         Views.initGlobalDrag();
+        window.addEventListener("mousemove", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
+        window.addEventListener("keydown", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
+        window.addEventListener("keyup", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
         document.addEventListener('visibilitychange', App.visibilityChange);
         const lastDeck = localStorage.get("last-deck") ?? App.sampleDeck;
         await UI.Navigator.navigate("main", () => new Views.Editor.EditorElement());
@@ -8052,6 +8055,7 @@ class App {
     static keywords;
     static collections = {};
     static config;
+    static ctrl = false;
     static sampleDeck = {
         name: "Sample Deck",
         description: "This is a sample deck for demonstration purposes.",
@@ -9693,6 +9697,10 @@ var Views;
                 this.selectedCard = event.detail.card;
                 const cardInfo = this.querySelector("my-card-info");
                 cardInfo.loadData(this.hoveredCard ?? this.selectedCard);
+                if (!App.ctrl)
+                    for (const cardContainer of this.querySelectorAll(".card-container.selected"))
+                        if (cardContainer != event.target)
+                            cardContainer.classList.toggle("selected", false);
             }
             deckChanged(event) {
                 const unsavedProgress = this.querySelector(".unsaved-progress");
@@ -9770,7 +9778,7 @@ var Views;
                         UI.Generator.Hyperscript("menu-button", { onclick: showDeckList, title: "Show Deck List" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/numbered-list.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Deck List")),
-                        UI.Generator.Hyperscript("menu-button", { onclick: showMissingCards, title: "Show Missing Cards" },
+                        UI.Generator.Hyperscript("menu-button", { class: "show-missing-cards", onclick: showMissingCards, title: "Show Missing Cards" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/missing-card.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Missing Cards")),
                         UI.Generator.Hyperscript("menu-button", { onclick: showDrawTest, title: "Show Draw Test" },
@@ -9779,7 +9787,7 @@ var Views;
                         UI.Generator.Hyperscript("menu-button", { onclick: showDeckStatistics, title: "Show Deck Statistics" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/pie-chart.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Deck Statistics")),
-                        UI.Generator.Hyperscript("menu-button", { class: "show-collections-overview", title: "Show Collections", onclick: showCollectionsOverview },
+                        UI.Generator.Hyperscript("menu-button", { onclick: showCollectionsOverview, title: "Show Collections" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/collection.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Collections")))),
                 UI.Generator.Hyperscript("menu-button", { title: "About" },
