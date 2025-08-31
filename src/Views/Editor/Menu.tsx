@@ -31,6 +31,7 @@ namespace Views.Editor
                     <menu-button onclick={ showMissingCards } title="Show Missing Cards"><color-icon src="img/icons/missing-card.svg" /><span>Show Missing Cards</span></menu-button>
                     <menu-button onclick={ showDrawTest } title="Show Draw Test"><color-icon src="img/icons/cards.svg" /><span>Show Draw Test</span></menu-button>
                     <menu-button onclick={ showDeckStatistics } title="Show Deck Statistics"><color-icon src="img/icons/pie-chart.svg" /><span>Show Deck Statistics</span></menu-button>
+                    <menu-button class="show-collections-overview" title="Show Collections" onclick={ showCollectionsOverview }><color-icon src="img/icons/collection.svg" /><span>Show Collections</span></menu-button>
                 </drop-down>
             </menu-button>
             <menu-button title="About">
@@ -286,5 +287,10 @@ namespace Views.Editor
                 "Version: " + version + "\r\n" +
                 "Build Date: " + buildDate.toLocaleString()
         });
+    }
+
+    function showCollectionsOverview(event: Event)
+    {
+        UI.Dialog.show(<Views.Dialogs.CollectionsOverview />, { allowClose: true, title: "Collections Overview" });
     }
 }

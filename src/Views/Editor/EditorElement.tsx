@@ -52,7 +52,7 @@ namespace Views.Editor
                 }
 
                 if (isSmall)
-                    this.appendChild(<swipe-container class="container" index={ 1 }>{ library }{ workbench }{ cardInfo }</swipe-container>);
+                    this.appendChild(<swipe-container class="container" index={ 1 }><div>{ library }</div><div>{ workbench }</div><div>{ cardInfo }</div></swipe-container>);
                 else
                     this.appendChild(<pane-container class="container"><div>{ library }</div><div>{ cardInfo }</div><div>{ workbench }</div></pane-container>);
             }

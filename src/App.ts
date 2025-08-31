@@ -10,19 +10,17 @@ class App
             Data.API.sets(),
             Data.API.keywords(),
         ]);
-        this.collections = localStorage.get("collections") ?? {};
+        this.collections = JSON.parse(localStorage.getItem("collections"), (key: string, value: any) =>
+        {
+            if (key == "importDate") return new Date(value);
+            return value;
+        }) ?? {};
 
         initChartJS();
         UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
         UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
         UI.LazyLoad.Start();
         Views.initGlobalDrag();
-
-        document.body.addEventListener("contextmenu", (event: Event) =>
-        {
-            if (event.composedPath().some(t => t instanceof HTMLAnchorElement || t instanceof HTMLInputElement)) return;
-            event.preventDefault();
-        });
 
         document.addEventListener('visibilitychange', App.visibilityChange);
         const lastDeck = localStorage.get("last-deck") ?? App.sampleDeck;

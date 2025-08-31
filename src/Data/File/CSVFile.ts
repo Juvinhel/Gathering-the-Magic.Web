@@ -15,7 +15,7 @@ namespace Data.File
 
             const dataset = await CSV.fetch({ data: text });
 
-            const collection: Collection = { name: null, cards: {} };
+            const collection: Collection = { name: null, cards: {}, importDate: new Date() };
             const header = dataset.fields;
             const nameIndex = findColumn(header, "name");
             const quantityIndex = findColumn(header, "quantity", "qty", "count");

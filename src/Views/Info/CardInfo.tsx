@@ -23,7 +23,11 @@ namespace Views.Info
                 <span class="card-types" />,
                 <p class="card-text" />,
                 <div class="legalities" />,
-                <ul class="links" />
+                <ul class="links" />,
+                <div class="in-collections" >
+                    <color-icon src="img/icons/deck.svg" /><span>In Collection:</span>
+                    <ul />
+                </div>
             ];
         }
 
@@ -53,7 +57,14 @@ namespace Views.Info
             links.clearChildren();
             if (card)
                 for (const link of Object.entries(card.links))
-                    links.append(<li><a href={ link[1] } target="_blank"><img src={ "img/icons/" + link[0].toLowerCase() + ".svg" } /><span>{ link[0] }</span></a></li>);
+                    links.append(<li title={ link[0] }><a href={ link[1] } target="_blank"><img src={ "img/icons/" + link[0].toLowerCase() + ".svg" } /><span>{ link[0] }</span></a></li>);
+
+            const inCollections = this.querySelector(".in-collections ul") as HTMLUListElement;
+            inCollections.clearChildren();
+            if (card)
+                for (const collection of Object.values(App.collections))
+                    if (Object.keys(collection.cards).includes(card.name))
+                        inCollections.append(<li title={ collection.name }><span>{ collection.name }</span></li>);
 
             const transformCardButton = this.querySelector(".transform-card");
             transformCardButton.classList.toggle("transformed", false);
