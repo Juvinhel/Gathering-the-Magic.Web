@@ -72,6 +72,11 @@ namespace Views.Editor
 
             const cardInfo = this.querySelector("my-card-info") as Info.CardInfoElement;
             cardInfo.loadData(this.hoveredCard ?? this.selectedCard);
+
+            if (!App.ctrl)
+                for (const cardContainer of this.querySelectorAll(".card-container.selected"))
+                    if (cardContainer != event.target)
+                        cardContainer.classList.toggle("selected", false);
         }
 
         private deckChanged(event: Event)

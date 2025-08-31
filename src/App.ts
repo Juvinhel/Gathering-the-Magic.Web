@@ -22,6 +22,10 @@ class App
         UI.LazyLoad.Start();
         Views.initGlobalDrag();
 
+        window.addEventListener("mousemove", (event: MouseEvent) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
+        window.addEventListener("keydown", (event: KeyboardEvent) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
+        window.addEventListener("keyup", (event: KeyboardEvent) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
+
         document.addEventListener('visibilitychange', App.visibilityChange);
         const lastDeck = localStorage.get("last-deck") ?? App.sampleDeck;
 
@@ -55,6 +59,8 @@ class App
 
     public static collections: { [name: string]: Data.Collection; } = {};
     public static config: Data.Config;
+
+    public static ctrl: boolean = false;
 
     private static sampleDeck = {
         name: "Sample Deck",
