@@ -8019,17 +8019,16 @@ class App {
             Data.API.sets(),
             Data.API.keywords(),
         ]);
-        this.collections = localStorage.get("collections") ?? {};
+        this.collections = JSON.parse(localStorage.getItem("collections"), (key, value) => {
+            if (key == "importDate")
+                return new Date(value);
+            return value;
+        }) ?? {};
         initChartJS();
         UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
         UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
         UI.LazyLoad.Start();
         Views.initGlobalDrag();
-        document.body.addEventListener("contextmenu", (event) => {
-            if (event.composedPath().some(t => t instanceof HTMLAnchorElement || t instanceof HTMLInputElement))
-                return;
-            event.preventDefault();
-        });
         document.addEventListener('visibilitychange', App.visibilityChange);
         const lastDeck = localStorage.get("last-deck") ?? App.sampleDeck;
         await UI.Navigator.navigate("main", () => new Views.Editor.EditorElement());
@@ -8582,7 +8581,7 @@ var Data;
             async load(text) {
                 text = text.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
                 const dataset = await CSV.fetch({ data: text });
-                const collection = { name: null, cards: {} };
+                const collection = { name: null, cards: {}, importDate: new Date() };
                 const header = dataset.fields;
                 const nameIndex = findColumn(header, "name");
                 const quantityIndex = findColumn(header, "quantity", "qty", "count");
@@ -9178,6 +9177,33 @@ var Views;
 (function (Views) {
     var Dialogs;
     (function (Dialogs) {
+        function CollectionsOverview() {
+            return UI.Generator.Hyperscript("div", { class: "collections-overview" },
+                UI.Generator.Hyperscript("div", null,
+                    UI.Generator.Hyperscript("span", null, "Name"),
+                    UI.Generator.Hyperscript("span", null, "Cards"),
+                    UI.Generator.Hyperscript("span", null, "Import Date"),
+                    UI.Generator.Hyperscript("span", null)),
+                Object.entries(App.collections).orderBy(x => x[1].name).map(e => UI.Generator.Hyperscript("div", null,
+                    UI.Generator.Hyperscript("span", null, e[1].name),
+                    UI.Generator.Hyperscript("span", null, Object.values(e[1].cards).sum()),
+                    UI.Generator.Hyperscript("span", null, e[1].importDate.toLocaleString()),
+                    UI.Generator.Hyperscript("a", { class: "link-button", onclick: (event) => deleteCollection(event, e[0]) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" })))));
+        }
+        Dialogs.CollectionsOverview = CollectionsOverview;
+        function deleteCollection(event, key) {
+            const target = event.currentTarget;
+            const row = target.closest("div");
+            row.remove();
+            delete App.collections[key];
+        }
+    })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Dialogs;
+    (function (Dialogs) {
         function DeckList(editor, cards) {
             let text = "";
             for (const entry of cards.sortBy(x => x.name))
@@ -9648,9 +9674,9 @@ var Views;
                     }
                     if (isSmall)
                         this.appendChild(UI.Generator.Hyperscript("swipe-container", { class: "container", index: 1 },
-                            library,
-                            workbench,
-                            cardInfo));
+                            UI.Generator.Hyperscript("div", null, library),
+                            UI.Generator.Hyperscript("div", null, workbench),
+                            UI.Generator.Hyperscript("div", null, cardInfo)));
                     else
                         this.appendChild(UI.Generator.Hyperscript("pane-container", { class: "container" },
                             UI.Generator.Hyperscript("div", null, library),
@@ -9752,7 +9778,10 @@ var Views;
                             UI.Generator.Hyperscript("span", null, "Show Draw Test")),
                         UI.Generator.Hyperscript("menu-button", { onclick: showDeckStatistics, title: "Show Deck Statistics" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/pie-chart.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Show Deck Statistics")))),
+                            UI.Generator.Hyperscript("span", null, "Show Deck Statistics")),
+                        UI.Generator.Hyperscript("menu-button", { class: "show-collections-overview", title: "Show Collections", onclick: showCollectionsOverview },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/collection.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Show Collections")))),
                 UI.Generator.Hyperscript("menu-button", { title: "About" },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/info.svg" }),
                     UI.Generator.Hyperscript("span", null, "About"),
@@ -9946,6 +9975,9 @@ var Views;
                     "Build Date: " + buildDate.toLocaleString()
             });
         }
+        function showCollectionsOverview(event) {
+            UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.CollectionsOverview, null), { allowClose: true, title: "Collections Overview" });
+        }
     })(Editor = Views.Editor || (Views.Editor = {}));
 })(Views || (Views = {}));
 var Views;
@@ -9969,7 +10001,11 @@ var Views;
                     UI.Generator.Hyperscript("span", { class: "card-types" }),
                     UI.Generator.Hyperscript("p", { class: "card-text" }),
                     UI.Generator.Hyperscript("div", { class: "legalities" }),
-                    UI.Generator.Hyperscript("ul", { class: "links" })
+                    UI.Generator.Hyperscript("ul", { class: "links" }),
+                    UI.Generator.Hyperscript("div", { class: "in-collections" },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/deck.svg" }),
+                        UI.Generator.Hyperscript("span", null, "In Collection:"),
+                        UI.Generator.Hyperscript("ul", null))
                 ];
             }
             currentCard;
@@ -9993,10 +10029,17 @@ var Views;
                 links.clearChildren();
                 if (card)
                     for (const link of Object.entries(card.links))
-                        links.append(UI.Generator.Hyperscript("li", null,
+                        links.append(UI.Generator.Hyperscript("li", { title: link[0] },
                             UI.Generator.Hyperscript("a", { href: link[1], target: "_blank" },
                                 UI.Generator.Hyperscript("img", { src: "img/icons/" + link[0].toLowerCase() + ".svg" }),
                                 UI.Generator.Hyperscript("span", null, link[0]))));
+                const inCollections = this.querySelector(".in-collections ul");
+                inCollections.clearChildren();
+                if (card)
+                    for (const collection of Object.values(App.collections))
+                        if (Object.keys(collection.cards).includes(card.name))
+                            inCollections.append(UI.Generator.Hyperscript("li", { title: collection.name },
+                                UI.Generator.Hyperscript("span", null, collection.name)));
                 const transformCardButton = this.querySelector(".transform-card");
                 transformCardButton.classList.toggle("transformed", false);
                 transformCardButton.classList.toggle("none", !(card?.isFlip || card?.isTransform));

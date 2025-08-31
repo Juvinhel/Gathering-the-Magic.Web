@@ -1396,7 +1396,7 @@ swipe-container > * {
   height: 100%;
   overflow-x: scroll;
   overscroll-behavior-x: contain;
-  scroll-snap-type: both mandatory;
+  scroll-snap-type: inline mandatory;
 }
 context-menu {
   display: grid;
@@ -5360,6 +5360,35 @@ aside {
   background-repeat: no-repeat;
   color: transparent !important;
 }
+.collections-overview {
+  display: grid;
+  grid-template-columns: repeat(100, max-content);
+  grid-auto-rows: max-content;
+  grid-auto-flow: row;
+  row-gap: 0.25em;
+  padding-top: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.collections-overview > * {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: subgrid;
+  grid-auto-flow: column;
+  grid-column: 1 / -1;
+  align-items: end;
+  padding: 0.125em;
+  gap: 0.5em;
+  border-radius: var(--corner-radius);
+}
+.collections-overview > *:first-child {
+  justify-items: center;
+  font-weight: bold;
+  font-size: 1.125em;
+}
+.collections-overview > *:not(:first-child):nth-child(odd) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
 .deck-list {
   display: grid;
   grid-template-rows: 1fr auto;
@@ -5467,6 +5496,14 @@ aside {
   width: 100%;
   height: max-content;
   border-collapse: collapse;
+}
+.missing-cards > table tr:nth-child(odd) {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.missing-cards > table th {
+  font-size: 1.125em;
+  text-align: left;
 }
 .missing-cards > table td {
   padding: 0.125em;
@@ -5667,6 +5704,26 @@ my-card-info > .links > li > a {
 my-card-info > .links > li > a > img {
   aspect-ratio: 1;
   height: 1em;
+}
+my-card-info > .in-collections {
+  display: grid;
+  grid-template-rows: max-content 1fr;
+  grid-template-columns: max-content 1fr;
+  gap: 0.125em;
+}
+my-card-info > .in-collections > color-icon {
+  grid-row: 1;
+  grid-column: 1;
+  color: var(--foreground-color);
+}
+my-card-info > .in-collections > span {
+  grid-row: 1;
+  grid-column: 2;
+}
+my-card-info > .in-collections > ul {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  padding-left: 2.25em;
 }
 my-library {
   display: grid;
@@ -6127,7 +6184,7 @@ my-card-tile.is-in-deck > .in-deck {
   aspect-ratio: 1;
   width: auto;
   height: 1.5em;
-  color: var(--accent-color);
+  color: var(--foreground-color);
 }
 my-paging {
   display: grid;
