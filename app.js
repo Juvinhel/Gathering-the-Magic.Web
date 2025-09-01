@@ -8767,10 +8767,12 @@ var Data;
                 const entries = Data.getEntries(deck);
                 progressDialog.max = entries.length;
                 progressDialog.value = 0;
+                let i = 0;
                 for await (const card of Data.API.getCards(entries.map(entry => { return { name: entry.name }; }))) {
-                    for (const entry of entries.filter(e => e.name == card.name))
-                        Object.assign(entry, card);
+                    const entry = entries[i];
+                    Object.assign(entry, card);
                     ++progressDialog.value;
+                    ++i;
                 }
             }
             finally {
@@ -10979,7 +10981,6 @@ var Views;
             });
             input.addEventListener("keyup", (e) => {
                 if (e.key === "Enter") {
-                    originalElement.textContent = input.value.trim();
                     input.blur();
                 }
                 if (e.key === "Escape") {
@@ -11566,7 +11567,7 @@ var Views;
             }
             titleChange(event) {
                 const input = event.currentTarget;
-                this.title = input.value;
+                this.title = input.textContent;
             }
             addSection() {
                 const list = this.querySelector(".list");
@@ -11738,6 +11739,8 @@ var Views;
                 const oldQuantity = this.quantity;
                 const mainSection = list.querySelector(":scope > my-section[title=\"main\"]");
                 const sideSection = list.querySelector(":scope > my-section[title=\"side\"]");
+                if (!mainSection || !sideSection)
+                    return;
                 const mainCardCount = [...mainSection.querySelectorAll("my-entry")].sum(e => e.quantity);
                 const sideCardCount = [...sideSection.querySelectorAll("my-entry")].sum(e => e.quantity);
                 deckCardCount.textContent = "main: " + mainCardCount + " / side: " + sideCardCount;
