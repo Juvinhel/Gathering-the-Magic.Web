@@ -9700,7 +9700,7 @@ var Views;
                 const cardInfo = this.querySelector("my-card-info");
                 cardInfo.loadData(this.hoveredCard ?? this.selectedCard);
                 if (!App.ctrl)
-                    for (const cardContainer of this.querySelectorAll(".card-container.selected"))
+                    for (const cardContainer of this.querySelectorAll(".card-container.selected, my-section.selected"))
                         if (cardContainer != event.target)
                             cardContainer.classList.toggle("selected", false);
             }
@@ -11430,6 +11430,7 @@ var Views;
             for (const line of selectedLines)
                 line.remove();
             selectedSection.querySelector(".list").append(...selectedLines);
+            workbench.deselectAll();
         }
         Workbench.moveLinesTo = moveLinesTo;
         function deleteLines() {
@@ -11731,6 +11732,10 @@ var Views;
                         list.append(new Workbench.EntryElement(entry));
                     }
                 }
+            }
+            deselectAll() {
+                for (const cardContainer of this.querySelectorAll(".card-container.selected, my-section.selected"))
+                    cardContainer.classList.toggle("selected", false);
             }
             calcCardCount(event) {
                 const list = this.querySelector(".list");
