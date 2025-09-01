@@ -106,6 +106,7 @@ namespace Views.Workbench
 
             const mainSection = list.querySelector(":scope > my-section[title=\"main\"]") as SectionElement;
             const sideSection = list.querySelector(":scope > my-section[title=\"side\"]") as SectionElement;
+            if(!mainSection || !sideSection) return;
 
             const mainCardCount = [...mainSection.querySelectorAll("my-entry") as NodeListOf<EntryElement>].sum(e => e.quantity);
             const sideCardCount = [...sideSection.querySelectorAll("my-entry") as NodeListOf<EntryElement>].sum(e => e.quantity);

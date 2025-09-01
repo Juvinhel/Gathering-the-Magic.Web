@@ -99,8 +99,8 @@ namespace Views.Workbench
 
         private titleChange(event: Event)
         {
-            const input = event.currentTarget as HTMLInputElement;
-            this.title = input.value;
+            const input = event.currentTarget as HTMLElement;
+            this.title = input.textContent;
         }
 
         public addSection()

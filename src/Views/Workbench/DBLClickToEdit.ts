@@ -21,7 +21,6 @@ namespace Views.Workbench
         {
             if (e.key === "Enter")
             {
-                originalElement.textContent = input.value.trim();
                 input.blur();
             }
             if (e.key === "Escape")

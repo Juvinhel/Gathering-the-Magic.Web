@@ -42,11 +42,13 @@ namespace Data.File
             progressDialog.max = entries.length;
             progressDialog.value = 0;
 
+            let i = 0;
             for await (const card of API.getCards(entries.map(entry => { return { name: entry.name }; })))
             {
-                for (const entry of entries.filter(e => e.name == card.name))
-                    Object.assign(entry, card);
+                const entry = entries[i];
+                Object.assign(entry, card);
                 ++progressDialog.value;
+                ++i;
             }
         }
         finally
