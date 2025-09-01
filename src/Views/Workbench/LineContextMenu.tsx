@@ -93,6 +93,8 @@ namespace Views.Workbench
         for (const line of selectedLines)
             line.remove();
         selectedSection.querySelector(".list").append(...selectedLines);
+
+        workbench.deselectAll();
     }
 
     export function deleteLines(this: SectionElement | EntryElement)
