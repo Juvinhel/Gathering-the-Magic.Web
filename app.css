@@ -5610,7 +5610,7 @@ my-card-info .legal-badge.restricted {
 }
 my-card-info {
   display: grid;
-  grid-template-rows: max-content minmax(4em, 40%);
+  grid-template-rows: 50%;
   grid-template-columns: 1fr;
   grid-auto-rows: max-content;
   grid-auto-flow: row;
@@ -5618,9 +5618,20 @@ my-card-info {
   height: calc(100% - 0.5em);
   margin: 0.25em 0;
   padding: 0 0.25em;
-  gap: 0.5em;
+  overflow-y: auto;
+  gap: 0.25em;
 }
-my-card-info > .card-link {
+my-card-info > .top {
+  display: grid;
+  z-index: 100;
+  position: sticky;
+  top: 0;
+  grid-template-rows: max-content 1fr;
+  grid-template-columns: 1fr;
+  gap: 0.25em;
+  background: var(--page-background-color);
+}
+my-card-info > .top > .card-link {
   display: grid;
   grid-template-columns: 1fr auto;
   grid-row: 1;
@@ -5628,7 +5639,7 @@ my-card-info > .card-link {
   padding: 0 0.25em;
   overflow: hidden;
 }
-my-card-info > .card-link > .card-name {
+my-card-info > .top > .card-link > .card-name {
   overflow: hidden;
   font-weight: bold;
   font-size: 1.25em;
@@ -5636,35 +5647,36 @@ my-card-info > .card-link > .card-name {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-my-card-info > .card-image {
+my-card-info > .top > .card-image {
   display: flex;
+  position: absolute;
   grid-row: 2;
   justify-content: center;
-  width: 100%;
+  inset: 0;
 }
-my-card-info > .card-image.empty {
+my-card-info > .top > .card-image.empty {
   background: transparent;
   background-image: url(img/card-back.png);
   background-position: center;
   background-size: contain;
   background-repeat: no-repeat;
 }
-my-card-info > .card-image.empty > .card-face {
+my-card-info > .top > .card-image.empty > .card-face {
   display: none;
 }
-my-card-info > .card-image > .card-face {
+my-card-info > .top > .card-image > .card-face {
   width: 100%;
   height: 100%;
   object-fit: contain;
   object-position: center;
 }
-my-card-info > .card-image > .card-face.rot90 {
+my-card-info > .top > .card-image > .card-face.rot90 {
   transform: rotate(90deg);
 }
-my-card-info > .card-image > .card-face.rot180 {
+my-card-info > .top > .card-image > .card-face.rot180 {
   transform: rotate(180deg);
 }
-my-card-info > .transform-card {
+my-card-info > .top > .transform-card {
   position: absolute;
   grid-row: 2;
   align-self: start;
@@ -5675,7 +5687,7 @@ my-card-info > .transform-card {
   border-radius: 100%;
   background: transparent;
 }
-my-card-info > .transform-card > * {
+my-card-info > .top > .transform-card > * {
   width: 100%;
   height: 100%;
 }

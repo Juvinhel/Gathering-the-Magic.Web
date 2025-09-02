@@ -10001,13 +10001,14 @@ var Views;
             }
             build() {
                 return [
-                    UI.Generator.Hyperscript("a", { class: "card-link", target: "_blank" },
-                        UI.Generator.Hyperscript("h1", { class: "card-name" }, "Card Name"),
-                        UI.Generator.Hyperscript("h2", { class: "card-mana-cost" })),
-                    UI.Generator.Hyperscript("a", { class: ["card-image", "empty"], onclick: this.imageClick.bind(this) },
-                        UI.Generator.Hyperscript("img", { class: "card-face" })),
-                    UI.Generator.Hyperscript("a", { class: ["transform-card", "none"], onclick: this.swapFace.bind(this) },
-                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-turn-arround.svg" })),
+                    UI.Generator.Hyperscript("div", { class: "top" },
+                        UI.Generator.Hyperscript("a", { class: "card-link", target: "_blank" },
+                            UI.Generator.Hyperscript("h1", { class: "card-name" }, "Card Name"),
+                            UI.Generator.Hyperscript("h2", { class: "card-mana-cost" })),
+                        UI.Generator.Hyperscript("a", { class: ["card-image", "empty"], onclick: this.imageClick.bind(this) },
+                            UI.Generator.Hyperscript("img", { class: "card-face" })),
+                        UI.Generator.Hyperscript("a", { class: ["transform-card", "none"], onclick: this.swapFace.bind(this) },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-turn-arround.svg" }))),
                     UI.Generator.Hyperscript("span", { class: "card-types" }),
                     UI.Generator.Hyperscript("p", { class: "card-text" }),
                     UI.Generator.Hyperscript("div", { class: "legalities" }),
