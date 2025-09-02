@@ -12,14 +12,16 @@ namespace Views.Info
         private build()
         {
             return [
-                <a class="card-link" target="_blank">
-                    <h1 class="card-name">Card Name</h1>
-                    <h2 class="card-mana-cost"></h2>
-                </a>,
-                <a class={ ["card-image", "empty"] } onclick={ this.imageClick.bind(this) }>
-                    <img class="card-face" />
-                </a>,
-                <a class={ ["transform-card", "none"] } onclick={ this.swapFace.bind(this) }><color-icon src="img/icons/arrow-turn-arround.svg" /></a>,
+                <div class="top">
+                    <a class="card-link" target="_blank">
+                        <h1 class="card-name">Card Name</h1>
+                        <h2 class="card-mana-cost"></h2>
+                    </a>
+                    <a class={ ["card-image", "empty"] } onclick={ this.imageClick.bind(this) }>
+                        <img class="card-face" />
+                    </a>
+                    <a class={ ["transform-card", "none"] } onclick={ this.swapFace.bind(this) }><color-icon src="img/icons/arrow-turn-arround.svg" /></a>
+                </div>,
                 <span class="card-types" />,
                 <p class="card-text" />,
                 <div class="legalities" />,

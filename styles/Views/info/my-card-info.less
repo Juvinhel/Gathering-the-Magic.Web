@@ -1,7 +1,7 @@
 my-card-info
 {
     display: grid;
-    grid-template-rows: max-content minmax(4em, 40%);
+    grid-template-rows: 50%;
     grid-template-columns: 1fr;
     grid-auto-rows: max-content;
     grid-auto-flow: row;
@@ -9,84 +9,98 @@ my-card-info
     height: calc(100% - 0.5em);
     margin: 0.25em 0;
     padding: 0 0.25em;
-    gap: 0.5em;
+    overflow-y: auto;
+    gap: 0.25em;
 
-    > .card-link
+    > .top
     {
         display: grid;
-        grid-template-columns: 1fr auto;
-        grid-row: 1;
-        align-items: center;
-        padding: 0 0.25em;
-        overflow: hidden;
+        z-index: 100;
+        position: sticky;
+        top: 0;
+        grid-template-rows: max-content 1fr;
+        grid-template-columns: 1fr;
+        gap: 0.25em;
+        background: var(--page-background-color);
 
-        > .card-name
+        > .card-link
         {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            grid-row: 1;
+            align-items: center;
+            padding: 0 0.25em;
             overflow: hidden;
-            font-weight: bold;
-            font-size: 1.25em;
-            text-align: center;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+
+            > .card-name
+            {
+                overflow: hidden;
+                font-weight: bold;
+                font-size: 1.25em;
+                text-align: center;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
         }
-    }
 
-    > .card-image
-    {
-        display: flex;
-        grid-row: 2;
-        justify-content: center;
-        width: 100%;
-
-        &.empty
+        > .card-image
         {
-            background: transparent;
-            background-image: url(img/card-back.png);
-            background-position: center;
-            background-size: contain;
-            background-repeat: no-repeat;
+            display: flex;
+            position: absolute;
+            grid-row: 2;
+            justify-content: center;
+            inset: 0;
+
+            &.empty
+            {
+                background: transparent;
+                background-image: url(img/card-back.png);
+                background-position: center;
+                background-size: contain;
+                background-repeat: no-repeat;
+
+                > .card-face
+                {
+                    display: none;
+                }
+            }
 
             > .card-face
             {
-                display: none;
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                object-position: center;
+
+                &.rot90
+                {
+                    transform: rotate(90deg);
+                }
+
+                &.rot180
+                {
+                    transform: rotate(180deg);
+                }
             }
         }
 
-        > .card-face
+        > .transform-card
         {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            object-position: center;
+            position: absolute;
+            grid-row: 2;
+            align-self: start;
+            justify-self: end;
+            aspect-ratio: 1;
+            height: 2.5em;
+            margin: 0.25em;
+            border-radius: 100%;
+            background: transparent;
 
-            &.rot90
+            > *
             {
-                transform: rotate(90deg);
+                width: 100%;
+                height: 100%;
             }
-
-            &.rot180
-            {
-                transform: rotate(180deg);
-            }
-        }
-    }
-
-    > .transform-card
-    {
-        position: absolute;
-        grid-row: 2;
-        align-self: start;
-        justify-self: end;
-        aspect-ratio: 1;
-        height: 2.5em;
-        margin: 0.25em;
-        border-radius: 100%;
-        background: transparent;
-
-        > *
-        {
-            width: 100%;
-            height: 100%;
         }
     }
 
