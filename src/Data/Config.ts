@@ -4,27 +4,35 @@ namespace Data
     {
         showMana: boolean;
         showType: boolean;
+        listMode: "Lines" | "Grid";
     }
 
     const defaultConfig: Config = {
         showMana: false,
         showType: false,
+        listMode: "Lines",
     };
 
     export async function loadConfig(): Promise<Config>
     {
+        let ret: Config;
         if (Bridge)
         {
             const text = await Bridge.LoadConfig();
             if (!text) return defaultConfig;
-            const ret = JSON.parse(text);
-            for (const entry of Object.entries(defaultConfig))
-                if (!(entry[0] in ret))
-                    ret[entry[0]] = entry[1];
-            return ret;
+            ret = JSON.parse(text);
         }
         else
-            return localStorage.get("config") ?? defaultConfig;
+        {
+            ret = localStorage.get("config");
+            if (!ret) return defaultConfig;
+        }
+
+        for (const entry of Object.entries(defaultConfig))
+            if (!(entry[0] in ret))
+                ret[entry[0]] = entry[1];
+
+        return ret;
     }
 
     export async function saveConfig(config: Config): Promise<void>

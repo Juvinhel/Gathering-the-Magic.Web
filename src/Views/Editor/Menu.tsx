@@ -17,6 +17,7 @@ namespace Views.Editor
                 <color-icon src="img/icons/view.svg" />
                 <span>View</span>
                 <drop-down>
+                    <menu-button title={ App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" } onclick={ showGridOrLines }><color-icon src={ App.config.listMode == "Lines" ? "img/icons/grid.svg" : "img/icons/lines.svg" } /><span>{ App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" }</span></menu-button>
                     <menu-button class={ ["show-mana", App.config.showMana ? "marked" : null] } onclick={ showMana } title="Show Mana"><color-icon src="img/icons/mana.svg" /><span>Show Mana</span></menu-button>
                     <menu-button class={ ["show-type", App.config.showType ? "marked" : null] } onclick={ showType } title="Show Type"><color-icon src="img/icons/type.svg" /><span>Show Type</span></menu-button>
                     <menu-button class="clear-selection" title="Clear Selection" onclick={ clearSelection }><color-icon src="img/icons/hand-select.svg" /><span>Clear Selection</span></menu-button>
@@ -292,5 +293,35 @@ namespace Views.Editor
     function showCollectionsOverview(event: Event)
     {
         UI.Dialog.show(<Views.Dialogs.CollectionsOverview />, { allowClose: true, title: "Collections Overview" });
+    }
+
+    function showGridOrLines(event: Event)
+    {
+        const menuButton = event.currentTarget as HTMLMenuButton;
+        const span = menuButton.querySelector("span");
+        const colorIcon = menuButton.querySelector("color-icon") as HTMLColorIcon;
+        const editor = menuButton.closest("my-editor") as Editor.EditorElement;
+        const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
+
+        if (menuButton.title == "Show Grid")
+        {
+            menuButton.title = "Show Lines";
+            span.textContent = "Show Lines";
+            colorIcon.src = "img/icons/lines.svg";
+            workbench.listMode = "Grid";
+
+            App.config.listMode = "Grid";
+            Data.saveConfig(App.config);
+        }
+        else
+        {
+            menuButton.title = "Show Grid";
+            span.textContent = "Show Grid";
+            colorIcon.src = "img/icons/grid.svg";
+            workbench.listMode = "Lines";
+
+            App.config.listMode = "Lines";
+            Data.saveConfig(App.config);
+        }
     }
 }

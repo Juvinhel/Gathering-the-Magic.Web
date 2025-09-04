@@ -24,11 +24,27 @@ namespace Views.Workbench
                 <label>Commanders:</label><CommanderList />
                 <label>Cards:</label><span class="deck-card-count" />
             </div>,
-            <div class={ ["list", "lines"] } onchildrenchanged={ (event: Event) =>
+            <div class={ ["list", App.config.listMode.toLowerCase()] } onchildrenchanged={ (event: Event) =>
             {
                 const list = event.currentTarget as HTMLDivElement;
                 list.dispatchEvent(new Event("calccardcount", { bubbles: true }));
             } } />];
+        }
+
+        public get listMode(): WorkbenchListMode { return this.querySelector(".list").classList.contains("lines") ? "Lines" : "Grid"; }
+        public set listMode(mode: WorkbenchListMode)
+        {
+            const list = this.querySelector(".list");
+            if (mode == "Lines")
+            {
+                list.classList.toggle("lines", true);
+                list.classList.toggle("grid", false);
+            }
+            else
+            {
+                list.classList.toggle("lines", false);
+                list.classList.toggle("grid", true);
+            }
         }
 
         public async loadData(deck: Data.Deck)
@@ -192,6 +208,8 @@ namespace Views.Workbench
 
         throw new DataError("Don't know how to handle this element: " + element.className + "!", { element });
     }
+
+    export type WorkbenchListMode = "Lines" | "Grid";
 
     customElements.define("my-workbench", WorkbenchElement);
 }
