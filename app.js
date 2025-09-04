@@ -8366,20 +8366,25 @@ var Data;
     const defaultConfig = {
         showMana: false,
         showType: false,
+        listMode: "Lines",
     };
     async function loadConfig() {
+        let ret;
         if (Data.Bridge) {
             const text = await Data.Bridge.LoadConfig();
             if (!text)
                 return defaultConfig;
-            const ret = JSON.parse(text);
-            for (const entry of Object.entries(defaultConfig))
-                if (!(entry[0] in ret))
-                    ret[entry[0]] = entry[1];
-            return ret;
+            ret = JSON.parse(text);
         }
-        else
-            return localStorage.get("config") ?? defaultConfig;
+        else {
+            ret = localStorage.get("config");
+            if (!ret)
+                return defaultConfig;
+        }
+        for (const entry of Object.entries(defaultConfig))
+            if (!(entry[0] in ret))
+                ret[entry[0]] = entry[1];
+        return ret;
     }
     Data.loadConfig = loadConfig;
     async function saveConfig(config) {
@@ -9761,6 +9766,9 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/view.svg" }),
                     UI.Generator.Hyperscript("span", null, "View"),
                     UI.Generator.Hyperscript("drop-down", null,
+                        UI.Generator.Hyperscript("menu-button", { title: App.config.listMode == "Lines" ? "Show Grid" : "Show Lines", onclick: showGridOrLines },
+                            UI.Generator.Hyperscript("color-icon", { src: App.config.listMode == "Lines" ? "img/icons/grid.svg" : "img/icons/lines.svg" }),
+                            UI.Generator.Hyperscript("span", null, App.config.listMode == "Lines" ? "Show Grid" : "Show Lines")),
                         UI.Generator.Hyperscript("menu-button", { class: ["show-mana", App.config.showMana ? "marked" : null], onclick: showMana, title: "Show Mana" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/mana.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Mana")),
@@ -9987,6 +9995,29 @@ var Views;
         }
         function showCollectionsOverview(event) {
             UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.CollectionsOverview, null), { allowClose: true, title: "Collections Overview" });
+        }
+        function showGridOrLines(event) {
+            const menuButton = event.currentTarget;
+            const span = menuButton.querySelector("span");
+            const colorIcon = menuButton.querySelector("color-icon");
+            const editor = menuButton.closest("my-editor");
+            const workbench = editor.querySelector("my-workbench");
+            if (menuButton.title == "Show Grid") {
+                menuButton.title = "Show Lines";
+                span.textContent = "Show Lines";
+                colorIcon.src = "img/icons/lines.svg";
+                workbench.listMode = "Grid";
+                App.config.listMode = "Grid";
+                Data.saveConfig(App.config);
+            }
+            else {
+                menuButton.title = "Show Grid";
+                span.textContent = "Show Grid";
+                colorIcon.src = "img/icons/grid.svg";
+                workbench.listMode = "Lines";
+                App.config.listMode = "Lines";
+                Data.saveConfig(App.config);
+            }
         }
     })(Editor = Views.Editor || (Views.Editor = {}));
 })(Views || (Views = {}));
@@ -11227,7 +11258,7 @@ var Views;
             build() {
                 return [
                     UI.Generator.Hyperscript("input", { class: "quantity", type: "number", value: this.quantity, min: "1", max: "99", step: "1", onchange: this.quantityChange.bind(this), draggable: true, ondragstart: Workbench.preventDrag }),
-                    UI.Generator.Hyperscript("div", { class: "move" },
+                    UI.Generator.Hyperscript("div", { class: "move-actions" },
                         UI.Generator.Hyperscript("a", { class: "up-button", onclick: this.moveUp.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" })),
                         UI.Generator.Hyperscript("a", { class: "down-button", onclick: this.moveDown.bind(this) },
@@ -11235,13 +11266,15 @@ var Views;
                     UI.Generator.Hyperscript("span", { class: "name" }, this.card.name),
                     UI.Generator.Hyperscript("span", { class: "type" }, this.card.type.card.join(" ")),
                     UI.Generator.Hyperscript("span", { class: "mana", innerHTML: Views.parseSymbolText(this.card.manaCost) }),
-                    UI.Generator.Hyperscript("div", { class: "actions" },
+                    UI.Generator.Hyperscript("div", { class: "card-actions" },
                         UI.Generator.Hyperscript("a", { class: "commander-button", onclick: this.setAsCommander.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/helmet.svg" })),
                         UI.Generator.Hyperscript("a", { class: "delete-button", onclick: this.delete.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" })),
                         UI.Generator.Hyperscript("a", { class: "move-to-button", onclick: this.moveTo.bind(this) },
-                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" })))
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }))),
+                    UI.Generator.Hyperscript("div", { class: "image" },
+                        UI.Generator.Hyperscript("img", { src: "img/card-back.png", "lazy-image": this.card.img })),
                 ];
             }
             card;
@@ -11332,7 +11365,7 @@ var Views;
     (function (Workbench) {
         function showContextMenu(event) {
             const workbench = this.closest("my-workbench");
-            const hasSelection = workbench.querySelectorAll("my-section.selected, my-entry.selected").length > 0;
+            const hasSelection = this instanceof Workbench.EntryElement && this.selected && workbench.querySelectorAll("my-entry.selected").length > 1;
             const menuButtons = [];
             if (hasSelection) {
                 menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Lines Up", onclick: moveLinesUp.bind(this) },
@@ -11531,12 +11564,13 @@ var Views;
             }
             quantity;
             get topLevel() { return this.classList.contains("top-level"); }
-            get selected() { return this.classList.contains("selected"); }
-            set selected(value) {
-                this.classList.toggle("selected", value);
-                for (const line of this.lines)
-                    line.selected = value;
-            }
+            //public get selected() { return this.classList.contains("selected"); }
+            //public set selected(value: boolean)
+            //{
+            //    this.classList.toggle("selected", value);
+            //    for (const line of this.lines)
+            //        line.selected = value;
+            //}
             get lines() {
                 return this.querySelector(".list").children;
             }
@@ -11551,7 +11585,9 @@ var Views;
             clicked(event) {
                 if (event.composedPath().some(x => this.clickables.includes(x.tagName)))
                     return;
-                this.selected = !this.selected;
+                const anySelected = this.querySelectorAll("my-entry.selected").length > 0;
+                for (const entry of this.querySelectorAll("my-entry"))
+                    entry.selected = !anySelected;
             }
             moveUp() {
                 let sibling = this.previousElementSibling;
@@ -11671,10 +11707,22 @@ var Views;
                         UI.Generator.Hyperscript("label", null, "Commanders:"),
                         UI.Generator.Hyperscript(Workbench.CommanderList, null),
                         UI.Generator.Hyperscript("label", null, "Cards:"),
-                        UI.Generator.Hyperscript("span", { class: "deck-card-count" })), UI.Generator.Hyperscript("div", { class: "list", onchildrenchanged: (event) => {
+                        UI.Generator.Hyperscript("span", { class: "deck-card-count" })), UI.Generator.Hyperscript("div", { class: ["list", App.config.listMode.toLowerCase()], onchildrenchanged: (event) => {
                             const list = event.currentTarget;
                             list.dispatchEvent(new Event("calccardcount", { bubbles: true }));
                         } })];
+            }
+            get listMode() { return this.querySelector(".list").classList.contains("lines") ? "Lines" : "Grid"; }
+            set listMode(mode) {
+                const list = this.querySelector(".list");
+                if (mode == "Lines") {
+                    list.classList.toggle("lines", true);
+                    list.classList.toggle("grid", false);
+                }
+                else {
+                    list.classList.toggle("lines", false);
+                    list.classList.toggle("grid", true);
+                }
             }
             async loadData(deck) {
                 if (deck.sections == null)
