@@ -30,32 +30,37 @@ namespace Views.Editor
         private selectedCard: Data.API.Card;
         private hoveredCard: Data.API.Card;
 
-        private oldMode = null;
+        private layout: "Panes" | "Swipe" = null;
         private sizeChanged(event: UI.Events.SizeChangedEvent)
         {   // gets called once oninsert anyway
-            const isSmall = event.newSize.width < 1024;
-            if (this.oldMode !== isSmall)
+            const newLayout = event.newSize.width < 1024 ? "Swipe" : "Panes";
+            if (this.layout !== newLayout)
             {
-                this.oldMode = isSmall;
-                const library = this.querySelector("my-library") as Library.LibraryElement;
-                const cardInfo = this.querySelector("my-card-info") as Info.CardInfoElement;
-                const workbench = this.querySelector("my-workbench") as Workbench.WorkbenchElement;
-                library.remove();
-                cardInfo.remove();
-                workbench.remove();
-
-                for (const child of [...this.children])
-                {
-                    if (child.classList.contains("menu")) continue;
-                    if (child.classList.contains("footer")) continue;
-                    child.remove();
-                }
-
-                if (isSmall)
-                    this.appendChild(<swipe-container class="container" index={ 1 }><div>{ library }</div><div>{ workbench }</div><div>{ cardInfo }</div></swipe-container>);
-                else
-                    this.appendChild(<pane-container class="container"><div>{ library }</div><div>{ cardInfo }</div><div>{ workbench }</div></pane-container>);
+                this.layout = newLayout;
+                this.refreshLayout();
             }
+        }
+
+        private refreshLayout()
+        {
+            const library = this.querySelector("my-library") as Library.LibraryElement;
+            const cardInfo = this.querySelector("my-card-info") as Info.CardInfoElement;
+            const workbench = this.querySelector("my-workbench") as Workbench.WorkbenchElement;
+            library?.remove();
+            cardInfo?.remove();
+            workbench?.remove();
+
+            for (const child of [...this.children])
+            {
+                if (child.classList.contains("menu")) continue;
+                if (child.classList.contains("footer")) continue;
+                child.remove();
+            }
+
+            if (this.layout == "Swipe")
+                this.appendChild(<swipe-container class="container" index={ 1 }>{ [library, workbench, cardInfo].filter(e => e).map(e => <div>{ e }</div>) }</swipe-container>);
+            else
+                this.appendChild(<pane-container class="container">{ [library, cardInfo, workbench].filter(e => e).map(e => <div>{ e }</div>) }</pane-container>);
         }
 
         private async cardHovered(event: CustomEvent) 
@@ -95,6 +100,36 @@ namespace Views.Editor
         {
             const searchRunning = this.querySelector(".search-running") as HTMLElement;
             searchRunning.classList.toggle("none", true);
+        }
+
+        private popup: Window;
+        public unDock(): "Docked" | "Undocked"
+        {
+            let library = this.querySelector("my-library") as Library.LibraryElement;
+
+            if (library)
+            {   // docked => undocked
+
+                library.remove();
+
+                this.refreshLayout();
+
+                //this.popup = window.open("popup.html", "Library", "status=no,location=no,toolbar=no,menubar=no");
+                //this.popup.document.body.append(library);
+                return "Undocked";
+            }
+            else
+            {   // undocked => docked
+                library = this.popup?.document.body.querySelector("my-library") as Library.LibraryElement;
+                if (!library)
+                    // popup got closed unexpectedly
+                    library = new Library.LibraryElement();
+                this.popup?.close();
+
+                this.append(library);
+                this.refreshLayout();
+                return "Docked";
+            }
         }
     }
 

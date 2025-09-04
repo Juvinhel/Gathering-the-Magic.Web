@@ -21,6 +21,7 @@ namespace Views.Editor
                     <menu-button class={ ["show-mana", App.config.showMana ? "marked" : null] } onclick={ showMana } title="Show Mana"><color-icon src="img/icons/mana.svg" /><span>Show Mana</span></menu-button>
                     <menu-button class={ ["show-type", App.config.showType ? "marked" : null] } onclick={ showType } title="Show Type"><color-icon src="img/icons/type.svg" /><span>Show Type</span></menu-button>
                     <menu-button class="clear-selection" title="Clear Selection" onclick={ clearSelection }><color-icon src="img/icons/hand-select.svg" /><span>Clear Selection</span></menu-button>
+                    <menu-button title="Undock Search" onclick={ unDockSearch }><color-icon src="img/icons/undock.svg" /><span>Undock Search</span></menu-button>
                 </drop-down>
             </menu-button>
             <menu-button title="Tools">
@@ -322,6 +323,29 @@ namespace Views.Editor
 
             App.config.listMode = "Lines";
             Data.saveConfig(App.config);
+        }
+    }
+
+    function unDockSearch(event: Event)
+    {
+        const menuButton = event.currentTarget as HTMLMenuButton;
+        const span = menuButton.querySelector("span");
+        const colorIcon = menuButton.querySelector("color-icon") as HTMLColorIcon;
+        const editor = menuButton.closest("my-editor") as Editor.EditorElement;
+
+        const state = editor.unDock();
+
+        if (state == "Docked")
+        {
+            menuButton.title = "Undock Search";
+            span.textContent = "Undock Search";
+            colorIcon.src = "img/icons/undock.svg";
+        }
+        else
+        {
+            menuButton.title = "Dock Search";
+            span.textContent = "Dock Search";
+            colorIcon.src = "img/icons/dock.svg";
         }
     }
 }

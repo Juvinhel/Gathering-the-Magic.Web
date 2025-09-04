@@ -89,6 +89,7 @@
             "args": [
                 "index.html,",
                 "app.html,",
+                "popup.html,",
                 "img/favicon.svg,",
                 "img/favicon.png,",
                 "img/favicon.ico,",
