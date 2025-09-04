@@ -34,18 +34,19 @@ namespace Views.Workbench
         {
             return [
                 <input class="quantity" type="number" value={ this.quantity } min="1" max="99" step="1" onchange={ this.quantityChange.bind(this) } draggable={ true } ondragstart={ preventDrag } />,
-                <div class="move">
+                <div class="move-actions">
                     <a class="up-button" onclick={ this.moveUp.bind(this) }><color-icon src="img/icons/chevron-up.svg" /></a>
                     <a class="down-button" onclick={ this.moveDown.bind(this) }><color-icon src="img/icons/chevron-down.svg" /></a>
                 </div>,
                 <span class="name">{ this.card.name }</span>,
                 <span class="type">{ this.card.type.card.join(" ") }</span>,
                 <span class="mana" innerHTML={ parseSymbolText(this.card.manaCost) } />,
-                <div class="actions">
+                <div class="card-actions">
                     <a class="commander-button" onclick={ this.setAsCommander.bind(this) }><color-icon src="img/icons/helmet.svg" /></a>
                     <a class="delete-button" onclick={ this.delete.bind(this) }><color-icon src="img/icons/delete.svg" /></a>
                     <a class="move-to-button" onclick={ this.moveTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /></a>
-                </div>
+                </div>,
+                <div class="image"><img src="img/card-back.png" lazy-image={ this.card.img } /></div>,
             ];
         }
 

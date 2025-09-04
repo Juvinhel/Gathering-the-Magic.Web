@@ -1,0 +1,71 @@
+.grid my-entry
+{
+    display: grid;
+    grid-template-rows: max-content 1fr;
+    grid-template-columns: 1fr;
+    width: 8em;
+    padding: 0.25em;
+    gap: 0.25em;
+    border-radius: 0.25em;
+    background-color: var(--page-background-color);
+
+    > .image
+    {
+        display: flex;
+        grid-row: 1;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+
+        background-image: url(img/card-back.png);
+        background-position: center;
+        background-size: contain;
+        background-repeat: no-repeat;
+
+        > img
+        {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+        }
+    }
+
+    &:hover > .move-actions
+    {
+        display: grid;
+        z-index: 1000;
+        position: absolute;
+        grid-row: 1;
+        margin-top: 0.25em;
+        margin-left: 0.25em;
+        padding: 0.25em;
+        border-radius: 0.25em;
+        background-color: var(--page-background-color);
+    }
+
+    > .quantity
+    {
+        grid-row: -1;
+    }
+
+    > .move-actions, > .name, > .type, > .mana, > .card-actions
+    {
+        display: none;
+    }
+
+    &.is-missing
+    {
+        background-color: var(--cancel-color);
+    }
+
+    &.selected
+    {
+        background-color: var(--accent-color);
+    }
+
+    &.drag-over
+    {
+        background-color: rgba(81, 221, 63);
+    }
+}

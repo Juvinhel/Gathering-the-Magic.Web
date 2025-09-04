@@ -3,7 +3,7 @@ namespace Views.Workbench
     export function showContextMenu(this: SectionElement | EntryElement, event: PointerEvent)
     {
         const workbench = this.closest("my-workbench") as WorkbenchElement;
-        const hasSelection = workbench.querySelectorAll("my-section.selected, my-entry.selected").length > 0;
+        const hasSelection = this instanceof EntryElement && this.selected && workbench.querySelectorAll("my-entry.selected").length > 1;
 
         const menuButtons: Node[] = [];
 

@@ -1,4 +1,4 @@
-my-entry
+.lines my-entry
 {
     display: grid;
     grid-template-rows: 1fr;
@@ -13,7 +13,7 @@ my-entry
     animation: blinking 0.5s ease-in-out;
     cursor: pointer;
 
-    > .move
+    > .move-actions
     {
         grid-column: move;
     }
@@ -48,19 +48,14 @@ my-entry
         overflow: hidden;
     }
 
-    > .actions
+    > .card-actions
     {
         grid-column: actions;
     }
 
-    > div
+    > .image
     {
-        display: grid;
-        grid-template-rows: 1fr;
-        grid-auto-rows: auto;
-        grid-auto-flow: column;
-        align-items: center;
-        gap: 0.25em;
+        display: none;
     }
 
     &.is-missing

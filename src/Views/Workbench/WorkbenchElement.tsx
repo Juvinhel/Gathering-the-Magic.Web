@@ -24,7 +24,7 @@ namespace Views.Workbench
                 <label>Commanders:</label><CommanderList />
                 <label>Cards:</label><span class="deck-card-count" />
             </div>,
-            <div class="list" onchildrenchanged={ (event: Event) =>
+            <div class={ ["list", "lines"] } onchildrenchanged={ (event: Event) =>
             {
                 const list = event.currentTarget as HTMLDivElement;
                 list.dispatchEvent(new Event("calccardcount", { bubbles: true }));

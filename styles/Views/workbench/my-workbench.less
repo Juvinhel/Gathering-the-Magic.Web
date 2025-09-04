@@ -26,8 +26,12 @@ my-workbench
 
     > .list
     {
+        display: grid;
+        grid-template-columns: var(--entry-columns);
+        grid-auto-rows: auto;
         grid-area: list;
         height: max-content;
+        gap: 0.25em;
     }
 }
 
