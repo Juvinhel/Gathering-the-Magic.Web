@@ -184,6 +184,7 @@ namespace Views.Editor
         if (!selectCardsOption) return;
 
         const selectCollectionOptions = Object.keys(App.collections).sort(String.localeCompare);
+        selectCollectionOptions.insertAt(0, "All Collections");
         const selectCollectionOption = await UI.Dialog.options({ title: "Select Collection for Comparison", options: selectCollectionOptions, allowEmpty: true });
         if (!selectCollectionOption) return;
 
@@ -196,7 +197,9 @@ namespace Views.Editor
             case "maybe": collapsedEntries = Data.collapse(deck.sections.first(s => s.title == "maybe")); break;
         }
 
-        const collection = App.collections[selectCollectionOption];
+        const collection = selectCollectionOption == "All Collections" ?
+            Data.combineCollections("All Collections", Object.values(App.collections)) :
+            App.collections[selectCollectionOption];
         for (const entry of collapsedEntries)
             entry.quantity -= collection.cards[entry.name] ?? 0;
         collapsedEntries = collapsedEntries.filter(x => x.quantity > 0);
