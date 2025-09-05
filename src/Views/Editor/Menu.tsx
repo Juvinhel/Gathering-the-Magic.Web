@@ -78,7 +78,7 @@ namespace Views.Editor
 
             const deck = workbench.getData();
 
-            await Data.SaveLoad.SaveDeck(deck);
+            await Data.SaveLoad.saveDeck(deck);
 
             const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
             unsavedProgress.classList.toggle("none", true);
@@ -97,7 +97,7 @@ namespace Views.Editor
             const editor = target.closest("my-editor") as Editor.EditorElement;
             const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
 
-            const deck = await Data.SaveLoad.LoadDeck();
+            const deck = await Data.SaveLoad.loadDeck();
             if (!deck) return;
 
             await workbench.loadData(deck);
@@ -115,7 +115,7 @@ namespace Views.Editor
     {
         try
         {
-            const collections = await Data.SaveLoad.LoadCollections();
+            const collections = await Data.SaveLoad.loadCollections();
 
             for (const collection of collections)
                 App.collections[collection.name] = collection;

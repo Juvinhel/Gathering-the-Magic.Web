@@ -10,11 +10,18 @@ class App
             Data.API.sets(),
             Data.API.keywords(),
         ]);
+
         this.collections = JSON.parse(localStorage.getItem("collections"), (key: string, value: any) =>
         {
             if (key == "importDate") return new Date(value);
             return value;
         }) ?? {};
+
+        if (Data.Bridge)
+        {
+            for (const collection of await Data.SaveLoad.loadDefaultCollections())
+                this.collections[collection.name] = collection;
+        }
 
         initChartJS();
         UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";

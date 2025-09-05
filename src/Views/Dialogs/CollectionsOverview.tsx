@@ -10,11 +10,11 @@ namespace Views.Dialogs
                 <span />
             </div>
             {
-                Object.entries(App.collections).orderBy(x => x[1].name).map(e =>
+                Object.entries(App.collections).orderBy(x => x[1].name, String.localeCompare).map(e =>
                     <div>
-                        <span>{ e[1].name }</span>
-                        <span>{ Object.values(e[1].cards).sum() }</span>
-                        <span>{ e[1].importDate.toLocaleString() }</span>
+                        <span title={ e[1].name }>{ e[1].name }</span>
+                        <span title={ Object.values(e[1].cards).sum() }>{ Object.values(e[1].cards).sum() }</span>
+                        <span title={ e[1].importDate.toLocaleString() }>{ e[1].importDate.toLocaleString() }</span>
                         <a class="link-button" onclick={ (event: Event) => deleteCollection(event, e[0]) }><color-icon src="img/icons/delete.svg" /></a>
                     </div>)
             }

@@ -7,21 +7,24 @@ namespace Data
         SaveDeck(fileName?: string): Promise<SaveResult>;
         LoadDeck(): Promise<LoadResult>;
         LoadCollections(): Promise<LoadResult[]>;
+        LoadDefaultCollections(): Promise<LoadResult[]>;
         LoadConfig(): Promise<string>;
         SaveConfig(text: string): Promise<void>;
     }
 
     export interface SaveResult 
     {
-        Name: Promise<string>;
-        Type: Promise<string>;
+        get Name(): Promise<string>;
+        get Type(): Promise<string>;
+        get Exists(): Promise<boolean>;
         Save(text: string): Promise<void>;
     }
 
     export interface LoadResult
     {
-        Name: Promise<string>;
-        Type: Promise<string>;
+        get Name(): Promise<string>;
+        get Type(): Promise<string>;
+        get LastModified(): Promise<string>;
         Load(): Promise<string>;
     }
 }

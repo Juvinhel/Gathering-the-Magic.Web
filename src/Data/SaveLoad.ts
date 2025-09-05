@@ -2,7 +2,7 @@ namespace Data
 {
     export const SaveLoad = new class
     {
-        public async SaveDeck(deck: Deck): Promise<boolean>
+        public async saveDeck(deck: Deck): Promise<boolean>
         {
             if (Bridge)
             {
@@ -34,7 +34,7 @@ namespace Data
             }
         }
 
-        public async LoadDeck(): Promise<Deck>
+        public async loadDeck(): Promise<Deck>
         {
             let file: { name: string; type: string; text: string; };
             if (Bridge)
@@ -96,16 +96,16 @@ namespace Data
             return deck;
         }
 
-        public async LoadCollections(): Promise<Collection[]>
+        public async loadCollections(): Promise<Collection[]>
         {
-            let files: { name: string; type: string; text: string; }[];
+            let files: { name: string; type: string; text: string; lastModified?: Date; }[];
             if (Bridge)
             {
                 const fileResults = await Bridge.LoadCollections();
                 if (!fileResults) return null;
                 files = [];
                 for (const fileResult of fileResults)
-                    files.push({ name: await fileResult.Name, type: await fileResult.Type, text: await fileResult.Load() });
+                    files.push({ name: await fileResult.Name, type: await fileResult.Type, text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
             }
             else
             {
@@ -118,7 +118,8 @@ namespace Data
                     files.push({
                         name: uploadedFile.name.splitLast(".")[0],
                         type: uploadedFile.type?.trimLeft(".") || uploadedFile.name.splitLast(".")[1],
-                        text: await uploadedFile.text()
+                        text: await uploadedFile.text(),
+                        lastModified: uploadedFile.lastModified != 0 ? new Date(uploadedFile.lastModified) : null
                     });
                 }
             }
@@ -128,9 +129,35 @@ namespace Data
             {
                 const collection = await File.CSVFile.load(file.text);
                 collection.name = file.name;
+                if (file.lastModified) collection.importDate = file.lastModified;
                 collections.push(collection);
             }
             return collections;
+        }
+
+        public async loadDefaultCollections(): Promise<Collection[]>
+        {
+            let files: { name: string; type: string; text: string; lastModified?: Date; }[];
+            if (Bridge)
+            {
+                const fileResults = await Bridge.LoadDefaultCollections();
+                if (!fileResults) return null;
+                files = [];
+                for (const fileResult of fileResults)
+                    files.push({ name: await fileResult.Name, type: await fileResult.Type, text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
+
+                const collections: Collection[] = [];
+                for (const file of files)
+                {
+                    const collection = await File.CSVFile.load(file.text);
+                    collection.name = file.name;
+                    if (file.lastModified) collection.importDate = file.lastModified;
+                    collections.push(collection);
+                }
+                return collections;
+            }
+            else
+                return null;
         }
     }();
 }
