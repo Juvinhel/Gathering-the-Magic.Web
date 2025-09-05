@@ -5553,6 +5553,7 @@ my-editor > .footer > .unsaved-progress {
   position: absolute;
   right: 0.25em;
   align-items: start;
+  padding: 0.25em;
   gap: 0.25em;
 }
 my-editor > .menu {

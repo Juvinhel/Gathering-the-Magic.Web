@@ -9665,35 +9665,32 @@ var Views;
             }
             selectedCard;
             hoveredCard;
-            oldMode = null;
+            layout = null;
             sizeChanged(event) {
-                const isSmall = event.newSize.width < 1024;
-                if (this.oldMode !== isSmall) {
-                    this.oldMode = isSmall;
-                    const library = this.querySelector("my-library");
-                    const cardInfo = this.querySelector("my-card-info");
-                    const workbench = this.querySelector("my-workbench");
-                    library.remove();
-                    cardInfo.remove();
-                    workbench.remove();
-                    for (const child of [...this.children]) {
-                        if (child.classList.contains("menu"))
-                            continue;
-                        if (child.classList.contains("footer"))
-                            continue;
-                        child.remove();
-                    }
-                    if (isSmall)
-                        this.appendChild(UI.Generator.Hyperscript("swipe-container", { class: "container", index: 1 },
-                            UI.Generator.Hyperscript("div", null, library),
-                            UI.Generator.Hyperscript("div", null, workbench),
-                            UI.Generator.Hyperscript("div", null, cardInfo)));
-                    else
-                        this.appendChild(UI.Generator.Hyperscript("pane-container", { class: "container" },
-                            UI.Generator.Hyperscript("div", null, library),
-                            UI.Generator.Hyperscript("div", null, cardInfo),
-                            UI.Generator.Hyperscript("div", null, workbench)));
+                const newLayout = event.newSize.width < 1024 ? "Swipe" : "Panes";
+                if (this.layout !== newLayout) {
+                    this.layout = newLayout;
+                    this.refreshLayout();
                 }
+            }
+            refreshLayout() {
+                const library = this.querySelector("my-library");
+                const cardInfo = this.querySelector("my-card-info");
+                const workbench = this.querySelector("my-workbench");
+                library?.remove();
+                cardInfo?.remove();
+                workbench?.remove();
+                for (const child of [...this.children]) {
+                    if (child.classList.contains("menu"))
+                        continue;
+                    if (child.classList.contains("footer"))
+                        continue;
+                    child.remove();
+                }
+                if (this.layout == "Swipe")
+                    this.appendChild(UI.Generator.Hyperscript("swipe-container", { class: "container", index: 1 }, [library, workbench, cardInfo].filter(e => e).map(e => UI.Generator.Hyperscript("div", null, e))));
+                else
+                    this.appendChild(UI.Generator.Hyperscript("pane-container", { class: "container" }, [library, cardInfo, workbench].filter(e => e).map(e => UI.Generator.Hyperscript("div", null, e))));
             }
             async cardHovered(event) {
                 this.hoveredCard = event.detail.card;
@@ -9720,6 +9717,27 @@ var Views;
             cardSearchFinished(event) {
                 const searchRunning = this.querySelector(".search-running");
                 searchRunning.classList.toggle("none", true);
+            }
+            popup;
+            unDock() {
+                let library = this.querySelector("my-library");
+                if (library) { // docked => undocked
+                    library.remove();
+                    this.refreshLayout();
+                    //this.popup = window.open("popup.html", "Library", "status=no,location=no,toolbar=no,menubar=no");
+                    //this.popup.document.body.append(library);
+                    return "Undocked";
+                }
+                else { // undocked => docked
+                    library = this.popup?.document.body.querySelector("my-library");
+                    if (!library)
+                        // popup got closed unexpectedly
+                        library = new Views.Library.LibraryElement();
+                    this.popup?.close();
+                    this.append(library);
+                    this.refreshLayout();
+                    return "Docked";
+                }
             }
         }
         Editor.EditorElement = EditorElement;
@@ -9777,7 +9795,10 @@ var Views;
                             UI.Generator.Hyperscript("span", null, "Show Type")),
                         UI.Generator.Hyperscript("menu-button", { class: "clear-selection", title: "Clear Selection", onclick: clearSelection },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/hand-select.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Clear Selection")))),
+                            UI.Generator.Hyperscript("span", null, "Clear Selection")),
+                        UI.Generator.Hyperscript("menu-button", { title: "Undock Search", onclick: unDockSearch },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/undock.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Undock Search")))),
                 UI.Generator.Hyperscript("menu-button", { title: "Tools" },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/tools.svg" }),
                     UI.Generator.Hyperscript("span", null, "Tools"),
@@ -10017,6 +10038,23 @@ var Views;
                 workbench.listMode = "Lines";
                 App.config.listMode = "Lines";
                 Data.saveConfig(App.config);
+            }
+        }
+        function unDockSearch(event) {
+            const menuButton = event.currentTarget;
+            const span = menuButton.querySelector("span");
+            const colorIcon = menuButton.querySelector("color-icon");
+            const editor = menuButton.closest("my-editor");
+            const state = editor.unDock();
+            if (state == "Docked") {
+                menuButton.title = "Undock Search";
+                span.textContent = "Undock Search";
+                colorIcon.src = "img/icons/undock.svg";
+            }
+            else {
+                menuButton.title = "Dock Search";
+                span.textContent = "Dock Search";
+                colorIcon.src = "img/icons/dock.svg";
             }
         }
     })(Editor = Views.Editor || (Views.Editor = {}));
