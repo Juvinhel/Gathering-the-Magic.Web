@@ -8024,6 +8024,10 @@ class App {
                 return new Date(value);
             return value;
         }) ?? {};
+        if (Data.Bridge) {
+            for (const collection of await Data.SaveLoad.loadDefaultCollections())
+                this.collections[collection.name] = collection;
+        }
         initChartJS();
         UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
         UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
@@ -8363,6 +8367,26 @@ Object.defineProperty(Data, "Bridge", {
 });
 var Data;
 (function (Data) {
+    function combineCollections(name, collections) {
+        const ret = { name, importDate: null, cards: {} };
+        for (const collection of collections) {
+            if (ret.importDate == null || collection.importDate > ret.importDate)
+                ret.importDate = collection.importDate;
+            for (const card of Object.entries(collection.cards)) {
+                const name = card[0];
+                const quantity = card[1];
+                if (!(name in ret.cards))
+                    ret.cards[name] = quantity;
+                else
+                    ret.cards[name] += quantity;
+            }
+        }
+        return ret;
+    }
+    Data.combineCollections = combineCollections;
+})(Data || (Data = {}));
+var Data;
+(function (Data) {
     const defaultConfig = {
         showMana: false,
         showType: false,
@@ -8467,7 +8491,7 @@ var Data;
 var Data;
 (function (Data) {
     Data.SaveLoad = new class {
-        async SaveDeck(deck) {
+        async saveDeck(deck) {
             if (Data.Bridge) {
                 let saveResult = await Data.Bridge.SaveDeck();
                 if (!saveResult)
@@ -8493,7 +8517,7 @@ var Data;
                 return true;
             }
         }
-        async LoadDeck() {
+        async loadDeck() {
             let file;
             if (Data.Bridge) {
                 const fileResult = await Data.Bridge.LoadDeck();
@@ -8545,7 +8569,7 @@ var Data;
             deck.name ??= file.name;
             return deck;
         }
-        async LoadCollections() {
+        async loadCollections() {
             let files;
             if (Data.Bridge) {
                 const fileResults = await Data.Bridge.LoadCollections();
@@ -8553,7 +8577,7 @@ var Data;
                     return null;
                 files = [];
                 for (const fileResult of fileResults)
-                    files.push({ name: await fileResult.Name, type: await fileResult.Type, text: await fileResult.Load() });
+                    files.push({ name: await fileResult.Name, type: await fileResult.Type, text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
             }
             else {
                 const uploadedFiles = await UI.Dialog.upload({ title: "Upload Collection Files", accept: ".csv", multiple: true });
@@ -8564,7 +8588,8 @@ var Data;
                     files.push({
                         name: uploadedFile.name.splitLast(".")[0],
                         type: uploadedFile.type?.trimLeft(".") || uploadedFile.name.splitLast(".")[1],
-                        text: await uploadedFile.text()
+                        text: await uploadedFile.text(),
+                        lastModified: uploadedFile.lastModified != 0 ? new Date(uploadedFile.lastModified) : null
                     });
                 }
             }
@@ -8572,9 +8597,33 @@ var Data;
             for (const file of files) {
                 const collection = await Data.File.CSVFile.load(file.text);
                 collection.name = file.name;
+                if (file.lastModified)
+                    collection.importDate = file.lastModified;
                 collections.push(collection);
             }
             return collections;
+        }
+        async loadDefaultCollections() {
+            let files;
+            if (Data.Bridge) {
+                const fileResults = await Data.Bridge.LoadDefaultCollections();
+                if (!fileResults)
+                    return null;
+                files = [];
+                for (const fileResult of fileResults)
+                    files.push({ name: await fileResult.Name, type: await fileResult.Type, text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
+                const collections = [];
+                for (const file of files) {
+                    const collection = await Data.File.CSVFile.load(file.text);
+                    collection.name = file.name;
+                    if (file.lastModified)
+                        collection.importDate = file.lastModified;
+                    collections.push(collection);
+                }
+                return collections;
+            }
+            else
+                return null;
         }
     }();
 })(Data || (Data = {}));
@@ -9195,10 +9244,10 @@ var Views;
                     UI.Generator.Hyperscript("span", null, "Cards"),
                     UI.Generator.Hyperscript("span", null, "Import Date"),
                     UI.Generator.Hyperscript("span", null)),
-                Object.entries(App.collections).orderBy(x => x[1].name).map(e => UI.Generator.Hyperscript("div", null,
-                    UI.Generator.Hyperscript("span", null, e[1].name),
-                    UI.Generator.Hyperscript("span", null, Object.values(e[1].cards).sum()),
-                    UI.Generator.Hyperscript("span", null, e[1].importDate.toLocaleString()),
+                Object.entries(App.collections).orderBy(x => x[1].name, String.localeCompare).map(e => UI.Generator.Hyperscript("div", null,
+                    UI.Generator.Hyperscript("span", { title: e[1].name }, e[1].name),
+                    UI.Generator.Hyperscript("span", { title: Object.values(e[1].cards).sum() }, Object.values(e[1].cards).sum()),
+                    UI.Generator.Hyperscript("span", { title: e[1].importDate.toLocaleString() }, e[1].importDate.toLocaleString()),
                     UI.Generator.Hyperscript("a", { class: "link-button", onclick: (event) => deleteCollection(event, e[0]) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" })))));
         }
@@ -9852,7 +9901,7 @@ var Views;
                 const editor = target.closest("my-editor");
                 const workbench = editor.querySelector("my-workbench");
                 const deck = workbench.getData();
-                await Data.SaveLoad.SaveDeck(deck);
+                await Data.SaveLoad.saveDeck(deck);
                 const unsavedProgress = editor.querySelector(".unsaved-progress");
                 unsavedProgress.classList.toggle("none", true);
             }
@@ -9865,7 +9914,7 @@ var Views;
                 const target = event.currentTarget;
                 const editor = target.closest("my-editor");
                 const workbench = editor.querySelector("my-workbench");
-                const deck = await Data.SaveLoad.LoadDeck();
+                const deck = await Data.SaveLoad.loadDeck();
                 if (!deck)
                     return;
                 await workbench.loadData(deck);
@@ -9878,7 +9927,7 @@ var Views;
         }
         async function loadCollections(event) {
             try {
-                const collections = await Data.SaveLoad.LoadCollections();
+                const collections = await Data.SaveLoad.loadCollections();
                 for (const collection of collections)
                     App.collections[collection.name] = collection;
             }
@@ -10486,23 +10535,35 @@ var Views;
                 }
                 build() {
                     return UI.Generator.Hyperscript("select", { onfocus: this.fillSelect.bind(this) },
-                        UI.Generator.Hyperscript("option", { selected: true, value: "All Cards" }, "All Cards"));
+                        UI.Generator.Hyperscript("option", { selected: true, value: "All Cards" }, "All Cards"),
+                        UI.Generator.Hyperscript("option", { selected: true, value: "All Collections" }, "All Collections"));
                 }
                 fillSelect() {
                     const select = this.querySelector("select");
                     const options = Object.keys(App.collections).sort(String.localeCompare);
                     for (let i = 0; i < options.length; ++i) {
-                        const oldOption = select.children[i + 1];
-                        if (oldOption?.value == options[i])
+                        const newOptionValue = options[i];
+                        const oldOption = select.children[i + 2];
+                        if (oldOption?.value == newOptionValue)
                             continue;
-                        else
-                            select.children[i].after(UI.Generator.Hyperscript("option", { value: options[i] }, options[i]));
+                        else {
+                            const previousSibling = oldOption?.previousElementSibling;
+                            oldOption?.remove();
+                            const newOption = UI.Generator.Hyperscript("option", { value: newOptionValue }, newOptionValue);
+                            if (previousSibling)
+                                previousSibling.after(newOption);
+                            else
+                                select.append(newOption);
+                        }
                     }
-                    while ((select.children.length - 1) > options.length)
+                    while (select.children.length > options.length - 2)
                         select.children[select.children.length - 1].remove();
-                    for (const option of select.querySelectorAll("option"))
-                        if (option.value != "All Cards")
-                            option["collection"] = App.collections[option.value];
+                    const allCollectionsOption = select.children[1];
+                    allCollectionsOption["collection"] = Data.combineCollections("All Collection", Object.values(App.collections));
+                    for (let i = 2; i < options.length; ++i) {
+                        const option = select.children[i];
+                        option["collection"] = App.collections[option.value];
+                    }
                 }
                 get collection() {
                     const select = this.querySelector("select");
