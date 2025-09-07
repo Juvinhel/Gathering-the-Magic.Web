@@ -50,12 +50,25 @@ namespace Views.Dialogs
     async function markMissingCards(editor: HTMLElement, cards: Data.Entry[])
     {
         const workbench = editor.querySelector("my-workbench");
+        const missingCards = Object.clone(cards);
 
-        for (const entry of workbench.querySelectorAll("my-entry") as NodeListOf<Workbench.EntryElement>)
+        for (const entry of [...(workbench.querySelectorAll("my-entry") as NodeListOf<Workbench.EntryElement>)].reverse())
         {
             const card = entry.card;
-            const isMissing = cards.some(c => c.name == card.name);
-            entry.classList.toggle("is-missing", isMissing);
+            const quantity = entry.quantity;
+
+            const missingCard = missingCards.first(x => x.name == card.name);
+            if (missingCard)
+            {
+                entry.classList.toggle("is-missing", true);
+                missingCard.quantity -= quantity;
+                if (missingCard.quantity <= 0)
+                    missingCards.remove(missingCard);
+            }
+            else
+            {
+                entry.classList.toggle("is-missing", false);
+            }
         }
 
         const menu = editor.querySelector(".menu");
