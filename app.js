@@ -9677,10 +9677,20 @@ var Views;
         }
         async function markMissingCards(editor, cards) {
             const workbench = editor.querySelector("my-workbench");
-            for (const entry of workbench.querySelectorAll("my-entry")) {
+            const missingCards = Object.clone(cards);
+            for (const entry of [...workbench.querySelectorAll("my-entry")].reverse()) {
                 const card = entry.card;
-                const isMissing = cards.some(c => c.name == card.name);
-                entry.classList.toggle("is-missing", isMissing);
+                const quantity = entry.quantity;
+                const missingCard = missingCards.first(x => x.name == card.name);
+                if (missingCard) {
+                    entry.classList.toggle("is-missing", true);
+                    missingCard.quantity -= quantity;
+                    if (missingCard.quantity <= 0)
+                        missingCards.remove(missingCard);
+                }
+                else {
+                    entry.classList.toggle("is-missing", false);
+                }
             }
             const menu = editor.querySelector(".menu");
             const showMissingCards = menu.querySelector(".show-missing-cards");
