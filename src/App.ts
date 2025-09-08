@@ -1,7 +1,13 @@
 class App
 {
-    public static async Start()
+    public static async Start(args?: {
+        library?: boolean,
+        workbench?: boolean;
+    })
     {
+        const useLibrary = args?.library ?? true;
+        const useWorkbench = args?.workbench ?? true;
+
         [this.config, , this.symbols, this.types, this.sets, this.keywords] = await Promise.all([
             Data.loadConfig(),
             Data.API.init(),
@@ -34,15 +40,20 @@ class App
         window.addEventListener("keyup", (event: KeyboardEvent) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
 
         document.addEventListener('visibilitychange', App.visibilityChange);
-        const lastDeck = localStorage.get("last-deck") ?? App.sampleDeck;
 
-        await UI.Navigator.navigate("main", () => new Views.Editor.EditorElement());
+        // START
+        const editor = new Views.Editor.EditorElement(useLibrary, useWorkbench);
+        document.querySelector("main").append(editor);
 
-        const workbench = document.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
-        await workbench.loadData(await Data.File.loadDeck(JSON.stringify(lastDeck), "JSON"));
+        if (useWorkbench)
+        {
+            const lastDeck = localStorage.get("last-deck") ?? App.sampleDeck;
+            const workbench = editor.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
+            await workbench.loadData(await Data.File.loadDeck(JSON.stringify(lastDeck), "JSON"));
 
-        const unsavedProgress = document.body.querySelector(".unsaved-progress") as HTMLElement;
-        unsavedProgress.classList.toggle("none", true);
+            const unsavedProgress = document.body.querySelector(".unsaved-progress") as HTMLElement;
+            unsavedProgress.classList.toggle("none", true);
+        }
     }
 
     private static visibilityChange = function (this: typeof App, event: Event)

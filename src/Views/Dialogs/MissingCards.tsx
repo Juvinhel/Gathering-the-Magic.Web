@@ -1,7 +1,13 @@
 namespace Views.Dialogs
 {
-    export function MissingCards(editor: HTMLElement, cards: Data.Entry[])
+    export function MissingCards(args: { collection: Data.Collection, deck: Data.Deck | Data.Section, workbench?: Workbench.WorkbenchElement; })
     {
+        const collection = args.collection;
+        const collapsedEntries = Data.collapse(args.deck);
+        for (const entry of collapsedEntries)
+            entry.quantity -= collection.cards[entry.name] ?? 0;
+        const cards = collapsedEntries.filter(x => x.quantity > 0);
+
         const sortedCards = cards.filter(x => !Data.isBasicLand(x.name)).sortBy(x => x.name);
 
         return <div class="missing-cards">
@@ -33,7 +39,7 @@ namespace Views.Dialogs
             </table>
             <div class="actions">
                 <a class="link-button" onclick={ () => downloadMissingCards(sortedCards) } title="Download as txt"><color-icon src="img/icons/download.svg" /><span>Download</span></a>
-                <a class="link-button" onclick={ () => markMissingCards(editor, sortedCards) } title="Highlight missing cards"><color-icon src="img/icons/brush.svg" /><span>Highlight</span></a>
+                { args.workbench ? <a class="link-button" onclick={ () => markMissingCards(args.workbench, sortedCards) } title="Highlight missing cards"><color-icon src="img/icons/brush.svg" /><span>Highlight</span></a> : null }
             </div>
         </div>;
     }
@@ -47,9 +53,8 @@ namespace Views.Dialogs
         DownloadHelper.downloadData("missing cards.txt", file, "text/plain");
     }
 
-    async function markMissingCards(editor: HTMLElement, cards: Data.Entry[])
+    async function markMissingCards(workbench: Workbench.WorkbenchElement, cards: Data.Entry[])
     {
-        const workbench = editor.querySelector("my-workbench");
         const missingCards = Object.clone(cards);
 
         for (const entry of [...(workbench.querySelectorAll("my-entry") as NodeListOf<Workbench.EntryElement>)].reverse())
@@ -71,8 +76,12 @@ namespace Views.Dialogs
             }
         }
 
+        const editor = workbench.closest("my-editor") as Editor.EditorElement;
         const menu = editor.querySelector(".menu");
-        const showMissingCards = menu.querySelector(".show-missing-cards") as HTMLElement;
-        showMissingCards.classList.toggle("marked", true);
+        if (menu)
+        {
+            const showMissingCards = menu.querySelector(".show-missing-cards") as HTMLElement;
+            showMissingCards.classList.toggle("marked", true);
+        }
     }
 }

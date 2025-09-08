@@ -1,38 +1,38 @@
 namespace Views.Editor
 {
-    export function Menu()
+    export function Menu(useLibrary: boolean = true, useWorkbench: boolean = true)
     {
         return <div class="menu">
             <menu-button title="File">
                 <color-icon src="img/icons/file.svg" />
                 <span>File</span>
                 <drop-down>
-                    <menu-button onclick={ newDeck } title="New Deck"><color-icon src="img/icons/file.svg" /><span>New Deck</span></menu-button>
-                    <menu-button onclick={ saveDeck } title="Save Deck"><color-icon src="img/icons/save.svg" /><span>Save Deck</span></menu-button>
-                    <menu-button onclick={ loadDeck } title="Load Deck"><color-icon src="img/icons/deck.svg" /><span>Load Deck</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ newDeck } title="New Deck"><color-icon src="img/icons/file.svg" /><span>New Deck</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ saveDeck } title="Save Deck"><color-icon src="img/icons/save.svg" /><span>Save Deck</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ loadDeck } title="Load Deck"><color-icon src="img/icons/deck.svg" /><span>Load Deck</span></menu-button>
                     <menu-button onclick={ loadCollections } title="Load Collections"><color-icon src="img/icons/collection.svg" /><span>Load Collections</span></menu-button>
                 </drop-down>
             </menu-button>
-            <menu-button title="View">
+            <menu-button class={ useWorkbench ? null : "none" } title="View">
                 <color-icon src="img/icons/view.svg" />
                 <span>View</span>
                 <drop-down>
-                    <menu-button title={ App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" } onclick={ showGridOrLines }><color-icon src={ App.config.listMode == "Lines" ? "img/icons/grid.svg" : "img/icons/lines.svg" } /><span>{ App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" }</span></menu-button>
+                    <menu-button onclick={ showGridOrLines } title={ App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" } ><color-icon src={ App.config.listMode == "Lines" ? "img/icons/grid.svg" : "img/icons/lines.svg" } /><span>{ App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" }</span></menu-button>
                     <menu-button class={ ["show-mana", App.config.showMana ? "marked" : null] } onclick={ showMana } title="Show Mana"><color-icon src="img/icons/mana.svg" /><span>Show Mana</span></menu-button>
                     <menu-button class={ ["show-type", App.config.showType ? "marked" : null] } onclick={ showType } title="Show Type"><color-icon src="img/icons/type.svg" /><span>Show Type</span></menu-button>
                     <menu-button class="clear-selection" title="Clear Selection" onclick={ clearSelection }><color-icon src="img/icons/hand-select.svg" /><span>Clear Selection</span></menu-button>
-                    <menu-button title="Undock Search" onclick={ unDockSearch }><color-icon src="img/icons/undock.svg" /><span>Undock Search</span></menu-button>
+                    <menu-button class={ useLibrary ? null : "none" } onclick={ unDockLibrary } title="Undock Library"><color-icon src="img/icons/undock.svg" /><span>Undock Library</span></menu-button>
                 </drop-down>
             </menu-button>
             <menu-button title="Tools">
                 <color-icon src="img/icons/tools.svg" />
                 <span>Tools</span>
                 <drop-down>
-                    <menu-button onclick={ sortCards } title="Sort Cards"><color-icon src="img/icons/sort.svg" /><span>Sort Cards</span></menu-button>
-                    <menu-button onclick={ showDeckList } title="Show Deck List"><color-icon src="img/icons/numbered-list.svg" /><span>Show Deck List</span></menu-button>
-                    <menu-button class="show-missing-cards" onclick={ showMissingCards } title="Show Missing Cards"><color-icon src="img/icons/missing-card.svg" /><span>Show Missing Cards</span></menu-button>
-                    <menu-button onclick={ showDrawTest } title="Show Draw Test"><color-icon src="img/icons/cards.svg" /><span>Show Draw Test</span></menu-button>
-                    <menu-button onclick={ showDeckStatistics } title="Show Deck Statistics"><color-icon src="img/icons/pie-chart.svg" /><span>Show Deck Statistics</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ sortCards } title="Sort Cards"><color-icon src="img/icons/sort.svg" /><span>Sort Cards</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ showDeckList } title="Show Deck List"><color-icon src="img/icons/numbered-list.svg" /><span>Show Deck List</span></menu-button>
+                    <menu-button class={ ["show-missing-cards test1", useWorkbench ? null : "none"] } onclick={ showMissingCards } title="Show Missing Cards"><color-icon src="img/icons/missing-card.svg" /><span>Show Missing Cards</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ showDrawTest } title="Show Draw Test"><color-icon src="img/icons/cards.svg" /><span>Show Draw Test</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ showDeckStatistics } title="Show Deck Statistics"><color-icon src="img/icons/pie-chart.svg" /><span>Show Deck Statistics</span></menu-button>
                     <menu-button onclick={ showCollectionsOverview } title="Show Collections"><color-icon src="img/icons/collection.svg" /><span>Show Collections</span></menu-button>
                 </drop-down>
             </menu-button>
@@ -188,23 +188,20 @@ namespace Views.Editor
         const selectCollectionOption = await UI.Dialog.options({ title: "Select Collection for Comparison", options: selectCollectionOptions, allowEmpty: true });
         if (!selectCollectionOption) return;
 
-        let collapsedEntries: Data.Entry[];
+        let cards: Data.Deck | Data.Section;
         switch (selectCardsOption)
         {
-            case "*": collapsedEntries = Data.collapse(deck); break;
-            case "main": collapsedEntries = Data.collapse(deck.sections.first(s => s.title == "main")); break;
-            case "side": collapsedEntries = Data.collapse(deck.sections.first(s => s.title == "side")); break;
-            case "maybe": collapsedEntries = Data.collapse(deck.sections.first(s => s.title == "maybe")); break;
+            case "*": cards = deck; break;
+            case "main": cards = deck.sections.first(s => s.title == "main"); break;
+            case "side": cards = deck.sections.first(s => s.title == "side"); break;
+            case "maybe": cards = deck.sections.first(s => s.title == "maybe"); break;
         }
 
         const collection = selectCollectionOption == "All Collections" ?
             Data.combineCollections("All Collections", Object.values(App.collections)) :
             App.collections[selectCollectionOption];
-        for (const entry of collapsedEntries)
-            entry.quantity -= collection.cards[entry.name] ?? 0;
-        collapsedEntries = collapsedEntries.filter(x => x.quantity > 0);
 
-        await UI.Dialog.show(Views.Dialogs.MissingCards(editor, collapsedEntries), { allowClose: true, title: "Missing Cards List" });
+        await UI.Dialog.show(<Views.Dialogs.MissingCards collection={ collection } deck={ cards } workbench={ workbench } />, { allowClose: true, title: "Missing Cards List" });
     }
 
     async function showDeckList(event: Event)
@@ -215,9 +212,7 @@ namespace Views.Editor
 
         const deck = workbench.getData();
 
-        const collapsedEntries = Data.collapse(deck.sections.first(s => s.title == "main"));
-
-        await UI.Dialog.show(Views.Dialogs.DeckList(editor, collapsedEntries), { allowClose: true, title: "Card List" });
+        await UI.Dialog.show(<Views.Dialogs.DeckList deck={ deck } />, { allowClose: true, title: "Card List" });
     }
 
     async function showMana(event: Event)
@@ -263,7 +258,7 @@ namespace Views.Editor
 
         const deck = workbench.getData();
 
-        UI.Dialog.show(Dialogs.DrawTest(deck), { allowClose: true, title: "Draw Test" });
+        UI.Dialog.show(<Dialogs.DrawTest deck={ deck } />, { allowClose: true, title: "Draw Test" });
     }
 
     async function showDeckStatistics(event: Event)
@@ -296,7 +291,7 @@ namespace Views.Editor
 
     function showCollectionsOverview(event: Event)
     {
-        UI.Dialog.show(<Views.Dialogs.CollectionsOverview />, { allowClose: true, title: "Collections Overview" });
+        UI.Dialog.show(<Views.Dialogs.CollectionsOverview collections={ App.collections } />, { allowClose: true, title: "Collections Overview" });
     }
 
     function showGridOrLines(event: Event)
@@ -329,7 +324,7 @@ namespace Views.Editor
         }
     }
 
-    function unDockSearch(event: Event)
+    function unDockLibrary(event: Event)
     {
         const menuButton = event.currentTarget as HTMLMenuButton;
         const span = menuButton.querySelector("span");

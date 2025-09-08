@@ -53,8 +53,9 @@ namespace Views.Library.List
 
         private showContextMenu(event: PointerEvent)
         {
+            const editor = this.closest("my-editor") as Editor.EditorElement;
             UI.ContextMenu.show(event,
-                <menu-button title="Insert Cards" onclick={ this.showInsertCards.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Insert into ...</span></menu-button>,
+                <menu-button class={ editor.useWorkbench ? null : "none" } title="Insert Cards" onclick={ this.showInsertCards.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Insert into ...</span></menu-button>,
                 <menu-button title="Scryfall" onclick={ () => window.open(this.card.links.Scryfall, '_blank') }><color-icon src="img/icons/scryfall-black.svg" /><span>Scryfall</span></menu-button>,
                 this.card.links.EDHREC ? <menu-button title="EDHREC" onclick={ () => window.open(this.card.links.EDHREC, '_blank') }><color-icon src="img/icons/edhrec.svg" /><span>EDHREC</span></menu-button> : null,
             );

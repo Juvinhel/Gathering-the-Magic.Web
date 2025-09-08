@@ -88,6 +88,8 @@
             "type": "shell",
             "args": [
                 "index.html,",
+                "workbench.html,",
+                "library.html,",
                 "app.html,",
                 "popup.html,",
                 "img/favicon.svg,",

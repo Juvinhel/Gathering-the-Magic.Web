@@ -2,9 +2,12 @@ namespace Views.Editor
 {
     export class EditorElement extends HTMLElement
     {
-        constructor ()
+        constructor (useLibrary: boolean = true, useWorkbench: boolean = true)
         {
             super();
+
+            this.useLibrary = useLibrary;
+            this.useWorkbench = useWorkbench;
 
             this.append(...this.build());
 
@@ -16,15 +19,18 @@ namespace Views.Editor
             this.addEventListener("cardsearchfinished", this.cardSearchFinished.bind(this));
         }
 
+        public readonly useLibrary: boolean;
+        public readonly useWorkbench: boolean;
+
         private build()
         {
             return [
-                <Menu />,
-                <Library.LibraryElement />,
+                Menu(this.useLibrary, this.useWorkbench),
+                this.useLibrary ? <Library.LibraryElement /> : null,
                 <Info.CardInfoElement />,
-                <Workbench.WorkbenchElement />,
+                this.useWorkbench ? <Workbench.WorkbenchElement /> : null,
                 <Footer />
-            ];
+            ].filter(x => x);
         }
 
         private selectedCard: Data.API.Card;
@@ -101,6 +107,9 @@ namespace Views.Editor
             const searchRunning = this.querySelector(".search-running") as HTMLElement;
             searchRunning.classList.toggle("none", true);
         }
+
+        public hasLibrary;
+        public hasWorkbench;
 
         private popup: Window;
         public unDock(): "Docked" | "Undocked"

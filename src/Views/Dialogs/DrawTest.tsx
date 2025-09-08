@@ -1,8 +1,9 @@
 namespace Views.Dialogs
 {
-    export function DrawTest(deck: Data.Deck)
+    export function DrawTest(args: { deck: Data.Deck; })
     {
-        const entries = Data.getEntries(deck.sections.first(s => s.title == "main"));
+        const deck = args.deck;
+        const entries =  Data.getEntries(deck.sections.first(s => s.title == "main"));
 
         const cards: Data.API.Card[] = [];
         for (const entry of entries)
