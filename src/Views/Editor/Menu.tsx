@@ -13,14 +13,15 @@ namespace Views.Editor
                     <menu-button onclick={ loadCollections } title="Load Collections"><color-icon src="img/icons/collection.svg" /><span>Load Collections</span></menu-button>
                 </drop-down>
             </menu-button>
-            <menu-button class={ useWorkbench ? null : "none" } title="View">
+            <menu-button title="View">
                 <color-icon src="img/icons/view.svg" />
                 <span>View</span>
                 <drop-down>
-                    <menu-button onclick={ showGridOrLines } title={ App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" } ><color-icon src={ App.config.listMode == "Lines" ? "img/icons/grid.svg" : "img/icons/lines.svg" } /><span>{ App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" }</span></menu-button>
-                    <menu-button class={ ["show-mana", App.config.showMana ? "marked" : null] } onclick={ showMana } title="Show Mana"><color-icon src="img/icons/mana.svg" /><span>Show Mana</span></menu-button>
-                    <menu-button class={ ["show-type", App.config.showType ? "marked" : null] } onclick={ showType } title="Show Type"><color-icon src="img/icons/type.svg" /><span>Show Type</span></menu-button>
-                    <menu-button class="clear-selection" title="Clear Selection" onclick={ clearSelection }><color-icon src="img/icons/hand-select.svg" /><span>Clear Selection</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ showGridOrLines } title={ App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" } ><color-icon src={ App.config.listMode == "Lines" ? "img/icons/grid.svg" : "img/icons/lines.svg" } /><span>{ App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" }</span></menu-button>
+                    <menu-button onclick={ swapCardSize } title={ App.config.cardSize == "Small" ? "Large Cards" : "Small Cards" }><color-icon src={ App.config.cardSize == "Small" ? "img/icons/scale-up.svg" : "img/icons/scale-down.svg" } /><span>{ App.config.cardSize == "Small" ? "Large Cards" : "Small Cards" }</span></menu-button>
+                    <menu-button class={ [useWorkbench ? null : "none", "show-mana", App.config.showMana ? "marked" : null] } onclick={ showMana } title="Show Mana"><color-icon src="img/icons/mana.svg" /><span>Show Mana</span></menu-button>
+                    <menu-button class={ [useWorkbench ? null : "none", "show-type", App.config.showType ? "marked" : null] } onclick={ showType } title="Show Type"><color-icon src="img/icons/type.svg" /><span>Show Type</span></menu-button>
+                    <menu-button class={ [useWorkbench ? null : "none", "clear-selection"] } title="Clear Selection" onclick={ clearSelection }><color-icon src="img/icons/hand-select.svg" /><span>Clear Selection</span></menu-button>
                     <menu-button class={ useLibrary ? null : "none" } onclick={ unDockLibrary } title="Undock Library"><color-icon src="img/icons/undock.svg" /><span>Undock Library</span></menu-button>
                 </drop-down>
             </menu-button>
@@ -222,7 +223,6 @@ namespace Views.Editor
         const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
 
         App.config.showMana = !App.config.showMana;
-        Data.saveConfig(App.config);
         target.classList.toggle("marked", App.config.showMana);
 
         workbench.refreshColumns();
@@ -235,7 +235,6 @@ namespace Views.Editor
         const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
 
         App.config.showType = !App.config.showType;
-        Data.saveConfig(App.config);
         target.classList.toggle("marked", App.config.showType);
 
         workbench.refreshColumns();
@@ -310,7 +309,6 @@ namespace Views.Editor
             workbench.listMode = "Grid";
 
             App.config.listMode = "Grid";
-            Data.saveConfig(App.config);
         }
         else
         {
@@ -320,7 +318,6 @@ namespace Views.Editor
             workbench.listMode = "Lines";
 
             App.config.listMode = "Lines";
-            Data.saveConfig(App.config);
         }
     }
 
@@ -335,15 +332,35 @@ namespace Views.Editor
 
         if (state == "Docked")
         {
-            menuButton.title = "Undock Search";
-            span.textContent = "Undock Search";
+            menuButton.title = span.textContent = "Undock Search";
             colorIcon.src = "img/icons/undock.svg";
         }
         else
         {
-            menuButton.title = "Dock Search";
-            span.textContent = "Dock Search";
+            menuButton.title = span.textContent = "Dock Search";
             colorIcon.src = "img/icons/dock.svg";
         }
+    }
+
+    function swapCardSize(event: Event)
+    {
+        switch (App.config.cardSize)
+        {
+            case "Large":
+                App.config.cardSize = "Small";
+                break;
+            case "Small":
+            default:
+                App.config.cardSize = "Large";
+                break;
+        }
+
+        document.body.style.setProperty("--card-size", App.config.cardSize == "Large" ? "14em" : "8em");
+
+        const menuButton = event.currentTarget as HTMLMenuButton;
+        const colorIcon = menuButton.querySelector("color-icon") as HTMLColorIcon;
+        const span = menuButton.querySelector("span");
+        menuButton.title = span.textContent = App.config.cardSize == "Small" ? "Large Cards" : "Small Cards";
+        colorIcon.src = App.config.cardSize == "Small" ? "img/icons/scale-up.svg" : "img/icons/scale-down.svg";
     }
 }

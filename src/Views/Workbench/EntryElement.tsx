@@ -46,7 +46,7 @@ namespace Views.Workbench
                     <a class="delete-button" onclick={ this.delete.bind(this) }><color-icon src="img/icons/delete.svg" /></a>
                     <a class="move-to-button" onclick={ this.moveTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /></a>
                 </div>,
-                <div class="image"><img src="img/card-back.png" lazy-image={ this.card.img } /></div>,
+                <div class={ ["image", "card"] }><img src="img/card-back.png" lazy-image={ this.card.img } /></div>,
             ];
         }
 

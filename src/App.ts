@@ -29,6 +29,8 @@ class App
                 this.collections[collection.name] = collection;
         }
 
+        document.body.style.setProperty("--card-size", App.config.cardSize == "Large" ? "14em" : "8em");
+
         initChartJS();
         UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
         UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
@@ -60,6 +62,8 @@ class App
     {
         if (document.visibilityState == "hidden")
         {
+            Data.saveConfig(App.config);
+
             localStorage.set("collections", App.collections);
 
             const editor = document.querySelector("my-editor") as Views.Editor.EditorElement;

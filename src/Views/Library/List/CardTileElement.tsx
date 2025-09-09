@@ -26,7 +26,7 @@ namespace Views.Library.List
         private build()
         {
             return [
-                <div class="image"><img src="img/card-back.png" lazy-image={ this.card.img } /></div>,
+                <div class={ ["image", "card"] }><img src="img/card-back.png" lazy-image={ this.card.img } /></div>,
                 <color-icon class="in-deck" src="img/icons/deck.svg" />
             ];
         }

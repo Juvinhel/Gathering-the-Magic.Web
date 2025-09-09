@@ -4,12 +4,14 @@ namespace Data
     {
         showMana: boolean;
         showType: boolean;
+        cardSize: "Large" | "Small",
         listMode: "Lines" | "Grid";
     }
 
     const defaultConfig: Config = {
         showMana: false,
         showType: false,
+        cardSize: "Small",
         listMode: "Lines",
     };
 
