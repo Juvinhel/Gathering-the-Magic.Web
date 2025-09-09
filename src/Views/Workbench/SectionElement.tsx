@@ -12,10 +12,6 @@ namespace Views.Workbench
 
             this.append(...this.build(section));
 
-            const header = this.querySelector(".header") as HTMLElement;
-            header.addEventListener("click", this.clicked.bind(this));
-            header.addEventListener("rightclick", showContextMenu.bind(this));
-
             this.addEventListener("calccardcount", this.calcCardCount.bind(this));
             this.addEventListener("rendered", this.calcCardCount.bind(this));
         }
@@ -23,20 +19,7 @@ namespace Views.Workbench
         private build(section: Data.Section)
         {
             return [
-                <div class="header" draggable={ true } ondragstart={ dragStart.bind(this) } ondragover={ dragOver.bind(this) } ondragleave={ dragLeave.bind(this) } ondragend={ dragEnd.bind(this) } ondrop={ drop.bind(this) }>
-                    <div class={ ["move-actions", this.topLevel ? "none" : null] }>
-                        <a class={ ["up-button"] } onclick={ this.moveUp.bind(this) }><color-icon src="img/icons/chevron-up.svg" /></a>
-                        <a class={ ["down-button"] } onclick={ this.moveDown.bind(this) }><color-icon src="img/icons/chevron-down.svg" /></a>
-                    </div>
-                    <h2 class={ ["title", this.topLevel ? null : "double-click-to-edit"] } { ...(this.topLevel ? null : { ondblclick: doubleClickToEdit }) } onchange={ this.titleChange.bind(this) } >{ section.title }</h2>
-                    <div class="actions">
-                        <span class="card-count">0</span>
-                        <a class={ ["add-section-button"] } onclick={ this.addSection.bind(this) }><color-icon src="img/icons/add-section.svg" /></a>
-                        <a class={ ["dissolve-button", this.topLevel ? "none" : null] } onclick={ this.dissolveClick.bind(this) }><color-icon src="img/icons/unlink.svg" /></a>
-                        <a class={ ["delete-button", this.topLevel ? "none" : null] } onclick={ this.deleteClick.bind(this) }><color-icon src="img/icons/delete.svg" /></a>
-                        <a class={ ["move-to-button", this.topLevel ? "none" : null] } onclick={ this.moveTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /></a>
-                    </div>
-                </div>,
+                new SectionHeaderElement(this),
                 <div class="list"
                     onchildrenchanged={ (event: Event) =>
                     {
@@ -50,13 +33,6 @@ namespace Views.Workbench
 
         public quantity: number;
         public get topLevel() { return this.classList.contains("top-level"); }
-        //public get selected() { return this.classList.contains("selected"); }
-        //public set selected(value: boolean)
-        //{
-        //    this.classList.toggle("selected", value);
-        //    for (const line of this.lines)
-        //        line.selected = value;
-        //}
 
         public get lines(): HTMLCollectionOf<SectionElement | EntryElement>
         {
@@ -70,16 +46,6 @@ namespace Views.Workbench
                 if (parent != this && parent instanceof SectionElement)
                     title = parent.title + " > " + title;
             return title;
-        }
-
-        private clickables = ["INPUT", "A", "BUTTON"];
-        private clicked(event: Event)
-        {
-            if (event.composedPath().some(x => this.clickables.includes((x as HTMLElement).tagName))) return;
-
-            const anySelected = this.querySelectorAll("my-entry.selected").length > 0;
-            for (const entry of this.querySelectorAll("my-entry") as NodeListOf<EntryElement>)
-                entry.selected = !anySelected;
         }
 
         public moveUp()
@@ -100,10 +66,21 @@ namespace Views.Workbench
             if (sibling) swapElements(sibling, this);
         }
 
-        private titleChange(event: Event)
+        public get title(): string
         {
-            const input = event.currentTarget as HTMLElement;
-            this.title = input.textContent;
+            return super.title;
+        }
+
+        public set title(value: string)
+        {
+            if (super.title != value)
+            {
+                super.title = value;
+                const header = this.querySelector("my-section-header") as SectionHeaderElement;
+                const heading = header?.querySelector("h2");
+                if (heading && heading.textContent != super.title)
+                    heading.textContent = super.title;
+            }
         }
 
         public addSection()
@@ -117,27 +94,11 @@ namespace Views.Workbench
             title.scrollIntoView({ behavior: "smooth", block: "center" });
         }
 
-        private async dissolveClick()
-        {
-            const result = await UI.Dialog.confirm({ title: "Dissolve Section", text: "Do you really want to delete this section and move all of its contents to the parent?" });
-            if (!result) return;
-
-            this.dissolve();
-        }
-
         public dissolve()
         {
             const listElement = this.querySelector(".list");
             const items = [...listElement.children];
             this.replaceWith(...items);
-        }
-
-        private async deleteClick()
-        {
-            const result = await UI.Dialog.confirm({ title: "Delete Section", text: "Do you really want to delete this section and all of its contents?" });
-            if (!result) return;
-
-            this.delete();
         }
 
         public delete()

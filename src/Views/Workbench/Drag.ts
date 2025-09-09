@@ -40,14 +40,6 @@ namespace Views.Workbench
         this.classList.remove("drag-over");
     }
 
-    function getDragTarget(event: DragEvent): SectionElement | EntryElement
-    {
-        if ((event.target as Element).tagName === "INPUT") return;
-
-        let target = event.target as Element;
-        return target.closest("my-section, my-entry");
-    }
-
     export async function drop(this: EntryElement | SectionElement, event: DragEvent)
     {
         try

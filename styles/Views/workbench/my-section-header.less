@@ -1,0 +1,44 @@
+my-section-header
+{
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: auto 1fr auto;
+    grid-auto-flow: column;
+    align-items: center;
+    height: 2em;
+    padding: 0.25em;
+    border-radius: 0.25em;
+    background-color: rgb(58, 58, 58);
+    cursor: pointer;
+
+    > .move-actions
+    {
+        grid-column: 1;
+        margin-right: 0.25em;
+    }
+
+    > .title
+    {
+        grid-column: 2;
+        justify-self: start;
+        min-width: 1em;
+        min-height: 1em;
+        padding: 0.25em;
+    }
+
+    > .actions
+    {
+        grid-column: 3;
+        align-items: end;
+        margin-left: 0.25em;
+    }
+
+    > div
+    {
+        display: grid;
+        grid-auto-columns: auto;
+        grid-auto-flow: column;
+        align-items: center;
+        gap: 0.25em;
+    }
+}

@@ -28,8 +28,11 @@ namespace Views.Workbench
             {
                 const list = event.currentTarget as HTMLDivElement;
                 list.dispatchEvent(new Event("calccardcount", { bubbles: true }));
-            } } />];
+            } } />,
+            this.listHeader = <div class="list-header" /> as HTMLDivElement];
         }
+
+        private listHeader: HTMLDivElement;
 
         public get listMode(): WorkbenchListMode { return this.querySelector(".list").classList.contains("lines") ? "Lines" : "Grid"; }
         public set listMode(mode: WorkbenchListMode)
@@ -141,28 +144,36 @@ namespace Views.Workbench
             }
         }
 
+        private currentStickySection: SectionElement;
         private scrollSectionStick(event: Event)
         {   // makes section stick to top
             const list = this.querySelector(".list") as HTMLElement;
             const listArea = list.getBoundingClientRect();
             const listScroll = list.getScrollOffset();
-            const topOffset = listScroll.y + listArea.top;
+            const topOffset = listScroll.y + listArea.top + this.listHeader.getBoundingClientRect().height;
 
             const sections = list.querySelectorAll("my-section") as NodeListOf<SectionElement>;
-            let offSection: HTMLElement;
+            let lastStickySection: SectionElement;
             for (const section of sections)
             {
                 const area = section.getBoundingClientRect();
                 const top = area.top - topOffset;
                 const bottom = area.bottom - topOffset;
-                if (top < 0 && bottom >= 0) offSection = section;
+                if (top < 0 && bottom >= 0) lastStickySection = section;
+            }
+            if (this.currentStickySection == lastStickySection) return;
+            this.currentStickySection = lastStickySection;
+
+            const stack: SectionElement[] = [];
+            while (lastStickySection)
+            {
+                stack.unshift(lastStickySection);
+                lastStickySection = lastStickySection.parentElement.closest("my-section");
             }
 
-            for (const section of sections)
-            {
-                const header = section.querySelector(".header") as HTMLElement;
-                header.classList.toggle("sticky", section == offSection);
-            }
+            this.listHeader.clearChildren();
+            for (const section of stack)
+                this.listHeader.appendChild(new SectionHeaderElement(section));
         }
 
         private changed(event: Event)
