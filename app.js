@@ -11253,7 +11253,8 @@ var Views;
                 event.preventDefault();
                 event.stopPropagation();
                 this.classList.remove("drag-over");
-                const isSection = this instanceof Workbench.SectionElement;
+                const dragTarget = this instanceof Workbench.SectionHeaderElement ? this.section : this;
+                const isSection = dragTarget instanceof Workbench.SectionElement;
                 const data = event.dataTransfer.getData("text");
                 if (!data)
                     return;
@@ -11280,10 +11281,10 @@ var Views;
                     newElements.push(newSection);
                 }
                 if (isSection) {
-                    this.querySelector(".list").append(...newElements);
+                    dragTarget.querySelector(".list").append(...newElements);
                 }
                 else {
-                    this.after(...newElements);
+                    dragTarget.after(...newElements);
                 }
                 newElements.last().scrollIntoView({ behavior: "smooth", block: "center" });
             }
@@ -11708,8 +11709,9 @@ var Views;
                 if (topLevel)
                     this.classList.add("top-level");
                 this.title = section.title;
-                this.append(...this.build(section));
+                // order matters
                 this.addEventListener("calccardcount", this.calcCardCount.bind(this));
+                this.append(...this.build(section));
                 this.addEventListener("rendered", this.calcCardCount.bind(this));
             }
             build(section) {
@@ -11721,7 +11723,7 @@ var Views;
                         } }, section.items.map(item => "name" in item ? new Workbench.EntryElement(item) : new SectionElement(item)))
                 ];
             }
-            quantity;
+            quantity = 0;
             get topLevel() { return this.classList.contains("top-level"); }
             get lines() {
                 return this.querySelector(".list").children;
@@ -11793,7 +11795,6 @@ var Views;
             }
             calcCardCount(event) {
                 const quantity = [...this.querySelectorAll("my-entry")].sum(e => e.quantity);
-                this.querySelector(".card-count").textContent = quantity.toFixed(0);
                 this.quantity = quantity;
             }
         }
@@ -11813,11 +11814,12 @@ var Views;
                 this.addEventListener("click", this.clicked.bind(this));
                 this.addEventListener("rightclick", Workbench.showContextMenu.bind(this.section));
                 this.draggable = true;
-                this.addEventListener("dragstart", Workbench.dragStart.bind(this.section));
-                this.addEventListener("dragover", Workbench.dragOver.bind(this.section));
-                this.addEventListener("dragleave", Workbench.dragLeave.bind(this.section));
-                this.addEventListener("dragend", Workbench.dragEnd.bind(this.section));
-                this.addEventListener("drop", Workbench.drop.bind(this.section));
+                this.addEventListener("dragstart", Workbench.dragStart.bind(this));
+                this.addEventListener("dragover", Workbench.dragOver.bind(this));
+                this.addEventListener("dragleave", Workbench.dragLeave.bind(this));
+                this.addEventListener("dragend", Workbench.dragEnd.bind(this));
+                this.addEventListener("drop", Workbench.drop.bind(this));
+                this.section.addEventListener("calccardcount", this.calcCardCount.bind(this));
             }
             section;
             build() {
@@ -11829,7 +11831,7 @@ var Views;
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-down.svg" }))),
                     UI.Generator.Hyperscript("h2", { class: ["title", this.section.topLevel ? null : "double-click-to-edit"], ...(this.section.topLevel ? null : { ondblclick: Workbench.doubleClickToEdit }), onchange: this.titleChange.bind(this) }, this.section.title),
                     UI.Generator.Hyperscript("div", { class: "actions" },
-                        UI.Generator.Hyperscript("span", { class: "card-count" }, "0"),
+                        UI.Generator.Hyperscript("span", { class: "card-count" }, this.section.quantity),
                         UI.Generator.Hyperscript("a", { class: ["add-section-button"], onclick: this.addSection.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/add-section.svg" })),
                         UI.Generator.Hyperscript("a", { class: ["dissolve-button", this.section.topLevel ? "none" : null], onclick: this.dissolveClick.bind(this) },
@@ -11887,6 +11889,10 @@ var Views;
             }
             async moveTo() {
                 await this.section.moveTo();
+            }
+            calcCardCount(event) {
+                const cardCount = this.querySelector(".card-count");
+                cardCount.textContent = this.section.quantity.toFixed(0);
             }
         }
         Workbench.SectionHeaderElement = SectionHeaderElement;
@@ -12048,7 +12054,7 @@ var Views;
                     const area = section.getBoundingClientRect();
                     const top = area.top - topOffset;
                     const bottom = area.bottom - topOffset;
-                    if (top < 0 && bottom >= 0)
+                    if (top < 0 && bottom >= -1)
                         lastStickySection = section;
                 }
                 if (this.currentStickySection == lastStickySection)

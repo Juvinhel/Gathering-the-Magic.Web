@@ -5846,6 +5846,24 @@ my-entry > [class*="actions"] {
   align-items: center;
   gap: 0.25em;
 }
+my-entry {
+  display: grid;
+  padding: 0.25em;
+  gap: 0.25em;
+  border-radius: 0.25em;
+  background-color: var(--page-background-color);
+  animation: blinking 0.5s ease-in-out;
+  cursor: pointer;
+}
+my-entry.is-missing {
+  background-color: var(--cancel-color);
+}
+my-entry.selected {
+  background-color: var(--accent-color);
+}
+my-entry.drag-over {
+  background-color: rgba(81, 221, 63);
+}
 my-section-header {
   display: grid;
   grid-template-rows: 1fr;
@@ -5881,6 +5899,23 @@ my-section-header > div {
   align-items: center;
   gap: 0.25em;
 }
+my-section-header.drag-over {
+  background-color: rgba(81, 221, 63);
+}
+my-section {
+  display: grid;
+  grid-template-rows: max-content 1fr;
+  grid-template-columns: 1fr;
+  grid-column: 1 / -1;
+  width: 100%;
+  gap: 0.25em;
+  border-radius: 0.25em;
+}
+my-section > my-section-header {
+  grid-row: 1;
+  grid-column: 1 / -1;
+  animation: blinking 0.5s ease-in-out;
+}
 my-workbench {
   --entry-columns: [move] auto [quantity] auto [name] 1fr [type] 0 [mana] 0 [actions] auto;
   display: grid;
@@ -5897,7 +5932,7 @@ my-workbench {
   overflow-y: auto;
 }
 my-workbench > .header {
-  z-index: 10000000;
+  z-index: 100000;
   position: sticky;
   top: 0;
   grid-area: header;
@@ -5919,6 +5954,7 @@ my-workbench > .list-header {
   grid-auto-rows: max-content;
   grid-auto-flow: row;
   align-self: start;
+  padding-top: 0.25em;
   padding-bottom: 0.25em;
   gap: 0.25em;
   border-radius: var(--corner-radius);
@@ -6297,13 +6333,8 @@ my-search .query > button {
   aspect-ratio: 1;
 }
 .grid my-entry {
-  display: grid;
   grid-template-rows: max-content 1fr;
   grid-template-columns: 1fr;
-  padding: 0.25em;
-  gap: 0.25em;
-  border-radius: 0.25em;
-  background-color: var(--page-background-color);
 }
 .grid my-entry > .image {
   grid-row: 1;
@@ -6313,8 +6344,7 @@ my-search .query > button {
   z-index: 1000;
   position: absolute;
   grid-row: 1;
-  margin-top: 0;
-  margin-left: 0;
+  grid-column: 1;
   padding: 0.25em;
   border-radius: 0.25em;
   background-color: var(--page-background-color);
@@ -6329,29 +6359,6 @@ my-search .query > button {
 .grid my-entry > .card-actions {
   display: none;
 }
-.grid my-entry.is-missing {
-  background-color: var(--cancel-color);
-}
-.grid my-entry.selected {
-  background-color: var(--accent-color);
-}
-.grid my-entry.drag-over {
-  background-color: rgba(81, 221, 63);
-}
-.grid my-section {
-  display: grid;
-  grid-template-rows: max-content 1fr;
-  grid-template-columns: 1fr;
-  grid-column: 1 / -1;
-  width: 100%;
-  gap: 0.25em;
-  border-radius: 0.25em;
-}
-.grid my-section > my-section-header {
-  grid-row: 1;
-  grid-column: 1 / -1;
-  animation: blinking 0.5s ease-in-out;
-}
 .grid my-section > .list {
   display: flex;
   grid-row: 2;
@@ -6361,12 +6368,6 @@ my-search .query > button {
   padding-left: 1em;
   gap: 0.25em;
 }
-.grid my-section.selected > .header {
-  background-color: var(--accent-color);
-}
-.grid my-section.drag-over > .header {
-  background-color: rgba(81, 221, 63);
-}
 .lines my-entry {
   display: grid;
   grid-template-rows: 1fr;
@@ -6374,12 +6375,6 @@ my-search .query > button {
   grid-auto-flow: column;
   grid-column: 1 / -1;
   align-items: center;
-  padding: 0.25em;
-  gap: 0.25em;
-  border-radius: 0.25em;
-  background-color: var(--page-background-color);
-  animation: blinking 0.5s ease-in-out;
-  cursor: pointer;
 }
 .lines my-entry > .move-actions {
   grid-column: move;
@@ -6412,28 +6407,6 @@ my-search .query > button {
 .lines my-entry > .image {
   display: none;
 }
-.lines my-entry.is-missing {
-  background-color: var(--cancel-color);
-}
-.lines my-entry.selected {
-  background-color: var(--accent-color);
-}
-.lines my-entry.drag-over {
-  background-color: rgba(81, 221, 63);
-}
-.lines my-section {
-  display: grid;
-  grid-template-rows: max-content 1fr;
-  grid-template-columns: 1fr;
-  grid-column: 1 / -1;
-  gap: 0.25em;
-  border-radius: 0.25em;
-}
-.lines my-section > my-section-header {
-  grid-row: 1;
-  grid-column: 1 / -1;
-  animation: blinking 0.5s ease-in-out;
-}
 .lines my-section > .list {
   display: grid;
   grid-template-columns: var(--entry-columns);
@@ -6442,11 +6415,5 @@ my-search .query > button {
   grid-column: 1 / -1;
   padding-left: 1em;
   gap: 0.25em;
-}
-.lines my-section.selected > .header {
-  background-color: var(--accent-color);
-}
-.lines my-section.drag-over > .header {
-  background-color: rgba(81, 221, 63);
 }
 /*# sourceMappingURL=app.css.map */
