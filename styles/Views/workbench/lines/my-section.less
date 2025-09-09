@@ -1,19 +1,5 @@
 .lines my-section
 {
-    display: grid;
-    grid-template-rows: max-content 1fr;
-    grid-template-columns: 1fr;
-    grid-column: 1 / -1;
-    gap: 0.25em;
-    border-radius: 0.25em;
-
-    > my-section-header
-    {
-        grid-row: 1;
-        grid-column: 1 / -1;
-        animation: blinking 0.5s ease-in-out;
-    }
-
     > .list
     {
         display: grid;
@@ -23,15 +9,5 @@
         grid-column: 1 / -1;
         padding-left: 1em;
         gap: 0.25em;
-    }
-
-    &.selected > .header
-    {
-        background-color: var(--accent-color);
-    }
-
-    &.drag-over > .header
-    {
-        background-color: rgba(81, 221, 63);
     }
 }

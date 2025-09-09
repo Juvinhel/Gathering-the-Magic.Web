@@ -1,12 +1,12 @@
 namespace Views.Workbench
 {
-    export function preventDrag(this: EntryElement | SectionElement, event: DragEvent)
+    export function preventDrag(this: EntryElement | SectionHeaderElement, event: DragEvent)
     {
         event.preventDefault();
         event.stopPropagation();
     }
 
-    export function dragStart(this: EntryElement | SectionElement, event: DragEvent)
+    export function dragStart(this: EntryElement | SectionHeaderElement, event: DragEvent)
     {
         event.stopPropagation();
         if (this.closest("swipe-container"))
@@ -22,7 +22,7 @@ namespace Views.Workbench
         event.dataTransfer.effectAllowed = "all";
     }
 
-    export function dragOver(this: EntryElement | SectionElement, event: DragEvent)
+    export function dragOver(this: EntryElement | SectionHeaderElement, event: DragEvent)
     {
         event.preventDefault();
         event.stopPropagation();
@@ -33,14 +33,14 @@ namespace Views.Workbench
         this.classList.add("drag-over");
     }
 
-    export function dragLeave(this: EntryElement | SectionElement, event: DragEvent)
+    export function dragLeave(this: EntryElement | SectionHeaderElement, event: DragEvent)
     {
         event.preventDefault();
         event.stopPropagation();
         this.classList.remove("drag-over");
     }
 
-    export async function drop(this: EntryElement | SectionElement, event: DragEvent)
+    export async function drop(this: EntryElement | SectionHeaderElement, event: DragEvent)
     {
         try
         {
@@ -48,7 +48,8 @@ namespace Views.Workbench
             event.stopPropagation();
 
             this.classList.remove("drag-over");
-            const isSection = this instanceof SectionElement;
+            const dragTarget = this instanceof SectionHeaderElement ? this.section : this;
+            const isSection = dragTarget instanceof SectionElement;
 
             const data = event.dataTransfer.getData("text");
             if (!data) return;
@@ -83,11 +84,11 @@ namespace Views.Workbench
 
             if (isSection)
             {
-                this.querySelector(".list").append(...newElements);
+                dragTarget.querySelector(".list").append(...newElements);
             }
             else
             {
-                this.after(...newElements);
+                dragTarget.after(...newElements);
             }
 
             newElements.last().scrollIntoView({ behavior: "smooth", block: "center" });
@@ -98,7 +99,7 @@ namespace Views.Workbench
         }
     }
 
-    export function dragEnd(this: EntryElement | SectionElement, event: DragEvent)
+    export function dragEnd(this: EntryElement | SectionHeaderElement, event: DragEvent)
     {
         event.preventDefault();
         event.stopPropagation();

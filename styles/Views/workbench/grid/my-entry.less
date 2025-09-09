@@ -1,12 +1,7 @@
 .grid my-entry
 {
-    display: grid;
     grid-template-rows: max-content 1fr;
     grid-template-columns: 1fr;
-    padding: 0.25em;
-    gap: 0.25em;
-    border-radius: 0.25em;
-    background-color: var(--page-background-color);
 
     > .image
     {
@@ -33,20 +28,5 @@
     > .move-actions, > .name, > .type, > .mana, > .card-actions
     {
         display: none;
-    }
-
-    &.is-missing
-    {
-        background-color: var(--cancel-color);
-    }
-
-    &.selected
-    {
-        background-color: var(--accent-color);
-    }
-
-    &.drag-over
-    {
-        background-color: rgba(81, 221, 63);
     }
 }

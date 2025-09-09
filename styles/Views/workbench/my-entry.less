@@ -1,0 +1,25 @@
+my-entry
+{
+    display: grid;
+    padding: 0.25em;
+    gap: 0.25em;
+    border-radius: 0.25em;
+    background-color: var(--page-background-color);
+    animation: blinking 0.5s ease-in-out;
+    cursor: pointer;
+
+    &.is-missing
+    {
+        background-color: var(--cancel-color);
+    }
+
+    &.selected
+    {
+        background-color: var(--accent-color);
+    }
+
+    &.drag-over
+    {
+        background-color: rgba(81, 221, 63);
+    }
+}

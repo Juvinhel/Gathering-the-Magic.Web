@@ -10,9 +10,11 @@ namespace Views.Workbench
             if (topLevel) this.classList.add("top-level");
             this.title = section.title;
 
+            // order matters
+            this.addEventListener("calccardcount", this.calcCardCount.bind(this));
+
             this.append(...this.build(section));
 
-            this.addEventListener("calccardcount", this.calcCardCount.bind(this));
             this.addEventListener("rendered", this.calcCardCount.bind(this));
         }
 
@@ -31,7 +33,7 @@ namespace Views.Workbench
             ];
         }
 
-        public quantity: number;
+        public quantity: number = 0;
         public get topLevel() { return this.classList.contains("top-level"); }
 
         public get lines(): HTMLCollectionOf<SectionElement | EntryElement>
@@ -130,7 +132,6 @@ namespace Views.Workbench
         private calcCardCount(event: Event)
         {
             const quantity = [...(this.querySelectorAll("my-entry") as NodeListOf<EntryElement>)].sum(e => e.quantity);
-            this.querySelector(".card-count").textContent = quantity.toFixed(0);
             this.quantity = quantity;
         }
     }

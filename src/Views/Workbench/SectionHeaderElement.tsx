@@ -14,11 +14,13 @@ namespace Views.Workbench
             this.addEventListener("rightclick", showContextMenu.bind(this.section));
 
             this.draggable = true;
-            this.addEventListener("dragstart", dragStart.bind(this.section));
-            this.addEventListener("dragover", dragOver.bind(this.section));
-            this.addEventListener("dragleave", dragLeave.bind(this.section));
-            this.addEventListener("dragend", dragEnd.bind(this.section));
-            this.addEventListener("drop", drop.bind(this.section));
+            this.addEventListener("dragstart", dragStart.bind(this));
+            this.addEventListener("dragover", dragOver.bind(this));
+            this.addEventListener("dragleave", dragLeave.bind(this));
+            this.addEventListener("dragend", dragEnd.bind(this));
+            this.addEventListener("drop", drop.bind(this));
+
+            this.section.addEventListener("calccardcount", this.calcCardCount.bind(this));
         }
 
         public section: SectionElement;
@@ -32,7 +34,7 @@ namespace Views.Workbench
                 </div>,
                 <h2 class={ ["title", this.section.topLevel ? null : "double-click-to-edit"] } { ...(this.section.topLevel ? null : { ondblclick: doubleClickToEdit }) } onchange={ this.titleChange.bind(this) } >{ this.section.title }</h2>,
                 <div class="actions">
-                    <span class="card-count">0</span>
+                    <span class="card-count">{ this.section.quantity }</span>
                     <a class={ ["add-section-button"] } onclick={ this.addSection.bind(this) }><color-icon src="img/icons/add-section.svg" /></a>
                     <a class={ ["dissolve-button", this.section.topLevel ? "none" : null] } onclick={ this.dissolveClick.bind(this) }><color-icon src="img/icons/unlink.svg" /></a>
                     <a class={ ["delete-button", this.section.topLevel ? "none" : null] } onclick={ this.deleteClick.bind(this) }><color-icon src="img/icons/delete.svg" /></a>
@@ -110,6 +112,12 @@ namespace Views.Workbench
         public async moveTo()
         {
             await this.section.moveTo();
+        }
+
+        private calcCardCount(event: Event)
+        {
+            const cardCount = this.querySelector(".card-count") as HTMLSpanElement;
+            cardCount.textContent = this.section.quantity.toFixed(0);
         }
     }
 

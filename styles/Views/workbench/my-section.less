@@ -1,0 +1,17 @@
+my-section
+{
+    display: grid;
+    grid-template-rows: max-content 1fr;
+    grid-template-columns: 1fr;
+    grid-column: 1 / -1;
+    width: 100%;
+    gap: 0.25em;
+    border-radius: 0.25em;
+
+    > my-section-header
+    {
+        grid-row: 1;
+        grid-column: 1 / -1;
+        animation: blinking 0.5s ease-in-out;
+    }
+}

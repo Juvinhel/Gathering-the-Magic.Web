@@ -159,7 +159,7 @@ namespace Views.Workbench
                 const area = section.getBoundingClientRect();
                 const top = area.top - topOffset;
                 const bottom = area.bottom - topOffset;
-                if (top < 0 && bottom >= 0) lastStickySection = section;
+                if (top < 0 && bottom >= -1) lastStickySection = section;
             }
             if (this.currentStickySection == lastStickySection) return;
             this.currentStickySection = lastStickySection;
