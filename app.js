@@ -551,6 +551,13 @@ const Integer = new class Integer {
         return number.toFixed();
     }
 }();
+const Iterable = new class IterableHelper {
+    isIterable(obj) {
+        if (obj == null)
+            return false;
+        return typeof obj[Symbol.iterator] === "function";
+    }
+}();
 JSON.clone = function (object) {
     if (object == null)
         return null;
@@ -5942,14 +5949,9 @@ var UI;
                 dom.setAttribute(attribute.substring(0, attribute.length - "-attribute".length), value?.toString());
                 return true;
             },
-            "class": (dom, attribute, value) => {
-                if (typeof value === "string" || value instanceof String)
-                    value = value.split(" ");
-                for (let v of value) {
-                    v = v?.trim(); // breaks with whitespace
-                    if (v)
-                        dom.classList.add(v);
-                }
+            "class": (dom, attribute, values) => {
+                for (const c of splitClassArray(values))
+                    dom.classList.add(c);
                 return true;
             },
             "innerhtml": (dom, attribute, value) => {
@@ -6053,6 +6055,24 @@ var UI;
                 return true;
             },
         };
+        function* splitClassArray(values) {
+            if (values == null)
+                return;
+            if (typeof values === "string" || values instanceof String) {
+                for (const v of values.trim().split(/\s+/))
+                    yield v;
+                return;
+            }
+            for (const value of values)
+                if (value) {
+                    if (typeof value === "string" || value instanceof String)
+                        for (const v of value.trim().split(/\s+/))
+                            yield v;
+                    else if (Iterable.isIterable(value))
+                        for (const v of splitClassArray(value))
+                            yield v;
+                }
+        }
     })(Renderer = UI.Renderer || (UI.Renderer = {}));
 })(UI || (UI = {}));
 var UI;
@@ -8010,7 +8030,9 @@ var UI;
 })(UI || (UI = {}));
 ;
 class App {
-    static async Start() {
+    static async Start(args) {
+        const useLibrary = args?.library ?? true;
+        const useWorkbench = args?.workbench ?? true;
         [this.config, , this.symbols, this.types, this.sets, this.keywords] = await Promise.all([
             Data.loadConfig(),
             Data.API.init(),
@@ -8028,6 +8050,7 @@ class App {
             for (const collection of await Data.SaveLoad.loadDefaultCollections())
                 this.collections[collection.name] = collection;
         }
+        document.body.style.setProperty("--card-size", App.config.cardSize == "Large" ? "14em" : "8em");
         initChartJS();
         UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
         UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
@@ -8037,15 +8060,20 @@ class App {
         window.addEventListener("keydown", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
         window.addEventListener("keyup", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
         document.addEventListener('visibilitychange', App.visibilityChange);
-        const lastDeck = localStorage.get("last-deck") ?? App.sampleDeck;
-        await UI.Navigator.navigate("main", () => new Views.Editor.EditorElement());
-        const workbench = document.querySelector("my-workbench");
-        await workbench.loadData(await Data.File.loadDeck(JSON.stringify(lastDeck), "JSON"));
-        const unsavedProgress = document.body.querySelector(".unsaved-progress");
-        unsavedProgress.classList.toggle("none", true);
+        // START
+        const editor = new Views.Editor.EditorElement(useLibrary, useWorkbench);
+        document.querySelector("main").append(editor);
+        if (useWorkbench) {
+            const lastDeck = localStorage.get("last-deck") ?? App.sampleDeck;
+            const workbench = editor.querySelector("my-workbench");
+            await workbench.loadData(await Data.File.loadDeck(JSON.stringify(lastDeck), "JSON"));
+            const unsavedProgress = document.body.querySelector(".unsaved-progress");
+            unsavedProgress.classList.toggle("none", true);
+        }
     }
     static visibilityChange = function (event) {
         if (document.visibilityState == "hidden") {
+            Data.saveConfig(App.config);
             localStorage.set("collections", App.collections);
             const editor = document.querySelector("my-editor");
             const workbench = editor.querySelector("my-workbench");
@@ -8390,6 +8418,7 @@ var Data;
     const defaultConfig = {
         showMana: false,
         showType: false,
+        cardSize: "Small",
         listMode: "Lines",
     };
     async function loadConfig() {
@@ -9237,19 +9266,21 @@ var Views;
 (function (Views) {
     var Dialogs;
     (function (Dialogs) {
-        function CollectionsOverview() {
+        function CollectionsOverview(args) {
+            const collections = args.collections;
+            const allowDelete = args.allowDelete ?? true;
             return UI.Generator.Hyperscript("div", { class: "collections-overview" },
                 UI.Generator.Hyperscript("div", null,
                     UI.Generator.Hyperscript("span", null, "Name"),
                     UI.Generator.Hyperscript("span", null, "Cards"),
                     UI.Generator.Hyperscript("span", null, "Import Date"),
                     UI.Generator.Hyperscript("span", null)),
-                Object.entries(App.collections).orderBy(x => x[1].name, String.localeCompare).map(e => UI.Generator.Hyperscript("div", null,
+                Object.entries(collections).orderBy(x => x[1].name, String.localeCompare).map(e => UI.Generator.Hyperscript("div", null,
                     UI.Generator.Hyperscript("span", { title: e[1].name }, e[1].name),
                     UI.Generator.Hyperscript("span", { title: Object.values(e[1].cards).sum() }, Object.values(e[1].cards).sum()),
                     UI.Generator.Hyperscript("span", { title: e[1].importDate.toLocaleString() }, e[1].importDate.toLocaleString()),
-                    UI.Generator.Hyperscript("a", { class: "link-button", onclick: (event) => deleteCollection(event, e[0]) },
-                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" })))));
+                    allowDelete ? UI.Generator.Hyperscript("a", { class: "link-button", onclick: (event) => deleteCollection(event, e[0]) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" })) : null)));
         }
         Dialogs.CollectionsOverview = CollectionsOverview;
         function deleteCollection(event, key) {
@@ -9264,10 +9295,26 @@ var Views;
 (function (Views) {
     var Dialogs;
     (function (Dialogs) {
-        function DeckList(editor, cards) {
+        function DeckList(args) {
+            const commanders = ("commanders" in args.deck) ? args.deck.commanders : [];
+            let deck = args.deck;
+            if ("sections" in deck)
+                deck = deck.sections.first(s => s.title == "main");
+            const cards = Data.collapse(deck);
+            let textCommanders = "";
+            for (const commander of commanders)
+                textCommanders += "1 " + commander + "\r\n";
             let text = "";
-            for (const entry of cards.sortBy(x => x.name))
+            for (const entry of cards.sortBy(x => x.name)) {
+                if (commanders.includes(entry.name)) { // commanders are at start of list
+                    commanders.remove(entry.name);
+                    entry.quantity -= 1;
+                    if (entry.quantity == 0)
+                        continue;
+                }
                 text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
+            }
+            text = textCommanders + text;
             return UI.Generator.Hyperscript("div", { class: "deck-list" },
                 UI.Generator.Hyperscript("span", null, text),
                 UI.Generator.Hyperscript("div", { class: "actions" },
@@ -9560,7 +9607,8 @@ var Views;
 (function (Views) {
     var Dialogs;
     (function (Dialogs) {
-        function DrawTest(deck) {
+        function DrawTest(args) {
+            const deck = args.deck;
             const entries = Data.getEntries(deck.sections.first(s => s.title == "main"));
             const cards = [];
             for (const entry of entries) {
@@ -9641,7 +9689,12 @@ var Views;
 (function (Views) {
     var Dialogs;
     (function (Dialogs) {
-        function MissingCards(editor, cards) {
+        function MissingCards(args) {
+            const collection = args.collection;
+            const collapsedEntries = Data.collapse(args.deck);
+            for (const entry of collapsedEntries)
+                entry.quantity -= collection.cards[entry.name] ?? 0;
+            const cards = collapsedEntries.filter(x => x.quantity > 0);
             const sortedCards = cards.filter(x => !Data.isBasicLand(x.name)).sortBy(x => x.name);
             return UI.Generator.Hyperscript("div", { class: "missing-cards" },
                 UI.Generator.Hyperscript("table", null,
@@ -9664,9 +9717,9 @@ var Views;
                     UI.Generator.Hyperscript("a", { class: "link-button", onclick: () => downloadMissingCards(sortedCards), title: "Download as txt" },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/download.svg" }),
                         UI.Generator.Hyperscript("span", null, "Download")),
-                    UI.Generator.Hyperscript("a", { class: "link-button", onclick: () => markMissingCards(editor, sortedCards), title: "Highlight missing cards" },
+                    args.workbench ? UI.Generator.Hyperscript("a", { class: "link-button", onclick: () => markMissingCards(args.workbench, sortedCards), title: "Highlight missing cards" },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/brush.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Highlight"))));
+                        UI.Generator.Hyperscript("span", null, "Highlight")) : null));
         }
         Dialogs.MissingCards = MissingCards;
         async function downloadMissingCards(cards) {
@@ -9675,8 +9728,7 @@ var Views;
                 file += entry.quantity.toFixed() + " " + entry.name + "\r\n";
             DownloadHelper.downloadData("missing cards.txt", file, "text/plain");
         }
-        async function markMissingCards(editor, cards) {
-            const workbench = editor.querySelector("my-workbench");
+        async function markMissingCards(workbench, cards) {
             const missingCards = Object.clone(cards);
             for (const entry of [...workbench.querySelectorAll("my-entry")].reverse()) {
                 const card = entry.card;
@@ -9692,9 +9744,12 @@ var Views;
                     entry.classList.toggle("is-missing", false);
                 }
             }
+            const editor = workbench.closest("my-editor");
             const menu = editor.querySelector(".menu");
-            const showMissingCards = menu.querySelector(".show-missing-cards");
-            showMissingCards.classList.toggle("marked", true);
+            if (menu) {
+                const showMissingCards = menu.querySelector(".show-missing-cards");
+                showMissingCards.classList.toggle("marked", true);
+            }
         }
     })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
 })(Views || (Views = {}));
@@ -9703,8 +9758,10 @@ var Views;
     var Editor;
     (function (Editor) {
         class EditorElement extends HTMLElement {
-            constructor() {
+            constructor(useLibrary = true, useWorkbench = true) {
                 super();
+                this.useLibrary = useLibrary;
+                this.useWorkbench = useWorkbench;
                 this.append(...this.build());
                 this.addEventListener("sizechanged", this.sizeChanged.bind(this));
                 this.addEventListener("cardhovered", this.cardHovered.bind(this));
@@ -9713,14 +9770,16 @@ var Views;
                 this.addEventListener("cardsearchstarted", this.cardSearchStarted.bind(this));
                 this.addEventListener("cardsearchfinished", this.cardSearchFinished.bind(this));
             }
+            useLibrary;
+            useWorkbench;
             build() {
                 return [
-                    UI.Generator.Hyperscript(Editor.Menu, null),
-                    UI.Generator.Hyperscript(Views.Library.LibraryElement, null),
+                    Editor.Menu(this.useLibrary, this.useWorkbench),
+                    this.useLibrary ? UI.Generator.Hyperscript(Views.Library.LibraryElement, null) : null,
                     UI.Generator.Hyperscript(Views.Info.CardInfoElement, null),
-                    UI.Generator.Hyperscript(Views.Workbench.WorkbenchElement, null),
+                    this.useWorkbench ? UI.Generator.Hyperscript(Views.Workbench.WorkbenchElement, null) : null,
                     UI.Generator.Hyperscript(Editor.Footer, null)
-                ];
+                ].filter(x => x);
             }
             selectedCard;
             hoveredCard;
@@ -9777,6 +9836,8 @@ var Views;
                 const searchRunning = this.querySelector(".search-running");
                 searchRunning.classList.toggle("none", true);
             }
+            hasLibrary;
+            hasWorkbench;
             popup;
             unDock() {
                 let library = this.querySelector("my-library");
@@ -9821,19 +9882,19 @@ var Views;
 (function (Views) {
     var Editor;
     (function (Editor) {
-        function Menu() {
+        function Menu(useLibrary = true, useWorkbench = true) {
             return UI.Generator.Hyperscript("div", { class: "menu" },
                 UI.Generator.Hyperscript("menu-button", { title: "File" },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/file.svg" }),
                     UI.Generator.Hyperscript("span", null, "File"),
                     UI.Generator.Hyperscript("drop-down", null,
-                        UI.Generator.Hyperscript("menu-button", { onclick: newDeck, title: "New Deck" },
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: newDeck, title: "New Deck" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/file.svg" }),
                             UI.Generator.Hyperscript("span", null, "New Deck")),
-                        UI.Generator.Hyperscript("menu-button", { onclick: saveDeck, title: "Save Deck" },
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: saveDeck, title: "Save Deck" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/save.svg" }),
                             UI.Generator.Hyperscript("span", null, "Save Deck")),
-                        UI.Generator.Hyperscript("menu-button", { onclick: loadDeck, title: "Load Deck" },
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: loadDeck, title: "Load Deck" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/deck.svg" }),
                             UI.Generator.Hyperscript("span", null, "Load Deck")),
                         UI.Generator.Hyperscript("menu-button", { onclick: loadCollections, title: "Load Collections" },
@@ -9843,38 +9904,41 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/view.svg" }),
                     UI.Generator.Hyperscript("span", null, "View"),
                     UI.Generator.Hyperscript("drop-down", null,
-                        UI.Generator.Hyperscript("menu-button", { title: App.config.listMode == "Lines" ? "Show Grid" : "Show Lines", onclick: showGridOrLines },
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showGridOrLines, title: App.config.listMode == "Lines" ? "Show Grid" : "Show Lines" },
                             UI.Generator.Hyperscript("color-icon", { src: App.config.listMode == "Lines" ? "img/icons/grid.svg" : "img/icons/lines.svg" }),
                             UI.Generator.Hyperscript("span", null, App.config.listMode == "Lines" ? "Show Grid" : "Show Lines")),
-                        UI.Generator.Hyperscript("menu-button", { class: ["show-mana", App.config.showMana ? "marked" : null], onclick: showMana, title: "Show Mana" },
+                        UI.Generator.Hyperscript("menu-button", { onclick: swapCardSize, title: App.config.cardSize == "Small" ? "Large Cards" : "Small Cards" },
+                            UI.Generator.Hyperscript("color-icon", { src: App.config.cardSize == "Small" ? "img/icons/scale-up.svg" : "img/icons/scale-down.svg" }),
+                            UI.Generator.Hyperscript("span", null, App.config.cardSize == "Small" ? "Large Cards" : "Small Cards")),
+                        UI.Generator.Hyperscript("menu-button", { class: [useWorkbench ? null : "none", "show-mana", App.config.showMana ? "marked" : null], onclick: showMana, title: "Show Mana" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/mana.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Mana")),
-                        UI.Generator.Hyperscript("menu-button", { class: ["show-type", App.config.showType ? "marked" : null], onclick: showType, title: "Show Type" },
+                        UI.Generator.Hyperscript("menu-button", { class: [useWorkbench ? null : "none", "show-type", App.config.showType ? "marked" : null], onclick: showType, title: "Show Type" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/type.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Type")),
-                        UI.Generator.Hyperscript("menu-button", { class: "clear-selection", title: "Clear Selection", onclick: clearSelection },
+                        UI.Generator.Hyperscript("menu-button", { class: [useWorkbench ? null : "none", "clear-selection"], title: "Clear Selection", onclick: clearSelection },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/hand-select.svg" }),
                             UI.Generator.Hyperscript("span", null, "Clear Selection")),
-                        UI.Generator.Hyperscript("menu-button", { title: "Undock Search", onclick: unDockSearch },
+                        UI.Generator.Hyperscript("menu-button", { class: useLibrary ? null : "none", onclick: unDockLibrary, title: "Undock Library" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/undock.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Undock Search")))),
+                            UI.Generator.Hyperscript("span", null, "Undock Library")))),
                 UI.Generator.Hyperscript("menu-button", { title: "Tools" },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/tools.svg" }),
                     UI.Generator.Hyperscript("span", null, "Tools"),
                     UI.Generator.Hyperscript("drop-down", null,
-                        UI.Generator.Hyperscript("menu-button", { onclick: sortCards, title: "Sort Cards" },
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: sortCards, title: "Sort Cards" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                             UI.Generator.Hyperscript("span", null, "Sort Cards")),
-                        UI.Generator.Hyperscript("menu-button", { onclick: showDeckList, title: "Show Deck List" },
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showDeckList, title: "Show Deck List" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/numbered-list.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Deck List")),
-                        UI.Generator.Hyperscript("menu-button", { class: "show-missing-cards", onclick: showMissingCards, title: "Show Missing Cards" },
+                        UI.Generator.Hyperscript("menu-button", { class: ["show-missing-cards test1", useWorkbench ? null : "none"], onclick: showMissingCards, title: "Show Missing Cards" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/missing-card.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Missing Cards")),
-                        UI.Generator.Hyperscript("menu-button", { onclick: showDrawTest, title: "Show Draw Test" },
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showDrawTest, title: "Show Draw Test" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/cards.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Draw Test")),
-                        UI.Generator.Hyperscript("menu-button", { onclick: showDeckStatistics, title: "Show Deck Statistics" },
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showDeckStatistics, title: "Show Deck Statistics" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/pie-chart.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Deck Statistics")),
                         UI.Generator.Hyperscript("menu-button", { onclick: showCollectionsOverview, title: "Show Collections" },
@@ -9994,43 +10058,38 @@ var Views;
             const selectCollectionOption = await UI.Dialog.options({ title: "Select Collection for Comparison", options: selectCollectionOptions, allowEmpty: true });
             if (!selectCollectionOption)
                 return;
-            let collapsedEntries;
+            let cards;
             switch (selectCardsOption) {
                 case "*":
-                    collapsedEntries = Data.collapse(deck);
+                    cards = deck;
                     break;
                 case "main":
-                    collapsedEntries = Data.collapse(deck.sections.first(s => s.title == "main"));
+                    cards = deck.sections.first(s => s.title == "main");
                     break;
                 case "side":
-                    collapsedEntries = Data.collapse(deck.sections.first(s => s.title == "side"));
+                    cards = deck.sections.first(s => s.title == "side");
                     break;
                 case "maybe":
-                    collapsedEntries = Data.collapse(deck.sections.first(s => s.title == "maybe"));
+                    cards = deck.sections.first(s => s.title == "maybe");
                     break;
             }
             const collection = selectCollectionOption == "All Collections" ?
                 Data.combineCollections("All Collections", Object.values(App.collections)) :
                 App.collections[selectCollectionOption];
-            for (const entry of collapsedEntries)
-                entry.quantity -= collection.cards[entry.name] ?? 0;
-            collapsedEntries = collapsedEntries.filter(x => x.quantity > 0);
-            await UI.Dialog.show(Views.Dialogs.MissingCards(editor, collapsedEntries), { allowClose: true, title: "Missing Cards List" });
+            await UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.MissingCards, { collection: collection, deck: cards, workbench: workbench }), { allowClose: true, title: "Missing Cards List" });
         }
         async function showDeckList(event) {
             const target = event.currentTarget;
             const editor = target.closest("my-editor");
             const workbench = editor.querySelector("my-workbench");
             const deck = workbench.getData();
-            const collapsedEntries = Data.collapse(deck.sections.first(s => s.title == "main"));
-            await UI.Dialog.show(Views.Dialogs.DeckList(editor, collapsedEntries), { allowClose: true, title: "Card List" });
+            await UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.DeckList, { deck: deck }), { allowClose: true, title: "Card List" });
         }
         async function showMana(event) {
             const target = event.currentTarget;
             const editor = target.closest("my-editor");
             const workbench = editor.querySelector("my-workbench");
             App.config.showMana = !App.config.showMana;
-            Data.saveConfig(App.config);
             target.classList.toggle("marked", App.config.showMana);
             workbench.refreshColumns();
         }
@@ -10039,7 +10098,6 @@ var Views;
             const editor = target.closest("my-editor");
             const workbench = editor.querySelector("my-workbench");
             App.config.showType = !App.config.showType;
-            Data.saveConfig(App.config);
             target.classList.toggle("marked", App.config.showType);
             workbench.refreshColumns();
         }
@@ -10054,7 +10112,7 @@ var Views;
             const editor = target.closest("my-editor");
             const workbench = editor.querySelector("my-workbench");
             const deck = workbench.getData();
-            UI.Dialog.show(Views.Dialogs.DrawTest(deck), { allowClose: true, title: "Draw Test" });
+            UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.DrawTest, { deck: deck }), { allowClose: true, title: "Draw Test" });
         }
         async function showDeckStatistics(event) {
             const target = event.currentTarget;
@@ -10077,7 +10135,7 @@ var Views;
             });
         }
         function showCollectionsOverview(event) {
-            UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.CollectionsOverview, null), { allowClose: true, title: "Collections Overview" });
+            UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.CollectionsOverview, { collections: App.collections }), { allowClose: true, title: "Collections Overview" });
         }
         function showGridOrLines(event) {
             const menuButton = event.currentTarget;
@@ -10091,7 +10149,6 @@ var Views;
                 colorIcon.src = "img/icons/lines.svg";
                 workbench.listMode = "Grid";
                 App.config.listMode = "Grid";
-                Data.saveConfig(App.config);
             }
             else {
                 menuButton.title = "Show Grid";
@@ -10099,25 +10156,39 @@ var Views;
                 colorIcon.src = "img/icons/grid.svg";
                 workbench.listMode = "Lines";
                 App.config.listMode = "Lines";
-                Data.saveConfig(App.config);
             }
         }
-        function unDockSearch(event) {
+        function unDockLibrary(event) {
             const menuButton = event.currentTarget;
             const span = menuButton.querySelector("span");
             const colorIcon = menuButton.querySelector("color-icon");
             const editor = menuButton.closest("my-editor");
             const state = editor.unDock();
             if (state == "Docked") {
-                menuButton.title = "Undock Search";
-                span.textContent = "Undock Search";
+                menuButton.title = span.textContent = "Undock Search";
                 colorIcon.src = "img/icons/undock.svg";
             }
             else {
-                menuButton.title = "Dock Search";
-                span.textContent = "Dock Search";
+                menuButton.title = span.textContent = "Dock Search";
                 colorIcon.src = "img/icons/dock.svg";
             }
+        }
+        function swapCardSize(event) {
+            switch (App.config.cardSize) {
+                case "Large":
+                    App.config.cardSize = "Small";
+                    break;
+                case "Small":
+                default:
+                    App.config.cardSize = "Large";
+                    break;
+            }
+            document.body.style.setProperty("--card-size", App.config.cardSize == "Large" ? "14em" : "8em");
+            const menuButton = event.currentTarget;
+            const colorIcon = menuButton.querySelector("color-icon");
+            const span = menuButton.querySelector("span");
+            menuButton.title = span.textContent = App.config.cardSize == "Small" ? "Large Cards" : "Small Cards";
+            colorIcon.src = App.config.cardSize == "Small" ? "img/icons/scale-up.svg" : "img/icons/scale-down.svg";
         }
     })(Editor = Views.Editor || (Views.Editor = {}));
 })(Views || (Views = {}));
@@ -10363,7 +10434,7 @@ var Views;
                 }
                 build() {
                     return [
-                        UI.Generator.Hyperscript("div", { class: "image" },
+                        UI.Generator.Hyperscript("div", { class: ["image", "card"] },
                             UI.Generator.Hyperscript("img", { src: "img/card-back.png", "lazy-image": this.card.img })),
                         UI.Generator.Hyperscript("color-icon", { class: "in-deck", src: "img/icons/deck.svg" })
                     ];
@@ -10384,7 +10455,8 @@ var Views;
                     this.selected = !this.selected;
                 }
                 showContextMenu(event) {
-                    UI.ContextMenu.show(event, UI.Generator.Hyperscript("menu-button", { title: "Insert Cards", onclick: this.showInsertCards.bind(this) },
+                    const editor = this.closest("my-editor");
+                    UI.ContextMenu.show(event, UI.Generator.Hyperscript("menu-button", { class: editor.useWorkbench ? null : "none", title: "Insert Cards", onclick: this.showInsertCards.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
                         UI.Generator.Hyperscript("span", null, "Insert into ...")), UI.Generator.Hyperscript("menu-button", { title: "Scryfall", onclick: () => window.open(this.card.links.Scryfall, '_blank') },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/scryfall-black.svg" }),
@@ -11176,12 +11248,6 @@ var Views;
             this.classList.remove("drag-over");
         }
         Workbench.dragLeave = dragLeave;
-        function getDragTarget(event) {
-            if (event.target.tagName === "INPUT")
-                return;
-            let target = event.target;
-            return target.closest("my-section, my-entry");
-        }
         async function drop(event) {
             try {
                 event.preventDefault();
@@ -11385,7 +11451,7 @@ var Views;
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" })),
                         UI.Generator.Hyperscript("a", { class: "move-to-button", onclick: this.moveTo.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }))),
-                    UI.Generator.Hyperscript("div", { class: "image" },
+                    UI.Generator.Hyperscript("div", { class: ["image", "card"] },
                         UI.Generator.Hyperscript("img", { src: "img/card-back.png", "lazy-image": this.card.img })),
                 ];
             }
@@ -11643,31 +11709,12 @@ var Views;
                     this.classList.add("top-level");
                 this.title = section.title;
                 this.append(...this.build(section));
-                const header = this.querySelector(".header");
-                header.addEventListener("click", this.clicked.bind(this));
-                header.addEventListener("rightclick", Workbench.showContextMenu.bind(this));
                 this.addEventListener("calccardcount", this.calcCardCount.bind(this));
                 this.addEventListener("rendered", this.calcCardCount.bind(this));
             }
             build(section) {
                 return [
-                    UI.Generator.Hyperscript("div", { class: "header", draggable: true, ondragstart: Workbench.dragStart.bind(this), ondragover: Workbench.dragOver.bind(this), ondragleave: Workbench.dragLeave.bind(this), ondragend: Workbench.dragEnd.bind(this), ondrop: Workbench.drop.bind(this) },
-                        UI.Generator.Hyperscript("div", { class: ["move-actions", this.topLevel ? "none" : null] },
-                            UI.Generator.Hyperscript("a", { class: ["up-button"], onclick: this.moveUp.bind(this) },
-                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" })),
-                            UI.Generator.Hyperscript("a", { class: ["down-button"], onclick: this.moveDown.bind(this) },
-                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-down.svg" }))),
-                        UI.Generator.Hyperscript("h2", { class: ["title", this.topLevel ? null : "double-click-to-edit"], ...(this.topLevel ? null : { ondblclick: Workbench.doubleClickToEdit }), onchange: this.titleChange.bind(this) }, section.title),
-                        UI.Generator.Hyperscript("div", { class: "actions" },
-                            UI.Generator.Hyperscript("span", { class: "card-count" }, "0"),
-                            UI.Generator.Hyperscript("a", { class: ["add-section-button"], onclick: this.addSection.bind(this) },
-                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/add-section.svg" })),
-                            UI.Generator.Hyperscript("a", { class: ["dissolve-button", this.topLevel ? "none" : null], onclick: this.dissolveClick.bind(this) },
-                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" })),
-                            UI.Generator.Hyperscript("a", { class: ["delete-button", this.topLevel ? "none" : null], onclick: this.deleteClick.bind(this) },
-                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" })),
-                            UI.Generator.Hyperscript("a", { class: ["move-to-button", this.topLevel ? "none" : null], onclick: this.moveTo.bind(this) },
-                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" })))),
+                    new Workbench.SectionHeaderElement(this),
                     UI.Generator.Hyperscript("div", { class: "list", onchildrenchanged: (event) => {
                             const list = event.currentTarget;
                             list.dispatchEvent(new Event("calccardcount", { bubbles: true }));
@@ -11676,13 +11723,6 @@ var Views;
             }
             quantity;
             get topLevel() { return this.classList.contains("top-level"); }
-            //public get selected() { return this.classList.contains("selected"); }
-            //public set selected(value: boolean)
-            //{
-            //    this.classList.toggle("selected", value);
-            //    for (const line of this.lines)
-            //        line.selected = value;
-            //}
             get lines() {
                 return this.querySelector(".list").children;
             }
@@ -11692,14 +11732,6 @@ var Views;
                     if (parent != this && parent instanceof SectionElement)
                         title = parent.title + " > " + title;
                 return title;
-            }
-            clickables = ["INPUT", "A", "BUTTON"];
-            clicked(event) {
-                if (event.composedPath().some(x => this.clickables.includes(x.tagName)))
-                    return;
-                const anySelected = this.querySelectorAll("my-entry.selected").length > 0;
-                for (const entry of this.querySelectorAll("my-entry"))
-                    entry.selected = !anySelected;
             }
             moveUp() {
                 let sibling = this.previousElementSibling;
@@ -11715,9 +11747,17 @@ var Views;
                 if (sibling)
                     Views.swapElements(sibling, this);
             }
-            titleChange(event) {
-                const input = event.currentTarget;
-                this.title = input.textContent;
+            get title() {
+                return super.title;
+            }
+            set title(value) {
+                if (super.title != value) {
+                    super.title = value;
+                    const header = this.querySelector("my-section-header");
+                    const heading = header?.querySelector("h2");
+                    if (heading && heading.textContent != super.title)
+                        heading.textContent = super.title;
+                }
             }
             addSection() {
                 const list = this.querySelector(".list");
@@ -11727,22 +11767,10 @@ var Views;
                 title.dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }));
                 title.scrollIntoView({ behavior: "smooth", block: "center" });
             }
-            async dissolveClick() {
-                const result = await UI.Dialog.confirm({ title: "Dissolve Section", text: "Do you really want to delete this section and move all of its contents to the parent?" });
-                if (!result)
-                    return;
-                this.dissolve();
-            }
             dissolve() {
                 const listElement = this.querySelector(".list");
                 const items = [...listElement.children];
                 this.replaceWith(...items);
-            }
-            async deleteClick() {
-                const result = await UI.Dialog.confirm({ title: "Delete Section", text: "Do you really want to delete this section and all of its contents?" });
-                if (!result)
-                    return;
-                this.delete();
             }
             delete() {
                 this.remove();
@@ -11771,6 +11799,98 @@ var Views;
         }
         Workbench.SectionElement = SectionElement;
         customElements.define("my-section", SectionElement);
+    })(Workbench = Views.Workbench || (Views.Workbench = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Workbench;
+    (function (Workbench) {
+        class SectionHeaderElement extends HTMLElement {
+            constructor(section) {
+                super();
+                this.section = section;
+                this.append(...this.build());
+                this.addEventListener("click", this.clicked.bind(this));
+                this.addEventListener("rightclick", Workbench.showContextMenu.bind(this.section));
+                this.draggable = true;
+                this.addEventListener("dragstart", Workbench.dragStart.bind(this.section));
+                this.addEventListener("dragover", Workbench.dragOver.bind(this.section));
+                this.addEventListener("dragleave", Workbench.dragLeave.bind(this.section));
+                this.addEventListener("dragend", Workbench.dragEnd.bind(this.section));
+                this.addEventListener("drop", Workbench.drop.bind(this.section));
+            }
+            section;
+            build() {
+                return [
+                    UI.Generator.Hyperscript("div", { class: ["move-actions", this.section.topLevel ? "none" : null] },
+                        UI.Generator.Hyperscript("a", { class: ["up-button"], onclick: this.moveUp.bind(this) },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" })),
+                        UI.Generator.Hyperscript("a", { class: ["down-button"], onclick: this.moveDown.bind(this) },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-down.svg" }))),
+                    UI.Generator.Hyperscript("h2", { class: ["title", this.section.topLevel ? null : "double-click-to-edit"], ...(this.section.topLevel ? null : { ondblclick: Workbench.doubleClickToEdit }), onchange: this.titleChange.bind(this) }, this.section.title),
+                    UI.Generator.Hyperscript("div", { class: "actions" },
+                        UI.Generator.Hyperscript("span", { class: "card-count" }, "0"),
+                        UI.Generator.Hyperscript("a", { class: ["add-section-button"], onclick: this.addSection.bind(this) },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/add-section.svg" })),
+                        UI.Generator.Hyperscript("a", { class: ["dissolve-button", this.section.topLevel ? "none" : null], onclick: this.dissolveClick.bind(this) },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" })),
+                        UI.Generator.Hyperscript("a", { class: ["delete-button", this.section.topLevel ? "none" : null], onclick: this.deleteClick.bind(this) },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" })),
+                        UI.Generator.Hyperscript("a", { class: ["move-to-button", this.section.topLevel ? "none" : null], onclick: this.moveTo.bind(this) },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" })))
+                ];
+            }
+            clickables = ["INPUT", "A", "BUTTON"];
+            clicked(event) {
+                if (event.composedPath().some(x => this.clickables.includes(x.tagName)))
+                    return;
+                const anySelected = this.section.querySelectorAll("my-entry.selected").length > 0;
+                const prevCtrl = App.ctrl;
+                App.ctrl = true;
+                for (const entry of this.section.querySelectorAll("my-entry"))
+                    entry.selected = !anySelected;
+                App.ctrl = prevCtrl;
+            }
+            moveUp() {
+                this.section.moveUp();
+            }
+            moveDown() {
+                this.section.moveDown();
+            }
+            titleChange(event) {
+                const input = event.currentTarget;
+                this.section.title = input.textContent;
+            }
+            addSection() {
+                this.section.addSection();
+            }
+            async dissolveClick() {
+                const result = await UI.Dialog.confirm({ title: "Dissolve Section", text: "Do you really want to delete this section and move all of its contents to the parent?" });
+                if (!result)
+                    return;
+                this.dissolve();
+            }
+            dissolve() {
+                this.section.dissolve();
+            }
+            async deleteClick() {
+                const result = await UI.Dialog.confirm({ title: "Delete Section", text: "Do you really want to delete this section and all of its contents?" });
+                if (!result)
+                    return;
+                this.delete();
+            }
+            delete() {
+                this.section.delete();
+            }
+            clear() {
+                this.section.clear();
+            }
+            async moveTo() {
+                await this.section.moveTo();
+            }
+        }
+        Workbench.SectionHeaderElement = SectionHeaderElement;
+        customElements.define("my-section-header", SectionHeaderElement);
     })(Workbench = Views.Workbench || (Views.Workbench = {}));
 })(Views || (Views = {}));
 var Views;
@@ -11822,8 +11942,9 @@ var Views;
                         UI.Generator.Hyperscript("span", { class: "deck-card-count" })), UI.Generator.Hyperscript("div", { class: ["list", App.config.listMode.toLowerCase()], onchildrenchanged: (event) => {
                             const list = event.currentTarget;
                             list.dispatchEvent(new Event("calccardcount", { bubbles: true }));
-                        } })];
+                        } }), this.listHeader = UI.Generator.Hyperscript("div", { class: "list-header" })];
             }
+            listHeader;
             get listMode() { return this.querySelector(".list").classList.contains("lines") ? "Lines" : "Grid"; }
             set listMode(mode) {
                 const list = this.querySelector(".list");
@@ -11915,24 +12036,32 @@ var Views;
                     this.dispatchEvent(new CustomEvent("deckchanged", { bubbles: true }));
                 }
             }
+            currentStickySection;
             scrollSectionStick(event) {
                 const list = this.querySelector(".list");
                 const listArea = list.getBoundingClientRect();
                 const listScroll = list.getScrollOffset();
-                const topOffset = listScroll.y + listArea.top;
+                const topOffset = listScroll.y + listArea.top + this.listHeader.getBoundingClientRect().height;
                 const sections = list.querySelectorAll("my-section");
-                let offSection;
+                let lastStickySection;
                 for (const section of sections) {
                     const area = section.getBoundingClientRect();
                     const top = area.top - topOffset;
                     const bottom = area.bottom - topOffset;
                     if (top < 0 && bottom >= 0)
-                        offSection = section;
+                        lastStickySection = section;
                 }
-                for (const section of sections) {
-                    const header = section.querySelector(".header");
-                    header.classList.toggle("sticky", section == offSection);
+                if (this.currentStickySection == lastStickySection)
+                    return;
+                this.currentStickySection = lastStickySection;
+                const stack = [];
+                while (lastStickySection) {
+                    stack.unshift(lastStickySection);
+                    lastStickySection = lastStickySection.parentElement.closest("my-section");
                 }
+                this.listHeader.clearChildren();
+                for (const section of stack)
+                    this.listHeader.appendChild(new Workbench.SectionHeaderElement(section));
             }
             changed(event) {
                 this.dispatchEvent(new CustomEvent("deckchanged", { bubbles: true }));

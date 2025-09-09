@@ -5349,8 +5349,26 @@ aside {
   --accent-color: #db9efa;
   --footer-color: #111;
 }
+.card-aspect {
+  aspect-ratio: 5 / 7;
+}
 .card {
   aspect-ratio: 5 / 7;
+  display: flex;
+  grid-row: 1;
+  justify-content: center;
+  width: var(--card-size, 8em);
+  background-image: url(img/card-back.png);
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-color: transparent;
+}
+.card > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 .symbol {
   display: inline-block;
@@ -5828,6 +5846,41 @@ my-entry > [class*="actions"] {
   align-items: center;
   gap: 0.25em;
 }
+my-section-header {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: auto 1fr auto;
+  grid-auto-flow: column;
+  align-items: center;
+  height: 2em;
+  padding: 0.25em;
+  border-radius: 0.25em;
+  background-color: #3a3a3a;
+  cursor: pointer;
+}
+my-section-header > .move-actions {
+  grid-column: 1;
+  margin-right: 0.25em;
+}
+my-section-header > .title {
+  grid-column: 2;
+  justify-self: start;
+  min-width: 1em;
+  min-height: 1em;
+  padding: 0.25em;
+}
+my-section-header > .actions {
+  grid-column: 3;
+  align-items: end;
+  margin-left: 0.25em;
+}
+my-section-header > div {
+  display: grid;
+  grid-auto-columns: auto;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 0.25em;
+}
 my-workbench {
   --entry-columns: [move] auto [quantity] auto [name] 1fr [type] 0 [mana] 0 [actions] auto;
   display: grid;
@@ -5844,7 +5897,7 @@ my-workbench {
   overflow-y: auto;
 }
 my-workbench > .header {
-  z-index: 1000;
+  z-index: 10000000;
   position: sticky;
   top: 0;
   grid-area: header;
@@ -5857,6 +5910,38 @@ my-workbench > .list {
   grid-area: list;
   height: max-content;
   gap: 0.25em;
+}
+my-workbench > .list-header {
+  display: grid;
+  z-index: 100000;
+  position: fixed;
+  grid-template-columns: 1fr;
+  grid-auto-rows: max-content;
+  grid-auto-flow: row;
+  align-self: start;
+  padding-bottom: 0.25em;
+  gap: 0.25em;
+  border-radius: var(--corner-radius);
+  background-color: var(--page-background-color);
+  position-anchor: --section-stick-top;
+  top: anchor(bottom);
+  right: anchor(right);
+  left: anchor(left);
+}
+my-workbench > .list-header > *:nth-child(2) {
+  margin-left: 1em;
+}
+my-workbench > .list-header > *:nth-child(3) {
+  margin-left: 2em;
+}
+my-workbench > .list-header > *:nth-child(4) {
+  margin-left: 3em;
+}
+my-workbench > .list-header > *:nth-child(5) {
+  margin-left: 4em;
+}
+my-workbench > .list-header > *:nth-child(6) {
+  margin-left: 5em;
 }
 my-workbench > .header {
   display: grid;
@@ -5958,113 +6043,10 @@ my-card-list > .items:not(:has(*))::after {
   content: "no cards found";
 }
 my-card-tile {
-  width: 10rem;
-  padding: 0.25rem;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-auto-rows: min-content;
-  grid-auto-flow: row;
-  gap: 0.125rem;
-  border-radius: var(--corner-radius);
-  overflow: hidden;
-  color: var(--inverted-foreground-color);
-  background-color: var(--foreground-color);
-  aspect-ratio: 5 / 7;
-  width: 8em;
   padding: 0.5em;
   border-radius: 0.25em;
   background: transparent;
   cursor: pointer;
-}
-my-card-tile .row-only,
-my-card-tile .header,
-my-card-tile.header {
-  display: none !important;
-}
-my-card-tile:has(.cover:hover) {
-  color: var(--foreground-color);
-  background-color: var(--accent-color);
-}
-my-card-tile:has(.cover:hover) * {
-  color: var(--foreground-color) !important;
-}
-my-card-tile:has(.cover:hover) color-icon {
-  --color: var(--foreground-color);
-}
-my-card-tile > .cover {
-  grid-row: 1;
-  grid-column: 1;
-  width: 100%;
-  aspect-ratio: 1;
-  display: flex;
-  object-fit: cover;
-  object-position: 50% 0;
-}
-my-card-tile > .cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 0;
-}
-my-card-tile a {
-  color: var(--inverted-foreground-color);
-}
-my-card-tile a:hover {
-  color: var(--accent-color);
-}
-my-card-tile a:hover color-icon {
-  --color: var(--accent-color);
-}
-my-card-tile > .taglist {
-  justify-self: center;
-  justify-content: space-evenly;
-}
-my-card-tile > .taglist > *::after {
-  color: var(--inverted-foreground-color) !important;
-}
-my-card-tile > [class*="-cell"],
-my-card-tile .cell {
-  grid-column: 1;
-  max-width: 100%;
-  height: 1em;
-  text-align: center;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--inverted-foreground-color);
-}
-my-card-tile > div,
-my-card-tile ul,
-my-card-tile ol,
-my-card-tile .flexible {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25em;
-  justify-content: center;
-  overflow: hidden;
-  list-style: none;
-}
-my-card-tile > div img,
-my-card-tile ul img,
-my-card-tile ol img,
-my-card-tile .flexible img {
-  height: 1em;
-}
-my-card-tile > .image {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background-image: url(img/card-back.png);
-  background-position: center;
-  background-size: contain;
-  background-repeat: no-repeat;
-}
-my-card-tile > .image > img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
 }
 my-card-tile.selected {
   background-color: var(--accent-color);
@@ -6318,28 +6300,13 @@ my-search .query > button {
   display: grid;
   grid-template-rows: max-content 1fr;
   grid-template-columns: 1fr;
-  width: 8em;
   padding: 0.25em;
   gap: 0.25em;
   border-radius: 0.25em;
   background-color: var(--page-background-color);
 }
 .grid my-entry > .image {
-  display: flex;
   grid-row: 1;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background-image: url(img/card-back.png);
-  background-position: center;
-  background-size: contain;
-  background-repeat: no-repeat;
-}
-.grid my-entry > .image > img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
 }
 .grid my-entry:hover > .move-actions {
   display: grid;
@@ -6376,53 +6343,14 @@ my-search .query > button {
   grid-template-rows: max-content 1fr;
   grid-template-columns: 1fr;
   grid-column: 1 / -1;
+  width: 100%;
   gap: 0.25em;
   border-radius: 0.25em;
 }
-.grid my-section > .header {
-  display: grid;
-  grid-template-rows: 1fr;
-  grid-template-columns: auto 1fr auto;
-  grid-auto-flow: column;
+.grid my-section > my-section-header {
   grid-row: 1;
   grid-column: 1 / -1;
-  align-items: center;
-  padding: 0.25em;
-  border-radius: 0.25em;
-  background-color: #3a3a3a;
   animation: blinking 0.5s ease-in-out;
-  cursor: pointer;
-}
-.grid my-section > .header.sticky {
-  z-index: 100000;
-  position: fixed;
-  position-anchor: --section-stick-top;
-  top: anchor(bottom);
-  right: anchor(right);
-  left: anchor(left);
-}
-.grid my-section > .header > .move-actions {
-  grid-column: 1;
-  margin-right: 0.25em;
-}
-.grid my-section > .header > .title {
-  grid-column: 2;
-  justify-self: start;
-  min-width: 1em;
-  min-height: 1em;
-  padding: 0.25em;
-}
-.grid my-section > .header > .actions {
-  grid-column: 3;
-  align-items: end;
-  margin-left: 0.25em;
-}
-.grid my-section > .header > div {
-  display: grid;
-  grid-auto-columns: auto;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: 0.25em;
 }
 .grid my-section > .list {
   display: flex;
@@ -6501,50 +6429,10 @@ my-search .query > button {
   gap: 0.25em;
   border-radius: 0.25em;
 }
-.lines my-section > .header {
-  display: grid;
-  grid-template-rows: 1fr;
-  grid-template-columns: auto 1fr auto;
-  grid-auto-flow: column;
+.lines my-section > my-section-header {
   grid-row: 1;
   grid-column: 1 / -1;
-  align-items: center;
-  padding: 0.25em;
-  border-radius: 0.25em;
-  background-color: #3a3a3a;
   animation: blinking 0.5s ease-in-out;
-  cursor: pointer;
-}
-.lines my-section > .header.sticky {
-  z-index: 100000;
-  position: fixed;
-  position-anchor: --section-stick-top;
-  top: anchor(bottom);
-  right: anchor(right);
-  left: anchor(left);
-}
-.lines my-section > .header > .move-actions {
-  grid-column: 1;
-  margin-right: 0.25em;
-}
-.lines my-section > .header > .title {
-  grid-column: 2;
-  justify-self: start;
-  min-width: 1em;
-  min-height: 1em;
-  padding: 0.25em;
-}
-.lines my-section > .header > .actions {
-  grid-column: 3;
-  align-items: end;
-  margin-left: 0.25em;
-}
-.lines my-section > .header > div {
-  display: grid;
-  grid-auto-columns: auto;
-  grid-auto-flow: column;
-  align-items: center;
-  gap: 0.25em;
 }
 .lines my-section > .list {
   display: grid;
