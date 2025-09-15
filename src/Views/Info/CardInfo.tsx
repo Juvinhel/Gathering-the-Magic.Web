@@ -65,8 +65,11 @@ namespace Views.Info
             inCollections.clearChildren();
             if (card)
                 for (const collection of Object.values(App.collections))
-                    if (Object.keys(collection.cards).includes(card.name))
-                        inCollections.append(<li title={ collection.name }><span>{ collection.name }</span></li>);
+                {
+                    const count = Object.entries(collection.cards).filter(x => x[0] == card.name).sum(x => x[1]);
+                    if (count > 0)
+                        inCollections.append(<li title={ collection.name }><span>{ count } in { collection.name }</span></li>);
+                }
 
             const transformCardButton = this.querySelector(".transform-card");
             transformCardButton.classList.toggle("transformed", false);

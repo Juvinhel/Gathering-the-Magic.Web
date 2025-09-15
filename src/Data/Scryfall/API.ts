@@ -28,6 +28,17 @@ namespace Data.Scryfall
         if (isScryfallError(data)) throw new Error(data.details);
         return data;
     }
+    
+    export async function getCardByTCGPlayerId(id: string): Promise<Card>
+    {
+        if (id[0] == "{") id = id.substring(1);
+        if (id[id.length - 1] == "}") id = id.substring(0, id.length - 1);
+
+        const response = await fetch(`${baseUrl}/cards/tcgplayer/${id}`);
+        const data = await response.json();
+        if (isScryfallError(data)) throw new Error(data.details);
+        return data;
+    }
 
     export function getMultipleCardsByName(names: string[]): AsyncIterablePromise<Card>
     {

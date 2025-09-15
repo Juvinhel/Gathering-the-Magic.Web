@@ -109,6 +109,13 @@ namespace Data.API
             const name = path.last().splitFirst("?")[0].toString();
             return { name };
         }
+        else if (url.host == "www.tcgplayer.com")
+        {
+            const path = url.pathname.trimChar("/").split("/");
+            const id = path[1];
+            const card = await Scryfall.getCardByTCGPlayerId(id);
+            return { set: card.set, no: card.collector_number };
+        }
 
         // make params key case insensitive
         const oldParams = [...url.searchParams];
