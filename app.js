@@ -8525,24 +8525,21 @@ var Data;
                 let saveResult = await Data.Bridge.SaveDeck();
                 if (!saveResult)
                     return false;
-                const type = await saveResult.Type;
-                let format = type.toUpperCase();
-                if (format == "yml")
-                    format = "YAML";
+                const extension = await saveResult.Extension;
+                const format = Data.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
                 deck.name ??= await saveResult.Name;
                 const file = await Data.File.saveDeck(deck, format);
                 saveResult.Save(file.text);
                 return true;
             }
             else {
-                let format;
-                format = await UI.Dialog.options({ options: ["YAML", "JSON", "XML", "DEC", "TXT"], title: "Select File Format!", allowEmpty: true });
-                if (!format)
+                const formatName = await UI.Dialog.options({ options: Data.File.deckFileFormats.map(x => x.name), title: "Select File Format!", allowEmpty: true });
+                if (!formatName)
                     return false;
-                const fileName = deck.name + "." + format.toLowerCase();
+                const format = Data.File.deckFileFormats.first(x => x.name == formatName);
+                const fileName = deck.name + "." + format.extensions[0];
                 const file = await Data.File.saveDeck(deck, format);
-                const mimetype = file.format == "TXT" ? "text/plain" : "text/" + file.format.toLowerCase();
-                DownloadHelper.downloadData(fileName, file.text, mimetype);
+                DownloadHelper.downloadData(fileName, file.text, format.mimeTypes[0]);
                 return true;
             }
         }
@@ -8552,49 +8549,25 @@ var Data;
                 const fileResult = await Data.Bridge.LoadDeck();
                 if (!fileResult)
                     return;
-                const type = await fileResult.Type;
+                const extension = (await fileResult.Extension).toLowerCase();
                 const text = await fileResult.Load();
                 const name = await fileResult.Name;
-                if (!type || !text)
+                if (!extension || !text)
                     return null;
-                file = { name, type, text };
+                file = { name, extension, text };
             }
             else {
-                const uploadedFile = (await UI.Dialog.upload({ title: "Upload Deck File", accept: ".yaml, .yml, .json, .xml, .dec, .txt" }))?.[0];
+                const accept = Data.File.deckFileFormats.map(x => x.extensions.map(e => "." + e).join(", ")).join(", ");
+                const uploadedFile = (await UI.Dialog.upload({ title: "Upload Deck File", accept: accept }))?.[0];
                 if (!uploadedFile)
                     return null;
-                const name = uploadedFile.name.splitLast(".")[0];
+                const [name, extension] = uploadedFile.name.splitLast(".");
                 const text = await uploadedFile.text();
-                const type = uploadedFile.type?.trimLeft(".") || uploadedFile.name.splitLast(".")[1];
-                file = { name, type, text };
+                file = { name, extension: extension.toLowerCase(), text };
             }
-            file.text = file.text.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
-            let deck;
-            switch (file.type.toLowerCase()) {
-                case "yaml":
-                case "yml":
-                case "application/yaml":
-                    deck = await Data.File.loadDeck(file.text, "YAML");
-                    break;
-                case "json":
-                case "application/json":
-                case "text/json":
-                    deck = await Data.File.loadDeck(file.text, "JSON");
-                    break;
-                case "xml":
-                case "application/xml":
-                case "text/xml":
-                    deck = await Data.File.loadDeck(file.text, "XML");
-                    break;
-                case "dec":
-                case "application/dec":
-                    deck = await Data.File.loadDeck(file.text, "DEC");
-                    break;
-                case "txt":
-                case "text/plain":
-                    deck = await Data.File.loadDeck(file.text, "TXT");
-                    break;
-            }
+            const text = file.text.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
+            const format = Data.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(file.extension, false)));
+            const deck = await Data.File.loadDeck(text, format);
             deck.name ??= file.name;
             return deck;
         }
@@ -8606,7 +8579,7 @@ var Data;
                     return null;
                 files = [];
                 for (const fileResult of fileResults)
-                    files.push({ name: await fileResult.Name, type: await fileResult.Type, text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
+                    files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
             }
             else {
                 const uploadedFiles = await UI.Dialog.upload({ title: "Upload Collection Files", accept: ".csv", multiple: true });
@@ -8614,9 +8587,10 @@ var Data;
                     return null;
                 files = [];
                 for (const uploadedFile of uploadedFiles) {
+                    const [name, extension] = uploadedFile.name.splitLast(".");
                     files.push({
-                        name: uploadedFile.name.splitLast(".")[0],
-                        type: uploadedFile.type?.trimLeft(".") || uploadedFile.name.splitLast(".")[1],
+                        name: name,
+                        extension: extension.toLowerCase(),
                         text: await uploadedFile.text(),
                         lastModified: uploadedFile.lastModified != 0 ? new Date(uploadedFile.lastModified) : null
                     });
@@ -8640,7 +8614,7 @@ var Data;
                     return null;
                 files = [];
                 for (const fileResult of fileResults)
-                    files.push({ name: await fileResult.Name, type: await fileResult.Type, text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
+                    files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
                 const collections = [];
                 for (const file of files) {
                     const collection = await Data.File.CSVFile.load(file.text);
@@ -8660,8 +8634,164 @@ var Data;
 (function (Data) {
     var File;
     (function (File) {
+        File.deckFileFormats = [];
+        File.collectionFileFormats = [];
+        async function saveDeck(deck, format = "YAML") {
+            let file;
+            if (typeof format == "string")
+                file = File.deckFileFormats.first(x => x.name.equals(format, false));
+            else
+                file = format;
+            return { format: file.name, text: await file.save(deck) };
+        }
+        File.saveDeck = saveDeck;
+        async function loadDeck(text, format = "YAML") {
+            let file;
+            if (typeof format == "string")
+                file = File.deckFileFormats.first(x => x.name.equals(format, false));
+            else
+                file = format;
+            const deck = await file.load(text);
+            await populate(deck);
+            return deck;
+        }
+        File.loadDeck = loadDeck;
+        async function populate(deck) {
+            const progressDialog = await UI.Dialog.progress({ title: "Gathering card info!", displayType: "Absolute" });
+            try {
+                const entries = Data.getEntries(deck);
+                progressDialog.max = entries.length;
+                progressDialog.value = 0;
+                let i = 0;
+                for await (const card of Data.API.getCards(entries.map(entry => { return { name: entry.name }; }))) {
+                    const entry = entries[i];
+                    Object.assign(entry, card);
+                    ++progressDialog.value;
+                    ++i;
+                }
+            }
+            finally {
+                progressDialog.close();
+            }
+        }
+        function traverse(deck, func) {
+            for (const section of deck.sections)
+                traverseSection(section, func);
+        }
+        File.traverse = traverse;
+        function traverseSection(section, func) {
+            for (let i = 0; i < section.items.length; ++i) {
+                const item = section.items[i];
+                if ("name" in item)
+                    section.items[i] = func(item);
+                else
+                    traverseSection(item, func);
+            }
+        }
+    })(File = Data.File || (Data.File = {}));
+})(Data || (Data = {}));
+/// <reference path="File.ts" />
+var Data;
+(function (Data) {
+    var File;
+    (function (File) {
+        File.CODFile = new class CODFile {
+            name = "COD";
+            extensions = ["cod"];
+            mimeTypes = ["application/cod"];
+            async save(deck) {
+                const xmlDoc = document.implementation.createDocument(null, "cockatrice_deck");
+                const cockatrice_deck = xmlDoc.getElementsByTagName("cockatrice_deck")[0];
+                const deckName = xmlDoc.createElement("deckname");
+                deckName.textContent = deck.name;
+                cockatrice_deck.append(deckName);
+                const comments = xmlDoc.createElement("comments");
+                comments.textContent = deck.description;
+                cockatrice_deck.append(comments);
+                if (deck.commanders && deck.commanders.length >= 1) {
+                    const bannerCard = xmlDoc.createElement("bannerCard");
+                    bannerCard.setAttribute("providerId", "");
+                    bannerCard.textContent = deck.commanders[0];
+                    cockatrice_deck.append(bannerCard);
+                }
+                for (const section of deck.sections) {
+                    const zone = xmlDoc.createElement("zone");
+                    zone.setAttribute("name", section.title);
+                    for (const entry of Data.getEntries(section)) {
+                        const card = xmlDoc.createElement("card");
+                        const name = entry.name.includes("//") ? entry.name.splitFirst("//")[0].trim() : entry.name;
+                        card.setAttribute("number", entry.quantity.toFixed(0));
+                        card.setAttribute("name", name);
+                        zone.append(card);
+                    }
+                    cockatrice_deck.append(zone);
+                }
+                const serializer = new XMLSerializer();
+                const text = serializer.serializeToString(xmlDoc);
+                return text;
+            }
+            async load(xml) {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xml, "text/xml");
+                const root = xmlDoc.getElementsByTagName("cockatrice_deck")[0];
+                const deckName = root.getElementsByTagName("deckname")[0]?.textContent ?? "";
+                const comments = root.getElementsByTagName("comments")[0]?.textContent;
+                const bannerCard = root.getElementsByTagName("bannerCard")[0]?.textContent;
+                const zones = [...root.getElementsByTagName("zone")];
+                const deck = {
+                    name: deckName,
+                    description: comments,
+                    commanders: [],
+                    sections: [
+                        { title: "main", "items": [] },
+                        { title: "side", "items": [] },
+                        { title: "maybe", "items": [] }
+                    ]
+                };
+                const mainZone = zones.first(x => x.getAttribute("name").equals("main", false));
+                if (mainZone) {
+                    const mainSection = deck.sections[0];
+                    for (const card of mainZone.children) {
+                        const quantity = parseInt(card.getAttribute("number") ?? "1");
+                        const name = card.getAttribute("name");
+                        mainSection.items.push({ quantity, name });
+                    }
+                }
+                const sideZone = zones.first(x => x.getAttribute("name").equals("side", false));
+                if (sideZone) {
+                    const sideSection = deck.sections[1];
+                    for (const card of sideZone.children) {
+                        const quantity = parseInt(card.getAttribute("number") ?? "1");
+                        const name = card.getAttribute("name");
+                        sideSection.items.push({ quantity, name });
+                    }
+                }
+                const maybeZone = zones.first(x => x.getAttribute("name").equals("maybe", false));
+                if (maybeZone) {
+                    const maybeSection = deck.sections[1];
+                    for (const card of maybeZone.children) {
+                        const quantity = parseInt(card.getAttribute("number") ?? "1");
+                        const name = card.getAttribute("name");
+                        maybeSection.items.push({ quantity, name });
+                    }
+                }
+                if (bannerCard)
+                    deck.commanders.push(bannerCard);
+                return deck;
+            }
+        }();
+        File.deckFileFormats.push(File.CODFile);
+    })(File = Data.File || (Data.File = {}));
+})(Data || (Data = {}));
+/// <reference path="File.ts" />
+var Data;
+(function (Data) {
+    var File;
+    (function (File) {
         File.CSVFile = new class CSVFile {
-            format = "CSV";
+            name = "CSV";
+            extensions = ["csv"];
+            mimeTypes = ["application/csv", "text/csv"];
             async save(collection) {
                 throw new Error("Not implemented yet!");
             }
@@ -8694,14 +8824,18 @@ var Data;
             }
             return -1;
         }
+        File.collectionFileFormats.push(File.CSVFile);
     })(File = Data.File || (Data.File = {}));
 })(Data || (Data = {}));
+/// <reference path="File.ts" />
 var Data;
 (function (Data) {
     var File;
     (function (File) {
         File.DECFile = new class DECFile {
-            format = "DEC";
+            name = "DEC";
+            extensions = ["dec"];
+            mimeTypes = ["application/dec"];
             async save(deck) {
                 let ret = "";
                 ret += "//Name: " + deck.name + "\n";
@@ -8805,77 +8939,7 @@ var Data;
                 return ret;
             }
         }();
-    })(File = Data.File || (Data.File = {}));
-})(Data || (Data = {}));
-var Data;
-(function (Data) {
-    var File;
-    (function (File) {
-        async function saveDeck(deck, format) {
-            format ??= "YAML";
-            switch (format.toUpperCase()) {
-                case "YAML": return { format: File.YAMLFile.format, text: await File.YAMLFile.save(deck) };
-                case "JSON": return { format: File.JSONFile.format, text: await File.JSONFile.save(deck) };
-                case "XML": throw new Error("XML FileFormat not implemented yet!");
-                case "DEC": return { format: File.DECFile.format, text: await File.DECFile.save(deck) };
-                case "TXT": return { format: File.TXTFile.format, text: await File.TXTFile.save(deck) };
-            }
-        }
-        File.saveDeck = saveDeck;
-        async function loadDeck(text, format) {
-            format ??= "YAML";
-            let deck;
-            switch (format.toUpperCase()) {
-                case "YAML":
-                    deck = await File.YAMLFile.load(text);
-                    break;
-                case "JSON":
-                    deck = await File.JSONFile.load(text);
-                    break;
-                case "XML": throw new Error("XML FileFormat not implemented yet!");
-                case "DEC":
-                    deck = await File.DECFile.load(text);
-                    break;
-                case "TXT":
-                    deck = await File.TXTFile.load(text);
-                    break;
-            }
-            await populate(deck);
-            return deck;
-        }
-        File.loadDeck = loadDeck;
-        async function populate(deck) {
-            const progressDialog = await UI.Dialog.progress({ title: "Gathering card info!", displayType: "Absolute" });
-            try {
-                const entries = Data.getEntries(deck);
-                progressDialog.max = entries.length;
-                progressDialog.value = 0;
-                let i = 0;
-                for await (const card of Data.API.getCards(entries.map(entry => { return { name: entry.name }; }))) {
-                    const entry = entries[i];
-                    Object.assign(entry, card);
-                    ++progressDialog.value;
-                    ++i;
-                }
-            }
-            finally {
-                progressDialog.close();
-            }
-        }
-        function traverse(deck, func) {
-            for (const section of deck.sections)
-                traverseSection(section, func);
-        }
-        File.traverse = traverse;
-        function traverseSection(section, func) {
-            for (let i = 0; i < section.items.length; ++i) {
-                const item = section.items[i];
-                if ("name" in item)
-                    section.items[i] = func(item);
-                else
-                    traverseSection(item, func);
-            }
-        }
+        File.deckFileFormats.push(File.DECFile);
     })(File = Data.File || (Data.File = {}));
 })(Data || (Data = {}));
 var Data;
@@ -8883,7 +8947,9 @@ var Data;
     var File;
     (function (File) {
         File.JSONFile = new class JSONFile {
-            format = "JSON";
+            name = "JSON";
+            extensions = ["json"];
+            mimeTypes = ["application/json", "text/json"];
             async save(deck) {
                 const d = JSON.parse(JSON.stringify(deck));
                 File.traverse(d, (entry) => { return { quantity: entry.quantity, name: entry.name }; });
@@ -8893,6 +8959,7 @@ var Data;
                 return JSON.parse(text);
             }
         }();
+        File.deckFileFormats.push(File.JSONFile);
     })(File = Data.File || (Data.File = {}));
 })(Data || (Data = {}));
 var Data;
@@ -8900,7 +8967,9 @@ var Data;
     var File;
     (function (File) {
         File.TXTFile = new class TXTFile {
-            format = "TXT";
+            name = "TXT";
+            extensions = ["txt"];
+            mimeTypes = ["text/plain"];
             async save(deck) {
                 let ret = "";
                 for (const entry of Data.getEntries(deck.sections.first(x => x.title == "main")))
@@ -8928,6 +8997,7 @@ var Data;
                 return deck;
             }
         }();
+        File.deckFileFormats.push(File.TXTFile);
     })(File = Data.File || (Data.File = {}));
 })(Data || (Data = {}));
 var Data;
@@ -8935,7 +9005,9 @@ var Data;
     var File;
     (function (File) {
         File.YAMLFile = new class YAMLFile {
-            format = "YAML";
+            name = "YAML";
+            extensions = ["yaml", "yml"];
+            mimeTypes = ["application/yaml"];
             async save(deck) {
                 const data = { name: deck.name, description: deck.description };
                 if (deck.commanders && deck.commanders.length > 0)
@@ -9005,6 +9077,7 @@ var Data;
                 }
             }.bind(this);
         }();
+        File.deckFileFormats.push(File.YAMLFile);
     })(File = Data.File || (Data.File = {}));
 })(Data || (Data = {}));
 var Data;
