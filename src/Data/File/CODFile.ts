@@ -48,7 +48,7 @@ namespace Data.File
             const serializer = new XMLSerializer();
             const text = serializer.serializeToString(xmlDoc);
 
-            return text;
+            return "<?xml version=\"1.0\"?>\n" + text;
         }
 
         public async load(xml: string): Promise<Deck>
