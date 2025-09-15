@@ -1,8 +1,12 @@
+/// <reference path="File.ts" />
+
 namespace Data.File
 {
     export const DECFile = new class DECFile implements File<Deck>
     {
-        public format: Format = "DEC";
+        public name = "DEC";
+        public extensions = ["dec"];
+        public mimeTypes = ["application/dec"];
 
         public async save(deck: Deck): Promise<string>
         {
@@ -130,4 +134,6 @@ namespace Data.File
             return ret;
         }
     }();
+
+    deckFileFormats.push(DECFile);
 }

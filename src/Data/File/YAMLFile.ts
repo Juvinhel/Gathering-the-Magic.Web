@@ -2,7 +2,9 @@ namespace Data.File
 {
     export const YAMLFile = new class YAMLFile implements File<Deck>
     {
-        public format: Format = "YAML";
+        public name = "YAML";
+        public extensions = ["yaml", "yml"];
+        public mimeTypes = ["application/yaml"];
 
         public async save(deck: Deck): Promise<string>
         {
@@ -85,4 +87,6 @@ namespace Data.File
             }
         }.bind(this);
     }();
+
+    deckFileFormats.push(YAMLFile);
 }

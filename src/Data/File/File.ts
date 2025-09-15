@@ -1,32 +1,29 @@
 namespace Data.File
 {
-    export async function saveDeck(deck: Deck, format?: Format): Promise<{ format: Format, text: string; }>
-    {
-        format ??= "YAML";
+    export const deckFileFormats: File<Deck>[] = [];
+    export const collectionFileFormats: File<Collection>[] = [];
 
-        switch (format.toUpperCase())
-        {
-            case "YAML": return { format: YAMLFile.format, text: await YAMLFile.save(deck) };
-            case "JSON": return { format: JSONFile.format, text: await JSONFile.save(deck) };
-            case "XML": throw new Error("XML FileFormat not implemented yet!");
-            case "DEC": return { format: DECFile.format, text: await DECFile.save(deck) };
-            case "TXT": return { format: TXTFile.format, text: await TXTFile.save(deck) };
-        }
+    export async function saveDeck(deck: Deck, format: string | File<Deck> = "YAML"): Promise<{ format: string, text: string; }>
+    {
+        let file: File<Deck>;
+        if (typeof format == "string")
+            file = deckFileFormats.first(x => x.name.equals(format, false));
+        else
+            file = format;
+
+        return { format: file.name, text: await file.save(deck) };
     }
 
-    export async function loadDeck(text: string, format?: Format): Promise<Deck>
+    export async function loadDeck(text: string, format: string | File<Deck> = "YAML"): Promise<Deck>
     {
-        format ??= "YAML";
+        let file: File<Deck>;
+        if (typeof format == "string")
+            file = deckFileFormats.first(x => x.name.equals(format, false));
+        else
+            file = format;
 
-        let deck: Deck;
-        switch (format.toUpperCase())
-        {
-            case "YAML": deck = await YAMLFile.load(text); break;
-            case "JSON": deck = await JSONFile.load(text); break;
-            case "XML": throw new Error("XML FileFormat not implemented yet!");
-            case "DEC": deck = await DECFile.load(text); break;
-            case "TXT": deck = await TXTFile.load(text); break;
-        }
+
+        const deck = await file.load(text);
 
         await populate(deck);
 
@@ -75,13 +72,12 @@ namespace Data.File
         }
     }
 
-    export type Format = DeckFormat | CollectionFormat;
-    export type DeckFormat = "YAML" | "JSON" | "XML" | "DEC" | "TXT";
-    export type CollectionFormat = "CSV";
-
     export interface File<T>
     {
-        format: Format;
+        name: string;
+        extensions: string[];
+        mimeTypes: string[];
+
         save(data: T): Promise<string>;
         load(text: string): Promise<T>;
     }

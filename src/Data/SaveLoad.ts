@@ -9,103 +9,72 @@ namespace Data
                 let saveResult = await Bridge.SaveDeck();
                 if (!saveResult) return false;
 
-                const type = await saveResult.Type;
+                const extension = await saveResult.Extension;
 
-                let format = type.toUpperCase();
-                if (format == "yml") format = "YAML";
+                const format = File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
 
                 deck.name ??= await saveResult.Name;
-                const file = await Data.File.saveDeck(deck, format as Data.File.Format);
+                const file = await Data.File.saveDeck(deck, format);
 
                 saveResult.Save(file.text);
                 return true;
             }
             else
             {
-                let format: Data.File.Format;
-                format = await UI.Dialog.options({ options: ["YAML", "JSON", "XML", "DEC", "TXT"], title: "Select File Format!", allowEmpty: true });
-                if (!format) return false;
-                const fileName = deck.name + "." + format.toLowerCase();
+                const formatName = await UI.Dialog.options({ options: File.deckFileFormats.map(x => x.name), title: "Select File Format!", allowEmpty: true });
+                if (!formatName) return false;
+                const format = File.deckFileFormats.first(x => x.name == formatName);
+                const fileName = deck.name + "." + format.extensions[0];
 
                 const file = await Data.File.saveDeck(deck, format);
-                const mimetype = file.format == "TXT" ? "text/plain" : "text/" + file.format.toLowerCase();
-                DownloadHelper.downloadData(fileName, file.text, mimetype);
+                DownloadHelper.downloadData(fileName, file.text, format.mimeTypes[0]);
                 return true;
             }
         }
 
         public async loadDeck(): Promise<Deck>
         {
-            let file: { name: string; type: string; text: string; };
+            let file: { name: string; extension: string; text: string; };
             if (Bridge)
             {
                 const fileResult = await Bridge.LoadDeck();
                 if (!fileResult) return;
-                const type = await fileResult.Type;
+                const extension = (await fileResult.Extension).toLowerCase();
                 const text = await fileResult.Load();
                 const name = await fileResult.Name;
-                if (!type || !text) return null;
+                if (!extension || !text) return null;
 
-                file = { name, type, text };
+                file = { name, extension, text };
             }
             else
             {
-                const uploadedFile = (await UI.Dialog.upload({ title: "Upload Deck File", accept: ".yaml, .yml, .json, .xml, .dec, .txt" }))?.[0];
+                const accept = File.deckFileFormats.map(x => x.extensions.map(e => "." + e).join(", ")).join(", ");
+                const uploadedFile = (await UI.Dialog.upload({ title: "Upload Deck File", accept: accept }))?.[0];
                 if (!uploadedFile) return null;
 
-                const name = uploadedFile.name.splitLast(".")[0];
+                const [name, extension] = uploadedFile.name.splitLast(".");
                 const text = await uploadedFile.text();
-                const type = uploadedFile.type?.trimLeft(".") || uploadedFile.name.splitLast(".")[1];
-                file = { name, type, text };
+                file = { name, extension: extension.toLowerCase(), text };
             }
 
-            file.text = file.text.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
-            let deck: Data.Deck;
-            switch (file.type.toLowerCase())
-            {
-                case "yaml":
-                case "yml":
-                case "application/yaml":
-                    deck = await Data.File.loadDeck(file.text, "YAML");
-                    break;
 
-                case "json":
-                case "application/json":
-                case "text/json":
-                    deck = await Data.File.loadDeck(file.text, "JSON");
-                    break;
-
-                case "xml":
-                case "application/xml":
-                case "text/xml":
-                    deck = await Data.File.loadDeck(file.text, "XML");
-                    break;
-
-                case "dec":
-                case "application/dec":
-                    deck = await Data.File.loadDeck(file.text, "DEC");
-                    break;
-
-                case "txt":
-                case "text/plain":
-                    deck = await Data.File.loadDeck(file.text, "TXT");
-                    break;
-            }
+            const text = file.text.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
+            const format = File.deckFileFormats.first(x => x.extensions.some(e => e.equals(file.extension, false)));
+            const deck = await File.loadDeck(text, format);
             deck.name ??= file.name;
-
             return deck;
         }
 
         public async loadCollections(): Promise<Collection[]>
         {
-            let files: { name: string; type: string; text: string; lastModified?: Date; }[];
+            let files: { name: string; extension: string; text: string; lastModified?: Date; }[];
             if (Bridge)
             {
                 const fileResults = await Bridge.LoadCollections();
                 if (!fileResults) return null;
                 files = [];
                 for (const fileResult of fileResults)
-                    files.push({ name: await fileResult.Name, type: await fileResult.Type, text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
+                    files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
             }
             else
             {
@@ -115,9 +84,10 @@ namespace Data
                 files = [];
                 for (const uploadedFile of uploadedFiles)
                 {
+                    const [name, extension] = uploadedFile.name.splitLast(".");
                     files.push({
-                        name: uploadedFile.name.splitLast(".")[0],
-                        type: uploadedFile.type?.trimLeft(".") || uploadedFile.name.splitLast(".")[1],
+                        name: name,
+                        extension: extension.toLowerCase(),
                         text: await uploadedFile.text(),
                         lastModified: uploadedFile.lastModified != 0 ? new Date(uploadedFile.lastModified) : null
                     });
@@ -137,14 +107,14 @@ namespace Data
 
         public async loadDefaultCollections(): Promise<Collection[]>
         {
-            let files: { name: string; type: string; text: string; lastModified?: Date; }[];
+            let files: { name: string; extension: string; text: string; lastModified?: Date; }[];
             if (Bridge)
             {
                 const fileResults = await Bridge.LoadDefaultCollections();
                 if (!fileResults) return null;
                 files = [];
                 for (const fileResult of fileResults)
-                    files.push({ name: await fileResult.Name, type: await fileResult.Type, text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
+                    files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
 
                 const collections: Collection[] = [];
                 for (const file of files)

@@ -15,7 +15,7 @@ namespace Data
     export interface SaveResult 
     {
         get Name(): Promise<string>;
-        get Type(): Promise<string>;
+        get Extension(): Promise<string>;
         get Exists(): Promise<boolean>;
         Save(text: string): Promise<void>;
     }
@@ -23,7 +23,7 @@ namespace Data
     export interface LoadResult
     {
         get Name(): Promise<string>;
-        get Type(): Promise<string>;
+        get Extension(): Promise<string>;
         get LastModified(): Promise<string>;
         Load(): Promise<string>;
     }

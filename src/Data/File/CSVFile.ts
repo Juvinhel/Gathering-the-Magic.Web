@@ -1,8 +1,12 @@
+/// <reference path="File.ts" />
+
 namespace Data.File
 {
     export const CSVFile = new class CSVFile implements File<Collection>
     {
-        public format: Format = "CSV";
+        public name = "CSV";
+        public extensions = ["csv"];
+        public mimeTypes = ["application/csv", "text/csv"];
 
         public async save(collection: Collection): Promise<string>
         {
@@ -44,4 +48,6 @@ namespace Data.File
         }
         return -1;
     }
+
+    collectionFileFormats.push(CSVFile);
 }

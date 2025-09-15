@@ -2,7 +2,9 @@ namespace Data.File
 {
     export const TXTFile = new class TXTFile implements File<Deck>
     {
-        public format: Format = "TXT";
+        public name = "TXT";
+        public extensions = ["txt"];
+        public mimeTypes = ["text/plain"];
 
         public async save(deck: Deck): Promise<string>
         {
@@ -41,4 +43,6 @@ namespace Data.File
             return deck;
         }
     }();
+
+    deckFileFormats.push(TXTFile);
 }

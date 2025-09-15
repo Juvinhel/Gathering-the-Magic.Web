@@ -2,7 +2,9 @@ namespace Data.File
 {
     export const JSONFile = new class JSONFile implements File<Deck>
     {
-        public format: Format = "JSON";
+        public name = "JSON";
+        public extensions = ["json"];
+        public mimeTypes = ["application/json", "text/json"];
 
         public async save(deck: Deck): Promise<string>
         {
@@ -16,4 +18,6 @@ namespace Data.File
             return JSON.parse(text);
         }
     }();
+
+    deckFileFormats.push(JSONFile);
 }
