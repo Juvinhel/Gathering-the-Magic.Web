@@ -19,8 +19,8 @@ namespace Views.Workbench
         private build()
         {
             return [<div class="header">
-                <label>Name:</label><h1 class={ ["deck-name", "double-click-to-edit"] } ondblclick={ doubleClickToEdit } />
-                <label>Description:</label><span class={ ["deck-description", "double-click-to-edit"] } ondblclick={ doubleClickToEdit } />
+                <label>Name:</label><EditBoxElement class="deck-name" />
+                <label>Description:</label><EditBoxElement class="deck-description" />
                 <label>Commanders:</label><CommanderList />
                 <label>Cards:</label><span class="deck-card-count" />
             </div>,
@@ -57,10 +57,10 @@ namespace Views.Workbench
             if (deck.sections.some(s => s.title === "side") == false) deck.sections.push({ title: "side", items: [] });
             if (deck.sections.some(s => s.title === "maybe") == false) deck.sections.push({ title: "maybe", items: [] });
 
-            const nameElement = this.querySelector(".deck-name");
-            nameElement.textContent = deck.name;
-            const descriptionElement = this.querySelector(".deck-description");
-            descriptionElement.textContent = deck.description;
+            const nameElement = this.querySelector(".deck-name") as EditBoxElement;
+            nameElement.text = deck.name;
+            const descriptionElement = this.querySelector(".deck-description") as EditBoxElement;
+            descriptionElement.text = deck.description;
 
             const listElement = this.querySelector(".list");
             listElement.clearChildren();
@@ -197,15 +197,15 @@ namespace Views.Workbench
         if (element instanceof WorkbenchElement)
         {
             const commanders = [...element.querySelectorAll(".commander-list > li")].map(x => x.textContent);
-            const name = element.querySelector(".deck-name").textContent;
-            const description = element.querySelector(".deck-description").textContent;
+            const name = (element.querySelector(".deck-name") as EditBoxElement).text;
+            const description = (element.querySelector(".deck-description") as EditBoxElement).text;
             const list = element.querySelector(".list");
             const sections = [...list.children].map(getDataFromElement).filter(x => x != null);
             return { name, description, commanders, sections } as Data.Deck;
         }
         else if (element instanceof SectionElement)
         {
-            const title = element.querySelector(".title").textContent;
+            const title = (element.querySelector(".title") as EditBoxElement).text;
             const list = element.querySelector(".list");
             const items = [...list.children].map(getDataFromElement).filter(x => x != null);
             return { title, items } as Data.Section;

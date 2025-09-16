@@ -34,30 +34,6 @@ my-workbench
         margin: 0;
         padding: 0;
     }
-
-    .double-click-to-edit
-    {
-        &:hover
-        {
-            &:not(input)
-            {
-                color: var(--accent-color);
-            }
-
-            &::after
-            {
-                display: block;
-                position: absolute;
-                top: 0;
-                right: -1em;
-                aspect-ratio: 1;
-                height: 1em;
-                background: center / contain url("img/icons/edit.svg");
-                content: "";
-                filter: brightness(0) invert(1);
-            }
-        }
-    }
 }
 
 @keyframes blinking

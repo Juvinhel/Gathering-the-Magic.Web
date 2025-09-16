@@ -1,0 +1,20 @@
+my-edit-box:not(.disabled)
+{
+    &:hover
+    {
+        color: var(--accent-color);
+
+        &::after
+        {
+            display: block;
+            position: absolute;
+            top: 0;
+            right: -1em;
+            aspect-ratio: 1;
+            height: 1em;
+            background: center / contain url("img/icons/edit.svg");
+            content: "";
+            filter: brightness(0) invert(1);
+        }
+    }
+}

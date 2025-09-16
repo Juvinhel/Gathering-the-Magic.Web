@@ -32,7 +32,7 @@ namespace Views.Workbench
                     <a class={ ["up-button"] } onclick={ this.moveUp.bind(this) }><color-icon src="img/icons/chevron-up.svg" /></a>
                     <a class={ ["down-button"] } onclick={ this.moveDown.bind(this) }><color-icon src="img/icons/chevron-down.svg" /></a>
                 </div>,
-                <h2 class={ ["title", this.section.topLevel ? null : "double-click-to-edit"] } { ...(this.section.topLevel ? null : { ondblclick: doubleClickToEdit }) } onchange={ this.titleChange.bind(this) } >{ this.section.title }</h2>,
+                <EditBoxElement class={ ["title", this.section.topLevel ? "disabled" : null] } onchange={ this.titleChange.bind(this) } text={ this.section.title } />,
                 <div class="actions">
                     <span class="card-count">{ this.section.quantity }</span>
                     <a class={ ["add-section-button"] } onclick={ this.addSection.bind(this) }><color-icon src="img/icons/add-section.svg" /></a>
@@ -69,8 +69,8 @@ namespace Views.Workbench
 
         private titleChange(event: Event)
         {
-            const input = event.currentTarget as HTMLElement;
-            this.section.title = input.textContent;
+            const input = event.currentTarget as EditBoxElement;
+            this.section.title = input.text;
         }
 
         public addSection()
