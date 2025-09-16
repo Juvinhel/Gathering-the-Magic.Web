@@ -133,7 +133,7 @@ namespace Views.Editor
         const editor = target.closest("my-editor") as Editor.EditorElement;
         const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
 
-        const option = await UI.Dialog.options({ title: "Sort Cards by ...", options: ["Name", "Mana Value"], allowEmpty: true });
+        const option = await UI.Dialog.options({ title: "Sort Cards by ...", options: ["Name", "Mana Value", "Color Identity"], allowEmpty: true });
         if (!option) return;
 
         const deck = workbench.getData();
@@ -148,6 +148,9 @@ namespace Views.Editor
                 break;
             case "Mana Value":
                 selector = (e: Data.Entry) => e.manaValue;
+                break;
+            case "Color Identity":
+                selector = (e: Data.Entry) => e.colorOrder;
                 break;
         }
 

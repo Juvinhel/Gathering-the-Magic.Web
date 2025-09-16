@@ -16,6 +16,7 @@ namespace Views.Workbench
                 <menu-button title="Delete Lines" onclick={ deleteLines.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Delete Lines</span></menu-button>,
                 <menu-button title="Sort Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Name</span></menu-button>,
                 <menu-button title="Sort Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Mana</span></menu-button>,
+                <menu-button title="Sort Lines by Color Identity" onclick={ sortByColorIdentity.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Lines by Color Identity</span></menu-button>,
             );
         }
         else if (this instanceof EntryElement)
@@ -39,6 +40,7 @@ namespace Views.Workbench
                     <menu-button title="Add Section" onclick={ this.addSection.bind(this) }><color-icon src="img/icons/unlink.svg" /><span>Add Section</span></menu-button>,
                     <menu-button title="Sort Section Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Name</span></menu-button>,
                     <menu-button title="Sort Section Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Mana</span></menu-button>,
+                    <menu-button title="Sort Section Lines by Color Identity" onclick={ sortByColorIdentity.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Color Identity</span></menu-button>,
                 );
             else
                 menuButtons.push(
@@ -51,6 +53,7 @@ namespace Views.Workbench
                     <menu-button title="Add Section" onclick={ this.addSection.bind(this) }><color-icon src="img/icons/unlink.svg" /><span>Add Section</span></menu-button>,
                     <menu-button title="Sort Section Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Name</span></menu-button>,
                     <menu-button title="Sort Section Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Mana</span></menu-button>,
+                    <menu-button title="Sort Section Lines by Color Identity" onclick={ sortByColorIdentity.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Color Identity</span></menu-button>,
                 );
         }
 
@@ -138,6 +141,24 @@ namespace Views.Workbench
             line.remove();
 
         const sortedLines = selectedLines.orderBy(x => x instanceof EntryElement ? x.card.manaValue : Number.MAX_SAFE_INTEGER);
+        if (insertPosition) insertPosition.after(...sortedLines);
+        else parentElement.prepend(...sortedLines);
+    }
+
+    export async function sortByColorIdentity(this: SectionElement | EntryElement)
+    {
+        const workbench = this.closest("my-workbench") as WorkbenchElement;
+        const selectedLines = (getSelectedLines(workbench) ?? (this instanceof SectionElement ? [...this.lines] : [this])).filter(x => x instanceof EntryElement);
+
+        if (selectedLines.length == 1) throw new Error("Only one line selected!");
+
+        const parentElement = selectedLines[0].parentElement;
+        const insertPosition = selectedLines[0].previousElementSibling;
+
+        for (const line of selectedLines)
+            line.remove();
+
+        const sortedLines = selectedLines.orderBy(x => x.card.colorOrder);
         if (insertPosition) insertPosition.after(...sortedLines);
         else parentElement.prepend(...sortedLines);
     }

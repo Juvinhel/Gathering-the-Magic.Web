@@ -189,6 +189,7 @@ namespace Data.API
             img: getImageURI(scryfallCard.image_uris),
             manaCost: scryfallCard.mana_cost,
             manaValue: scryfallCard.cmc,
+
             typeLine: scryfallCard.type_line,
             type: null,
             keywords: scryfallCard.keywords,
@@ -205,6 +206,7 @@ namespace Data.API
             price: scryfallCard.prices.eur ? parseFloat(scryfallCard.prices.eur) : 0,
             producedMana: scryfallCard.produced_mana,
             colorIdentity: scryfallCard.color_identity,
+            colorOrder: calcColorOrder(scryfallCard.color_identity),
             //@ts-ignore
             faces: [],
         };
@@ -246,6 +248,21 @@ namespace Data.API
             }
 
         return card;
+    }
+
+    function calcColorOrder(colors: Colors[]): string
+    {
+        const ret: [string, string, string, string, string] = ["_", "_", "_", "_", "_"];
+        if (colors.includes("W")) ret[0] = "W";
+        if (colors.includes("U")) ret[1] = "U";
+        if (colors.includes("B")) ret[2] = "B";
+        if (colors.includes("R")) ret[3] = "R";
+        if (colors.includes("G")) ret[4] = "G";
+
+        for (let i = 4; i >= 0; --i)
+            if (ret[i] != "_") break;
+            else ret[i] = "+";
+        return ret.join("");
     }
 
     let allSuperTypes: string[];
@@ -324,6 +341,7 @@ namespace Data.API
         price: number;
         producedMana?: ProducedMana;
         colorIdentity: Colors[];
+        colorOrder: string;
         links: {
             [title: string]: string;
             Scryfall: string;
