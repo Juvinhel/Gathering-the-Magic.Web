@@ -5803,20 +5803,6 @@ my-workbench p {
   margin: 0;
   padding: 0;
 }
-my-workbench .double-click-to-edit:hover:not(input) {
-  color: var(--accent-color);
-}
-my-workbench .double-click-to-edit:hover::after {
-  display: block;
-  position: absolute;
-  top: 0;
-  right: -1em;
-  aspect-ratio: 1;
-  height: 1em;
-  background: center / contain url("img/icons/edit.svg");
-  content: "";
-  filter: brightness(0) invert(1);
-}
 @keyframes blinking {
   0% {
     background-color: #ffffff;
@@ -5837,6 +5823,20 @@ my-workbench .commander-list > li:hover {
   color: var(--accent-color);
   text-decoration: line-through;
   cursor: pointer;
+}
+my-edit-box:not(.disabled):hover {
+  color: var(--accent-color);
+}
+my-edit-box:not(.disabled):hover::after {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: -1em;
+  aspect-ratio: 1;
+  height: 1em;
+  background: center / contain url("img/icons/edit.svg");
+  content: "";
+  filter: brightness(0) invert(1);
 }
 my-entry > [class*="actions"] {
   display: grid;

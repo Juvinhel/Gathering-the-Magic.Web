@@ -8223,6 +8223,12 @@ var Data;
                 const name = path.last().splitFirst("?")[0].toString();
                 return { name };
             }
+            else if (url.host == "www.tcgplayer.com") {
+                const path = url.pathname.trimChar("/").split("/");
+                const id = path[1];
+                const card = await Data.Scryfall.getCardByTCGPlayerId(id);
+                return { set: card.set, no: card.collector_number };
+            }
             // make params key case insensitive
             const oldParams = [...url.searchParams];
             for (const [name, value] of oldParams) {
@@ -8728,7 +8734,7 @@ var Data;
                 }
                 const serializer = new XMLSerializer();
                 const text = serializer.serializeToString(xmlDoc);
-                return text;
+                return "<?xml version=\"1.0\"?>\n" + text;
             }
             async load(xml) {
                 const parser = new DOMParser();
@@ -9113,6 +9119,18 @@ var Data;
             return data;
         }
         Scryfall.getCardById = getCardById;
+        async function getCardByTCGPlayerId(id) {
+            if (id[0] == "{")
+                id = id.substring(1);
+            if (id[id.length - 1] == "}")
+                id = id.substring(0, id.length - 1);
+            const response = await fetch(`${baseUrl}/cards/tcgplayer/${id}`);
+            const data = await response.json();
+            if (Scryfall.isScryfallError(data))
+                throw new Error(data.details);
+            return data;
+        }
+        Scryfall.getCardByTCGPlayerId = getCardByTCGPlayerId;
         function getMultipleCardsByName(names) {
             return getCollection(names.map(name => { return { name }; }));
         }
@@ -10322,10 +10340,15 @@ var Views;
                 const inCollections = this.querySelector(".in-collections ul");
                 inCollections.clearChildren();
                 if (card)
-                    for (const collection of Object.values(App.collections))
-                        if (Object.keys(collection.cards).includes(card.name))
+                    for (const collection of Object.values(App.collections)) {
+                        const count = Object.entries(collection.cards).filter(x => x[0] == card.name).sum(x => x[1]);
+                        if (count > 0)
                             inCollections.append(UI.Generator.Hyperscript("li", { title: collection.name },
-                                UI.Generator.Hyperscript("span", null, collection.name)));
+                                UI.Generator.Hyperscript("span", null,
+                                    count,
+                                    " in ",
+                                    collection.name)));
+                    }
                 const transformCardButton = this.querySelector(".transform-card");
                 transformCardButton.classList.toggle("transformed", false);
                 transformCardButton.classList.toggle("none", !(card?.isFlip || card?.isTransform));
@@ -11254,39 +11277,6 @@ var Views;
 (function (Views) {
     var Workbench;
     (function (Workbench) {
-        function doubleClickToEdit(event) {
-            const originalElement = event.currentTarget;
-            const input = document.createElement("input");
-            input.type = "text";
-            input.value = originalElement.textContent || "";
-            input.classList.add(...originalElement.classList);
-            input.addEventListener("focusout", () => {
-                const newText = input.value.trim();
-                const oldText = originalElement.textContent;
-                originalElement.textContent = newText;
-                input.replaceWith(originalElement);
-                if (newText != oldText)
-                    originalElement.dispatchEvent(new Event("change", { bubbles: true }));
-            });
-            input.addEventListener("keyup", (e) => {
-                if (e.key === "Enter") {
-                    input.blur();
-                }
-                if (e.key === "Escape") {
-                    input.value = originalElement.textContent;
-                    input.blur();
-                }
-            });
-            originalElement.replaceWith(input);
-            input.focus();
-        }
-        Workbench.doubleClickToEdit = doubleClickToEdit;
-    })(Workbench = Views.Workbench || (Views.Workbench = {}));
-})(Views || (Views = {}));
-var Views;
-(function (Views) {
-    var Workbench;
-    (function (Workbench) {
         function preventDrag(event) {
             event.preventDefault();
             event.stopPropagation();
@@ -11480,6 +11470,87 @@ var Views;
             else
                 throw new DataError("Unknown DragData", { data });
         }
+    })(Workbench = Views.Workbench || (Views.Workbench = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Workbench;
+    (function (Workbench) {
+        class EditBoxElement extends HTMLElement {
+            constructor() {
+                super();
+                this.append(UI.Generator.Hyperscript("span", null));
+            }
+            static get observedAttributes() {
+                return ["text"];
+            }
+            attributeChangedCallback(name, oldValue, newValue) {
+                switch (name) {
+                    case "text":
+                        if (this.firstChild instanceof HTMLSpanElement)
+                            this.firstChild.innerHTML = Views.parseSymbolText(newValue);
+                        else if (this.firstChild instanceof HTMLInputElement)
+                            this.firstChild.value = newValue;
+                        break;
+                }
+            }
+            connectedCallback() {
+                this.addEventListener("dblclick", this.doDBLClick, { capture: true });
+                this.addEventListener("keyup", this.doKeyUp, { capture: true });
+                this.addEventListener("focusout", this.doFocusOut);
+            }
+            disconnectedCallback() {
+                this.removeEventListener("dblclick", this.doDBLClick, { capture: true });
+                this.removeEventListener("keyup", this.doKeyUp, { capture: true });
+                this.removeEventListener("focusout", this.doFocusOut);
+            }
+            get text() { return this.getAttribute("text"); }
+            set text(value) { this.setAttribute("text", value); }
+            doDBLClick = function (event) {
+                if (!this.classList.contains("disabled") && this.firstChild instanceof HTMLSpanElement) {
+                    this.firstChild.remove();
+                    this.append(UI.Generator.Hyperscript("input", { type: "text", value: this.text }));
+                    this.firstChild.focus();
+                }
+            }.bind(this);
+            doFocusOut = function (event) {
+                this.exitEdit();
+            }.bind(this);
+            isExiting = false;
+            exitEdit() {
+                if (this.isExiting)
+                    return;
+                this.isExiting = true;
+                try {
+                    if (this.firstChild instanceof HTMLInputElement) {
+                        const newText = this.firstChild.value;
+                        this.firstChild.remove();
+                        this.append(UI.Generator.Hyperscript("span", null));
+                        if (newText != this.text) {
+                            this.text = newText;
+                            this.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                        else
+                            this.firstChild.innerHTML = Views.parseSymbolText(this.text);
+                    }
+                }
+                catch { }
+                this.isExiting = false;
+            }
+            doKeyUp = function (event) {
+                if (this.firstChild instanceof HTMLInputElement) {
+                    if (event.key === "Enter") {
+                        this.exitEdit();
+                    }
+                    if (event.key === "Escape") {
+                        this.firstChild.value = this.text;
+                        this.exitEdit();
+                    }
+                }
+            }.bind(this);
+        }
+        Workbench.EditBoxElement = EditBoxElement;
+        customElements.define("my-edit-box", EditBoxElement);
     })(Workbench = Views.Workbench || (Views.Workbench = {}));
 })(Views || (Views = {}));
 var Views;
@@ -11902,7 +11973,7 @@ var Views;
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" })),
                         UI.Generator.Hyperscript("a", { class: ["down-button"], onclick: this.moveDown.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-down.svg" }))),
-                    UI.Generator.Hyperscript("h2", { class: ["title", this.section.topLevel ? null : "double-click-to-edit"], ...(this.section.topLevel ? null : { ondblclick: Workbench.doubleClickToEdit }), onchange: this.titleChange.bind(this) }, this.section.title),
+                    UI.Generator.Hyperscript(Workbench.EditBoxElement, { class: ["title", this.section.topLevel ? "disabled" : null], onchange: this.titleChange.bind(this), text: this.section.title }),
                     UI.Generator.Hyperscript("div", { class: "actions" },
                         UI.Generator.Hyperscript("span", { class: "card-count" }, this.section.quantity),
                         UI.Generator.Hyperscript("a", { class: ["add-section-button"], onclick: this.addSection.bind(this) },
@@ -11934,7 +12005,7 @@ var Views;
             }
             titleChange(event) {
                 const input = event.currentTarget;
-                this.section.title = input.textContent;
+                this.section.title = input.text;
             }
             addSection() {
                 this.section.addSection();
@@ -12012,9 +12083,9 @@ var Views;
             build() {
                 return [UI.Generator.Hyperscript("div", { class: "header" },
                         UI.Generator.Hyperscript("label", null, "Name:"),
-                        UI.Generator.Hyperscript("h1", { class: ["deck-name", "double-click-to-edit"], ondblclick: Workbench.doubleClickToEdit }),
+                        UI.Generator.Hyperscript(Workbench.EditBoxElement, { class: "deck-name" }),
                         UI.Generator.Hyperscript("label", null, "Description:"),
-                        UI.Generator.Hyperscript("span", { class: ["deck-description", "double-click-to-edit"], ondblclick: Workbench.doubleClickToEdit }),
+                        UI.Generator.Hyperscript(Workbench.EditBoxElement, { class: "deck-description" }),
                         UI.Generator.Hyperscript("label", null, "Commanders:"),
                         UI.Generator.Hyperscript(Workbench.CommanderList, null),
                         UI.Generator.Hyperscript("label", null, "Cards:"),
@@ -12046,9 +12117,9 @@ var Views;
                 if (deck.sections.some(s => s.title === "maybe") == false)
                     deck.sections.push({ title: "maybe", items: [] });
                 const nameElement = this.querySelector(".deck-name");
-                nameElement.textContent = deck.name;
+                nameElement.text = deck.name;
                 const descriptionElement = this.querySelector(".deck-description");
-                descriptionElement.textContent = deck.description;
+                descriptionElement.text = deck.description;
                 const listElement = this.querySelector(".list");
                 listElement.clearChildren();
                 for (const section of deck.sections)
@@ -12156,14 +12227,14 @@ var Views;
         function getDataFromElement(element) {
             if (element instanceof WorkbenchElement) {
                 const commanders = [...element.querySelectorAll(".commander-list > li")].map(x => x.textContent);
-                const name = element.querySelector(".deck-name").textContent;
-                const description = element.querySelector(".deck-description").textContent;
+                const name = element.querySelector(".deck-name").text;
+                const description = element.querySelector(".deck-description").text;
                 const list = element.querySelector(".list");
                 const sections = [...list.children].map(getDataFromElement).filter(x => x != null);
                 return { name, description, commanders, sections };
             }
             else if (element instanceof Workbench.SectionElement) {
-                const title = element.querySelector(".title").textContent;
+                const title = element.querySelector(".title").text;
                 const list = element.querySelector(".list");
                 const items = [...list.children].map(getDataFromElement).filter(x => x != null);
                 return { title, items };
