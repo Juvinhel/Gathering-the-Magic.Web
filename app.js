@@ -8311,6 +8311,7 @@ var Data;
                 price: scryfallCard.prices.eur ? parseFloat(scryfallCard.prices.eur) : 0,
                 producedMana: scryfallCard.produced_mana,
                 colorIdentity: scryfallCard.color_identity,
+                colorOrder: calcColorOrder(scryfallCard.color_identity),
                 //@ts-ignore
                 faces: [],
             };
@@ -8350,6 +8351,25 @@ var Data;
                     card.legalities[mode] = legality;
                 }
             return card;
+        }
+        function calcColorOrder(colors) {
+            const ret = ["_", "_", "_", "_", "_"];
+            if (colors.includes("W"))
+                ret[0] = "W";
+            if (colors.includes("U"))
+                ret[1] = "U";
+            if (colors.includes("B"))
+                ret[2] = "B";
+            if (colors.includes("R"))
+                ret[3] = "R";
+            if (colors.includes("G"))
+                ret[4] = "G";
+            for (let i = 4; i >= 0; --i)
+                if (ret[i] != "_")
+                    break;
+                else
+                    ret[i] = "+";
+            return ret.join("");
         }
         let allSuperTypes;
         function parseType(line) {
@@ -10104,7 +10124,7 @@ var Views;
             const target = event.currentTarget;
             const editor = target.closest("my-editor");
             const workbench = editor.querySelector("my-workbench");
-            const option = await UI.Dialog.options({ title: "Sort Cards by ...", options: ["Name", "Mana Value"], allowEmpty: true });
+            const option = await UI.Dialog.options({ title: "Sort Cards by ...", options: ["Name", "Mana Value", "Color Identity"], allowEmpty: true });
             if (!option)
                 return;
             const deck = workbench.getData();
@@ -10117,6 +10137,9 @@ var Views;
                     break;
                 case "Mana Value":
                     selector = (e) => e.manaValue;
+                    break;
+                case "Color Identity":
+                    selector = (e) => e.colorOrder;
                     break;
             }
             for (const section of Data.getSections(deck)) {
@@ -11703,7 +11726,9 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                     UI.Generator.Hyperscript("span", null, "Sort by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Mana", onclick: sortByMana.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Sort by Mana")));
+                    UI.Generator.Hyperscript("span", null, "Sort by Mana")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Color Identity", onclick: sortByColorIdentity.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Sort Lines by Color Identity")));
             }
             else if (this instanceof Workbench.EntryElement) {
                 menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Line Up", onclick: this.moveUp.bind(this) },
@@ -11734,7 +11759,9 @@ var Views;
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                         UI.Generator.Hyperscript("span", null, "Sort Section Lines by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Mana", onclick: sortByMana.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Mana")));
+                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Mana")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Color Identity", onclick: sortByColorIdentity.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Color Identity")));
                 else
                     menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Section Up", onclick: this.moveUp.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" }),
@@ -11754,7 +11781,9 @@ var Views;
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                         UI.Generator.Hyperscript("span", null, "Sort Section Lines by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Mana", onclick: sortByMana.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Mana")));
+                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Mana")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Color Identity", onclick: sortByColorIdentity.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Color Identity")));
             }
             UI.ContextMenu.show(event, ...menuButtons);
             event.stopPropagation();
@@ -11829,6 +11858,22 @@ var Views;
                 parentElement.prepend(...sortedLines);
         }
         Workbench.sortByMana = sortByMana;
+        async function sortByColorIdentity() {
+            const workbench = this.closest("my-workbench");
+            const selectedLines = (getSelectedLines(workbench) ?? (this instanceof Workbench.SectionElement ? [...this.lines] : [this])).filter(x => x instanceof Workbench.EntryElement);
+            if (selectedLines.length == 1)
+                throw new Error("Only one line selected!");
+            const parentElement = selectedLines[0].parentElement;
+            const insertPosition = selectedLines[0].previousElementSibling;
+            for (const line of selectedLines)
+                line.remove();
+            const sortedLines = selectedLines.orderBy(x => x.card.colorOrder);
+            if (insertPosition)
+                insertPosition.after(...sortedLines);
+            else
+                parentElement.prepend(...sortedLines);
+        }
+        Workbench.sortByColorIdentity = sortByColorIdentity;
         function getSelectedLines(workbench, checkLayer = true) {
             const selectedLines = [...workbench.querySelectorAll("my-section.selected:not(.top-level), my-entry.selected")];
             if (!selectedLines.length)
