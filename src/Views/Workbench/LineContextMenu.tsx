@@ -16,7 +16,7 @@ namespace Views.Workbench
                 <menu-button title="Delete Lines" onclick={ deleteLines.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Delete Lines</span></menu-button>,
                 <menu-button title="Sort Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Name</span></menu-button>,
                 <menu-button title="Sort Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Mana</span></menu-button>,
-                <menu-button title="Sort Lines by Color Identity" onclick={ sortByColorIdentity.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Lines by Color Identity</span></menu-button>,
+                <menu-button title="Sort Lines by Color Identity" onclick={ sortByColorIdentity.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Color Identity</span></menu-button>,
             );
         }
         else if (this instanceof EntryElement)
