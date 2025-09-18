@@ -8059,6 +8059,8 @@ class App {
         window.addEventListener("mousemove", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
         window.addEventListener("keydown", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
         window.addEventListener("keyup", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
+        //! weird bug
+        window.addEventListener("keyup", (event) => document.querySelector("my-workbench").keyup(event));
         document.addEventListener('visibilitychange', App.visibilityChange);
         // START
         const editor = new Views.Editor.EditorElement(useLibrary, useWorkbench);
@@ -11728,7 +11730,7 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                     UI.Generator.Hyperscript("span", null, "Sort by Mana")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Color Identity", onclick: sortByColorIdentity.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Sort Lines by Color Identity")));
+                    UI.Generator.Hyperscript("span", null, "Sort by Color Identity")));
             }
             else if (this instanceof Workbench.EntryElement) {
                 menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Line Up", onclick: this.moveUp.bind(this) },
@@ -11821,7 +11823,7 @@ var Views;
         Workbench.moveLinesTo = moveLinesTo;
         function deleteLines() {
             const workbench = this.closest("my-workbench");
-            const selectedLines = getSelectedLines(workbench, false) ?? [this];
+            const selectedLines = getSelectedLines(workbench, false) ?? (this instanceof Workbench.WorkbenchElement ? [] : [this]);
             for (const line of selectedLines)
                 line.delete();
         }
@@ -12123,6 +12125,8 @@ var Views;
                 this.addEventListener("scroll", this.scrollSectionStick.bind(this));
                 this.addEventListener("change", this.changed.bind(this));
                 this.addEventListener("inserted", this.inserted.bind(this));
+                //! not working see App.ts
+                this.addEventListener("keydown", this.keyup.bind(this));
             }
             quantity;
             build() {
@@ -12266,6 +12270,12 @@ var Views;
             }
             inserted(event) {
                 this.refreshColumns();
+            }
+            keyup(event) {
+                if (event.composedPath().some(x => x instanceof HTMLInputElement))
+                    return;
+                if (event.key == "Delete")
+                    Workbench.deleteLines.bind(this)();
             }
         }
         Workbench.WorkbenchElement = WorkbenchElement;
