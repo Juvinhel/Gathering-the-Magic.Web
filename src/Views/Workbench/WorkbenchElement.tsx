@@ -12,6 +12,9 @@ namespace Views.Workbench
             this.addEventListener("scroll", this.scrollSectionStick.bind(this));
             this.addEventListener("change", this.changed.bind(this));
             this.addEventListener("inserted", this.inserted.bind(this));
+
+            //! not working see App.ts
+            this.addEventListener("keydown", this.keyup.bind(this));
         }
 
         public quantity: number;
@@ -189,6 +192,14 @@ namespace Views.Workbench
         private inserted(event: Event)
         {
             this.refreshColumns();
+        }
+
+        public keyup(event: KeyboardEvent)
+        {
+            if (event.composedPath().some(x => x instanceof HTMLInputElement)) return;
+
+            if (event.key == "Delete")
+                deleteLines.bind(this)();
         }
     }
 

@@ -41,6 +41,9 @@ class App
         window.addEventListener("keydown", (event: KeyboardEvent) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
         window.addEventListener("keyup", (event: KeyboardEvent) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
 
+        //! weird bug
+        window.addEventListener("keyup", (event: KeyboardEvent) => (document.querySelector("my-workbench") as Views.Workbench.WorkbenchElement).keyup(event));
+
         document.addEventListener('visibilitychange', App.visibilityChange);
 
         // START

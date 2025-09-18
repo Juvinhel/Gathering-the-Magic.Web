@@ -100,10 +100,10 @@ namespace Views.Workbench
         workbench.deselectAll();
     }
 
-    export function deleteLines(this: SectionElement | EntryElement)
+    export function deleteLines(this: WorkbenchElement | SectionElement | EntryElement)
     {
         const workbench = this.closest("my-workbench") as WorkbenchElement;
-        const selectedLines = getSelectedLines(workbench, false) ?? [this];
+        const selectedLines = getSelectedLines(workbench, false) ?? (this instanceof WorkbenchElement ? [] : [this]);
 
         for (const line of selectedLines)
             line.delete();
