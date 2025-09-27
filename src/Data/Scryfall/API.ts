@@ -28,7 +28,7 @@ namespace Data.Scryfall
         if (isScryfallError(data)) throw new Error(data.details);
         return data;
     }
-    
+
     export async function getCardByTCGPlayerId(id: string): Promise<Card>
     {
         if (id[0] == "{") id = id.substring(1);
@@ -53,8 +53,8 @@ namespace Data.Scryfall
     async function* doGetCollection(identifiers: Identifier[])
     {
         const blocks: Identifier[][] = [];
-        // search double faced cards (names contain "//") only with first part
-        identifiers = identifiers.map(x => "name" in x && x.name.includes("//") ? { name: x.name.splitFirst("//")[0] } : x);
+        // search double faced cards (names contain " // ") only with first part
+        identifiers = identifiers.map(x => "name" in x && x.name.includes(" // ") ? { name: x.name.splitFirst(" // ")[0] } : x);
         const ids = [...identifiers];
         while (ids.length) blocks.push(ids.splice(0, 50));
 

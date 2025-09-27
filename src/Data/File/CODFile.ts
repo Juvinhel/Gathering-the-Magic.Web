@@ -36,7 +36,7 @@ namespace Data.File
                 for (const entry of getEntries(section))
                 {
                     const card = xmlDoc.createElement("card");
-                    const name = entry.name.includes("//") ? entry.name.splitFirst("//")[0].trim() : entry.name;
+                    const name = entry.name.includes(" // ") ? entry.name.splitFirst(" // ")[0].trim() : entry.name;
                     card.setAttribute("number", entry.quantity.toFixed(0));
                     card.setAttribute("name", name);
                     zone.append(card);

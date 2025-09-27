@@ -269,7 +269,7 @@ namespace Data.API
     function parseType(line: string): Type
     {
         const ret = {} as Type;
-        if (line.contains("//")) line = line.splitFirst("//")[0].trim();
+        if (line.contains(" // ")) line = line.splitFirst(" // ")[0].trim();
 
         const [main, sub] = line.splitFirst("—");
         const mainTypes = main.trim().split(/\s+/);
