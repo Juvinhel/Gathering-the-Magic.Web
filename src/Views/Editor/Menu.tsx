@@ -10,6 +10,7 @@ namespace Views.Editor
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ newDeck } title="New Deck"><color-icon src="img/icons/file.svg" /><span>New Deck</span></menu-button>
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ saveDeck } title="Save Deck"><color-icon src="img/icons/save.svg" /><span>Save Deck</span></menu-button>
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ loadDeck } title="Load Deck"><color-icon src="img/icons/deck.svg" /><span>Load Deck</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ importDeck } title="Import Deck"><color-icon src="img/icons/import.svg" /><span>Import Deck</span></menu-button>
                     <menu-button onclick={ loadCollections } title="Load Collections"><color-icon src="img/icons/collection.svg" /><span>Load Collections</span></menu-button>
                 </drop-down>
             </menu-button>
@@ -31,7 +32,7 @@ namespace Views.Editor
                 <drop-down>
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ sortCards } title="Sort Cards"><color-icon src="img/icons/sort.svg" /><span>Sort Cards</span></menu-button>
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ showDeckList } title="Show Deck List"><color-icon src="img/icons/numbered-list.svg" /><span>Show Deck List</span></menu-button>
-                    <menu-button class={ ["show-missing-cards test1", useWorkbench ? null : "none"] } onclick={ showMissingCards } title="Show Missing Cards"><color-icon src="img/icons/missing-card.svg" /><span>Show Missing Cards</span></menu-button>
+                    <menu-button class={ ["show-missing-cards", useWorkbench ? null : "none"] } onclick={ showMissingCards } title="Show Missing Cards"><color-icon src="img/icons/missing-card.svg" /><span>Show Missing Cards</span></menu-button>
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ showDrawTest } title="Show Draw Test"><color-icon src="img/icons/cards.svg" /><span>Show Draw Test</span></menu-button>
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ showDeckStatistics } title="Show Deck Statistics"><color-icon src="img/icons/pie-chart.svg" /><span>Show Deck Statistics</span></menu-button>
                     <menu-button onclick={ showCollectionsOverview } title="Show Collections"><color-icon src="img/icons/collection.svg" /><span>Show Collections</span></menu-button>
@@ -49,12 +50,12 @@ namespace Views.Editor
 
     async function newDeck(event: MouseEvent)
     {
+        const target = event.currentTarget as HTMLElement;
+        const editor = target.closest("my-editor") as Editor.EditorElement;
+        const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
+
         try
         {
-            const target = event.currentTarget as HTMLElement;
-            const editor = target.closest("my-editor") as Editor.EditorElement;
-            const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
-
             const result = await UI.Dialog.confirm({ title: "Create new Deck?", text: "Create a new Deck?\nAll unsaved progress will be lost!" });
             if (!result) return;
 
@@ -71,12 +72,12 @@ namespace Views.Editor
 
     async function saveDeck(event: MouseEvent)
     {
+        const target = event.currentTarget as HTMLElement;
+        const editor = target.closest("my-editor") as Editor.EditorElement;
+        const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
+
         try
         {
-            const target = event.currentTarget as HTMLElement;
-            const editor = target.closest("my-editor") as Editor.EditorElement;
-            const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
-
             const deck = workbench.getData();
 
             await Data.SaveLoad.saveDeck(deck);
@@ -92,12 +93,12 @@ namespace Views.Editor
 
     async function loadDeck(event: MouseEvent)
     {
+        const target = event.currentTarget as HTMLElement;
+        const editor = target.closest("my-editor") as Editor.EditorElement;
+        const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
+
         try
         {
-            const target = event.currentTarget as HTMLElement;
-            const editor = target.closest("my-editor") as Editor.EditorElement;
-            const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
-
             const deck = await Data.SaveLoad.loadDeck();
             if (!deck) return;
 
@@ -120,6 +121,38 @@ namespace Views.Editor
 
             for (const collection of collections)
                 App.collections[collection.name] = collection;
+        }
+        catch (error)
+        {
+            UI.Dialog.error(error);
+        }
+    }
+
+    async function importDeck(event: Event)
+    {
+        const target = event.currentTarget as HTMLElement;
+        const editor = target.closest("my-editor") as Editor.EditorElement;
+        const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
+
+        try
+        {
+            const deckImport = Dialogs.ImportDeck() as HTMLElement;
+
+            await UI.Dialog.show(deckImport, { title: "Import Deck", allowClose: true, icon: "img/icons/import-dialog.svg" });
+
+            const ok = deckImport.classList.contains("ok");
+            if (ok)
+            {
+                const format = (deckImport.querySelector(".format-select") as HTMLSelectElement).value;
+                const text = (deckImport.querySelector(".text-input") as HTMLTextAreaElement).value;
+
+                const deck = await Data.File.loadDeck(text, format);
+
+                await workbench.loadData(deck);
+
+                const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
+                unsavedProgress.classList.toggle("none", true);
+            }
         }
         catch (error)
         {
