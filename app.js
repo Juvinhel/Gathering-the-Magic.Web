@@ -8377,8 +8377,8 @@ var Data;
         let allSuperTypes;
         function parseType(line) {
             const ret = {};
-            if (line.contains("//"))
-                line = line.splitFirst("//")[0].trim();
+            if (line.contains(" // "))
+                line = line.splitFirst(" // ")[0].trim();
             const [main, sub] = line.splitFirst("—");
             const mainTypes = main.trim().split(/\s+/);
             const subTypes = sub?.trim()?.split(/\s+/) ?? [];
@@ -8748,7 +8748,7 @@ var Data;
                     zone.setAttribute("name", section.title);
                     for (const entry of Data.getEntries(section)) {
                         const card = xmlDoc.createElement("card");
-                        const name = entry.name.includes("//") ? entry.name.splitFirst("//")[0].trim() : entry.name;
+                        const name = entry.name.includes(" // ") ? entry.name.splitFirst(" // ")[0].trim() : entry.name;
                         card.setAttribute("number", entry.quantity.toFixed(0));
                         card.setAttribute("name", name);
                         zone.append(card);
@@ -9164,8 +9164,8 @@ var Data;
         Scryfall.getCollection = getCollection;
         async function* doGetCollection(identifiers) {
             const blocks = [];
-            // search double faced cards (names contain "//") only with first part
-            identifiers = identifiers.map(x => "name" in x && x.name.includes("//") ? { name: x.name.splitFirst("//")[0] } : x);
+            // search double faced cards (names contain " // ") only with first part
+            identifiers = identifiers.map(x => "name" in x && x.name.includes(" // ") ? { name: x.name.splitFirst(" // ")[0] } : x);
             const ids = [...identifiers];
             while (ids.length)
                 blocks.push(ids.splice(0, 50));
