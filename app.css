@@ -5501,6 +5501,52 @@ aside {
   background-color: var(--background-color);
   font-size: 1.125em;
 }
+.import-deck {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas: "format format" "text text" "cancel ok";
+  overflow-x: hidden;
+  overflow-y: auto;
+  gap: 1em;
+  border-radius: var(--corner-radius);
+}
+.import-deck > .format-select {
+  grid-area: format;
+  justify-self: start;
+  min-width: 6em;
+}
+.import-deck > .text-input {
+  display: block;
+  grid-area: text;
+  min-width: 24em;
+  height: max-content;
+  min-height: 24em;
+  padding: 0.25em;
+  overflow: hidden;
+  border: none;
+  border-radius: var(--corner-radius);
+  background-color: white;
+  color: black;
+  font-size: 1.125em;
+  font-family: monospace;
+}
+.import-deck > .ok-button {
+  grid-area: ok;
+  background: var(--ok-color);
+  color: var(--foreground-color);
+}
+.import-deck > .ok-button:hover {
+  background: var(--highlight-ok-color);
+}
+.import-deck > .cancel-button {
+  grid-area: cancel;
+  background: var(--cancel-color);
+  color: var(--foreground-color);
+}
+.import-deck > .cancel-button:hover {
+  background: var(--highlight-cancel-color);
+}
 .missing-cards {
   display: grid;
   grid-template-rows: 1fr auto;

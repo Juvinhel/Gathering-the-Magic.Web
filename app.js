@@ -1798,6 +1798,8 @@ var UI;
                     containerDialog.mode = options.mode;
                 if (options?.allowClose != null)
                     containerDialog.allowClose = options.allowClose;
+                if (options?.icon)
+                    containerDialog.icon = options.icon;
                 UI.DOM.Insert(containerDialog, element);
                 await containerDialog.showDialog(options?.parent);
                 return element;
@@ -3523,7 +3525,6 @@ var UI;
             okButton;
             cancelButton;
             build1() {
-                document.createElement;
                 return (UI.Generator.Hyperscript("div", { id: "upload-dialog" },
                     UI.Generator.Hyperscript("input", { id: "upload-dialog-input", type: "file", name: "file", onchange: () => this.okButton.classList.remove("disabled") }),
                     UI.Generator.Hyperscript("button", { id: "upload-dialog-ok-button", class: "disabled", onclick: this.okClick.bind(this) }, "OK"),
@@ -9802,6 +9803,36 @@ var Views;
 (function (Views) {
     var Dialogs;
     (function (Dialogs) {
+        function ImportDeck() {
+            return UI.Generator.Hyperscript("div", { class: "import-deck" },
+                UI.Generator.Hyperscript("select", { class: "format-select" },
+                    UI.Generator.Hyperscript("option", { value: "cod" }, "COD"),
+                    UI.Generator.Hyperscript("option", { value: "dec" }, "DEC"),
+                    UI.Generator.Hyperscript("option", { value: "json" }, "JSON"),
+                    UI.Generator.Hyperscript("option", { value: "txt", selected: true }, "TXT"),
+                    UI.Generator.Hyperscript("option", { value: "YAML" }, "YAML")),
+                UI.Generator.Hyperscript("textarea", { class: "text-input", placeholder: "input text" }),
+                UI.Generator.Hyperscript("button", { class: "ok-button", onclick: okClick }, "OK"),
+                UI.Generator.Hyperscript("button", { class: "cancel-button", onclick: cancelClick }, "Cancel"));
+        }
+        Dialogs.ImportDeck = ImportDeck;
+        function okClick(event) {
+            const target = event.currentTarget;
+            const openDeck = target.closest(".import-deck");
+            openDeck.classList.toggle("ok", true);
+            UI.Dialog.close(openDeck);
+        }
+        function cancelClick(event) {
+            const target = event.currentTarget;
+            const openDeck = target.closest(".import-deck");
+            UI.Dialog.close(openDeck);
+        }
+    })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Dialogs;
+    (function (Dialogs) {
         function MissingCards(args) {
             const collection = args.collection;
             const collapsedEntries = Data.collapse(args.deck);
@@ -10010,6 +10041,9 @@ var Views;
                         UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: loadDeck, title: "Load Deck" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/deck.svg" }),
                             UI.Generator.Hyperscript("span", null, "Load Deck")),
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: importDeck, title: "Import Deck" },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/import.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Import Deck")),
                         UI.Generator.Hyperscript("menu-button", { onclick: loadCollections, title: "Load Collections" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/collection.svg" }),
                             UI.Generator.Hyperscript("span", null, "Load Collections")))),
@@ -10045,7 +10079,7 @@ var Views;
                         UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showDeckList, title: "Show Deck List" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/numbered-list.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Deck List")),
-                        UI.Generator.Hyperscript("menu-button", { class: ["show-missing-cards test1", useWorkbench ? null : "none"], onclick: showMissingCards, title: "Show Missing Cards" },
+                        UI.Generator.Hyperscript("menu-button", { class: ["show-missing-cards", useWorkbench ? null : "none"], onclick: showMissingCards, title: "Show Missing Cards" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/missing-card.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Missing Cards")),
                         UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showDrawTest, title: "Show Draw Test" },
@@ -10067,10 +10101,10 @@ var Views;
         }
         Editor.Menu = Menu;
         async function newDeck(event) {
+            const target = event.currentTarget;
+            const editor = target.closest("my-editor");
+            const workbench = editor.querySelector("my-workbench");
             try {
-                const target = event.currentTarget;
-                const editor = target.closest("my-editor");
-                const workbench = editor.querySelector("my-workbench");
                 const result = await UI.Dialog.confirm({ title: "Create new Deck?", text: "Create a new Deck?\nAll unsaved progress will be lost!" });
                 if (!result)
                     return;
@@ -10083,10 +10117,10 @@ var Views;
             }
         }
         async function saveDeck(event) {
+            const target = event.currentTarget;
+            const editor = target.closest("my-editor");
+            const workbench = editor.querySelector("my-workbench");
             try {
-                const target = event.currentTarget;
-                const editor = target.closest("my-editor");
-                const workbench = editor.querySelector("my-workbench");
                 const deck = workbench.getData();
                 await Data.SaveLoad.saveDeck(deck);
                 const unsavedProgress = editor.querySelector(".unsaved-progress");
@@ -10097,10 +10131,10 @@ var Views;
             }
         }
         async function loadDeck(event) {
+            const target = event.currentTarget;
+            const editor = target.closest("my-editor");
+            const workbench = editor.querySelector("my-workbench");
             try {
-                const target = event.currentTarget;
-                const editor = target.closest("my-editor");
-                const workbench = editor.querySelector("my-workbench");
                 const deck = await Data.SaveLoad.loadDeck();
                 if (!deck)
                     return;
@@ -10117,6 +10151,27 @@ var Views;
                 const collections = await Data.SaveLoad.loadCollections();
                 for (const collection of collections)
                     App.collections[collection.name] = collection;
+            }
+            catch (error) {
+                UI.Dialog.error(error);
+            }
+        }
+        async function importDeck(event) {
+            const target = event.currentTarget;
+            const editor = target.closest("my-editor");
+            const workbench = editor.querySelector("my-workbench");
+            try {
+                const deckImport = Views.Dialogs.ImportDeck();
+                await UI.Dialog.show(deckImport, { title: "Import Deck", allowClose: true, icon: "img/icons/import-dialog.svg" });
+                const ok = deckImport.classList.contains("ok");
+                if (ok) {
+                    const format = deckImport.querySelector(".format-select").value;
+                    const text = deckImport.querySelector(".text-input").value;
+                    const deck = await Data.File.loadDeck(text, format);
+                    await workbench.loadData(deck);
+                    const unsavedProgress = editor.querySelector(".unsaved-progress");
+                    unsavedProgress.classList.toggle("none", true);
+                }
             }
             catch (error) {
                 UI.Dialog.error(error);
