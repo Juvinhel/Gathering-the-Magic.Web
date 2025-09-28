@@ -164,6 +164,9 @@ namespace Views.Editor
 
                 await workbench.loadData(deck);
 
+                //TODO: make abstract
+                localStorage.set("current-deck-file-path", null);
+
                 const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
                 unsavedProgress.classList.toggle("none", true);
             }
