@@ -14,6 +14,14 @@ namespace Views.Editor
                     <menu-button onclick={ loadCollections } title="Load Collections"><color-icon src="img/icons/collection.svg" /><span>Load Collections</span></menu-button>
                 </drop-down>
             </menu-button>
+            <menu-button title="Selection">
+                <color-icon src="img/icons/hand-select.svg" />
+                <span>Selection</span>
+                <drop-down>
+                    <menu-button class="multi-select" title="Toggle multiselect" onclick={ toggleMultiSelect }><color-icon src="img/icons/multi-select.svg" /><span>Multiselect</span></menu-button>
+                    <menu-button class="clear-selection" title="Clear all selections" onclick={ clearSelection }><color-icon src="img/icons/empty-selection.svg" /><span>Unselect</span></menu-button>
+                </drop-down>
+            </menu-button>
             <menu-button title="View">
                 <color-icon src="img/icons/view.svg" />
                 <span>View</span>
@@ -22,7 +30,6 @@ namespace Views.Editor
                     <menu-button onclick={ swapCardSize } title={ App.config.cardSize == "Small" ? "Large Cards" : "Small Cards" }><color-icon src={ App.config.cardSize == "Small" ? "img/icons/scale-up.svg" : "img/icons/scale-down.svg" } /><span>{ App.config.cardSize == "Small" ? "Large Cards" : "Small Cards" }</span></menu-button>
                     <menu-button class={ [useWorkbench ? null : "none", "show-mana", App.config.showMana ? "marked" : null] } onclick={ showMana } title="Show Mana"><color-icon src="img/icons/mana.svg" /><span>Show Mana</span></menu-button>
                     <menu-button class={ [useWorkbench ? null : "none", "show-type", App.config.showType ? "marked" : null] } onclick={ showType } title="Show Type"><color-icon src="img/icons/type.svg" /><span>Show Type</span></menu-button>
-                    <menu-button class={ [useWorkbench ? null : "none", "clear-selection"] } title="Clear Selection" onclick={ clearSelection }><color-icon src="img/icons/hand-select.svg" /><span>Clear Selection</span></menu-button>
                     <menu-button class={ useLibrary ? null : "none" } onclick={ unDockLibrary } title="Undock Library"><color-icon src="img/icons/undock.svg" /><span>Undock Library</span></menu-button>
                 </drop-down>
             </menu-button>
@@ -281,8 +288,13 @@ namespace Views.Editor
         const target = event.currentTarget as HTMLElement;
         const editor = target.closest("my-editor") as Editor.EditorElement;
 
-        for (const element of editor.querySelectorAll(".card-container.selected"))
-            element.classList.remove("selected");
+        for (const element of editor.querySelectorAll("my-entry.selected, my-card-tile.selected") as NodeListOf<Workbench.EntryElement | Library.List.CardTileElement>)
+            element.selected = false;
+    }
+
+    async function toggleMultiSelect(event: Event)
+    {
+        App.multiselect = !App.multiselect;
     }
 
     async function showDrawTest(event: Event)

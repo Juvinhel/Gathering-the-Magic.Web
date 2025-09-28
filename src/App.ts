@@ -37,12 +37,13 @@ class App
         UI.LazyLoad.Start();
         Views.initGlobalDrag();
 
-        window.addEventListener("mousemove", (event: MouseEvent) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
-        window.addEventListener("keydown", (event: KeyboardEvent) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
-        window.addEventListener("keyup", (event: KeyboardEvent) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
+        window.addEventListener("mousemove", (event: MouseEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
+        window.addEventListener("keydown", (event: KeyboardEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
+        window.addEventListener("keyup", (event: KeyboardEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
 
         //! weird bug
         window.addEventListener("keyup", (event: KeyboardEvent) => (document.querySelector("my-workbench") as Views.Workbench.WorkbenchElement).keyup(event));
+        window.addEventListener("keyup", this.globalShortcuts.bind(this));
 
         document.addEventListener('visibilitychange', App.visibilityChange);
 
@@ -85,7 +86,33 @@ class App
     public static collections: { [name: string]: Data.Collection; } = {};
     public static config: Data.Config;
 
-    public static ctrl: boolean = false;
+    private static ctrl: boolean = false;
+    private static pressCTRL(pressed: boolean)
+    {
+        if (pressed != this.ctrl)
+        {
+            this.ctrl = pressed;
+            this.multiselect = pressed;
+        }
+    }
+
+    private static internal_multiselect: boolean = false;
+    public static get multiselect(): boolean { return this.internal_multiselect; }
+    public static set multiselect(value: boolean)
+    {
+        this.internal_multiselect = value;
+        for (const element of document.querySelectorAll(".multi-select"))
+            element.classList.toggle("marked", value);
+    }
+
+    private static globalShortcuts(event: KeyboardEvent)
+    {
+        if (event.code == "Escape")
+        {
+            for (const element of document.querySelectorAll("my-entry.selected, my-card-tile.selected") as NodeListOf<Views.Workbench.EntryElement | Views.Library.List.CardTileElement>)
+                element.selected = false;
+        }
+    }
 
     private static sampleDeck = {
         name: "Sample Deck",

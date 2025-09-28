@@ -1,6 +1,6 @@
 .grid my-entry
 {
-    grid-template-rows: max-content 1fr;
+    grid-template-rows: max-content;
     grid-template-columns: 1fr;
 
     > .image
@@ -11,21 +11,37 @@
     &:hover > .move-actions
     {
         display: grid;
+    }
+
+    &:hover > .quantity
+    {
+        display: initial;
+    }
+
+    > .move-actions
+    {
+        display: grid;
         z-index: 1000;
         position: absolute;
         grid-row: 1;
         grid-column: 1;
         padding: 0.25em;
         border-radius: 0.25em;
-        background-color: var(--page-background-color);
+        background-color: var(--dark-background-color);
     }
 
     > .quantity
     {
-        grid-row: -1;
+        z-index: 1000;
+        position: absolute;
+        grid-row: 1;
+        grid-column: 1;
+        align-self: end;
+        width: calc(100% - 0.5em);
+        padding: 0.25em;
     }
 
-    > .move-actions, > .name, > .type, > .mana, > .card-actions
+    > .move-actions, > .name, > .quantity, > .type, > .mana, > .card-actions
     {
         display: none;
     }

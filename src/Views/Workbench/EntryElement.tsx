@@ -84,7 +84,17 @@ namespace Views.Workbench
         private clicked(event: Event)
         {
             if (event.composedPath().some(x => this.clickables.includes((x as HTMLElement).tagName))) return;
-            this.selected = !this.selected;
+
+            const selected = this.selected;
+
+            if (!App.multiselect)
+            {
+                const workbench = this.closest("my-workbench") as WorkbenchElement;
+                for (const element of workbench.querySelectorAll("my-entry.selected") as NodeListOf<EntryElement>)
+                    element.selected = false;
+            }
+
+            this.selected = !selected;
         }
 
         public moveUp()

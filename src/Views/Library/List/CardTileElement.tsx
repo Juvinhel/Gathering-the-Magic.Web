@@ -48,7 +48,17 @@ namespace Views.Library.List
         private clicked(event: MouseEvent)
         {
             if (event.composedPath().some(x => this.clickables.includes((x as HTMLElement).tagName))) return;
-            this.selected = !this.selected;
+
+            const selected = this.selected;
+
+            if (!App.multiselect)
+            {
+                const cardList = this.closest("my-card-list") as CardListElement;
+                for (const cardTile of cardList.querySelectorAll("my-card-tile.selected") as NodeListOf<CardTileElement>)
+                    cardTile.selected = false;
+            }
+
+            this.selected = !selected;
         }
 
         private showContextMenu(event: PointerEvent)
@@ -105,7 +115,18 @@ namespace Views.Library.List
         private dragStart(event: DragEvent)
         {
             event.stopPropagation();
-            event.dataTransfer.setData("text", JSON.stringify(this.card));
+
+            if (this.selected)
+            {
+                const cards: Data.API.Card[] = [];
+                const cardList = this.closest("my-card-list") as CardListElement;
+                for (const cardTile of cardList.querySelectorAll("my-card-tile.selected") as NodeListOf<CardTileElement>)
+                    cards.push(cardTile.card);
+                event.dataTransfer.setData("text", JSON.stringify(cards));
+            }
+            else
+                event.dataTransfer.setData("text", JSON.stringify(this.card));
+
             event.dataTransfer.effectAllowed = "all";
         }
     }

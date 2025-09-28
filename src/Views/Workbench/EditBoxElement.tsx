@@ -93,11 +93,15 @@ namespace Views.Workbench
                 if (event.key === "Enter")
                 {
                     this.exitEdit();
+                    event.preventDefault();
+                    event.stopPropagation();
                 }
                 if (event.key === "Escape")
                 {
                     this.firstChild.value = this.text;
                     this.exitEdit();
+                    event.preventDefault();
+                    event.stopPropagation();
                 }
             }
         }.bind(this);

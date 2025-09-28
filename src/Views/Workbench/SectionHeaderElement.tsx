@@ -50,11 +50,15 @@ namespace Views.Workbench
 
             const anySelected = this.section.querySelectorAll("my-entry.selected").length > 0;
 
-            const prevCtrl = App.ctrl;
-            App.ctrl = true;
+            if (!App.multiselect)
+            {
+                const workbench = this.closest("my-workbench") as WorkbenchElement;
+                for (const element of workbench.querySelectorAll("my-entry.selected") as NodeListOf<EntryElement>)
+                    element.selected = false;
+            }
+
             for (const entry of this.section.querySelectorAll("my-entry") as NodeListOf<EntryElement>)
                 entry.selected = !anySelected;
-            App.ctrl = prevCtrl;
         }
 
         public moveUp()
