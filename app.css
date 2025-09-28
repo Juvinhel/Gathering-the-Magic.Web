@@ -6379,7 +6379,7 @@ my-search .query > button {
   aspect-ratio: 1;
 }
 .grid my-entry {
-  grid-template-rows: max-content 1fr;
+  grid-template-rows: max-content;
   grid-template-columns: 1fr;
 }
 .grid my-entry > .image {
@@ -6387,19 +6387,32 @@ my-search .query > button {
 }
 .grid my-entry:hover > .move-actions {
   display: grid;
+}
+.grid my-entry:hover > .quantity {
+  display: initial;
+}
+.grid my-entry > .move-actions {
+  display: grid;
   z-index: 1000;
   position: absolute;
   grid-row: 1;
   grid-column: 1;
   padding: 0.25em;
   border-radius: 0.25em;
-  background-color: var(--page-background-color);
+  background-color: var(--dark-background-color);
 }
 .grid my-entry > .quantity {
-  grid-row: -1;
+  z-index: 1000;
+  position: absolute;
+  grid-row: 1;
+  grid-column: 1;
+  align-self: end;
+  width: calc(100% - 0.5em);
+  padding: 0.25em;
 }
 .grid my-entry > .move-actions,
 .grid my-entry > .name,
+.grid my-entry > .quantity,
 .grid my-entry > .type,
 .grid my-entry > .mana,
 .grid my-entry > .card-actions {

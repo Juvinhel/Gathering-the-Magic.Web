@@ -8057,11 +8057,12 @@ class App {
         UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
         UI.LazyLoad.Start();
         Views.initGlobalDrag();
-        window.addEventListener("mousemove", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
-        window.addEventListener("keydown", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
-        window.addEventListener("keyup", (event) => App.ctrl = event.ctrlKey, { capture: true, passive: true });
+        window.addEventListener("mousemove", (event) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
+        window.addEventListener("keydown", (event) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
+        window.addEventListener("keyup", (event) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
         //! weird bug
         window.addEventListener("keyup", (event) => document.querySelector("my-workbench").keyup(event));
+        window.addEventListener("keyup", this.globalShortcuts.bind(this));
         document.addEventListener('visibilitychange', App.visibilityChange);
         // START
         const editor = new Views.Editor.EditorElement(useLibrary, useWorkbench);
@@ -8091,6 +8092,25 @@ class App {
     static collections = {};
     static config;
     static ctrl = false;
+    static pressCTRL(pressed) {
+        if (pressed != this.ctrl) {
+            this.ctrl = pressed;
+            this.multiselect = pressed;
+        }
+    }
+    static internal_multiselect = false;
+    static get multiselect() { return this.internal_multiselect; }
+    static set multiselect(value) {
+        this.internal_multiselect = value;
+        for (const element of document.querySelectorAll(".multi-select"))
+            element.classList.toggle("marked", value);
+    }
+    static globalShortcuts(event) {
+        if (event.code == "Escape") {
+            for (const element of document.querySelectorAll("my-entry.selected, my-card-tile.selected"))
+                element.selected = false;
+        }
+    }
     static sampleDeck = {
         name: "Sample Deck",
         description: "This is a sample deck for demonstration purposes.",
@@ -9963,10 +9983,6 @@ var Views;
                 this.selectedCard = event.detail.card;
                 const cardInfo = this.querySelector("my-card-info");
                 cardInfo.loadData(this.hoveredCard ?? this.selectedCard);
-                if (!App.ctrl)
-                    for (const cardContainer of this.querySelectorAll(".card-container.selected, my-section.selected"))
-                        if (cardContainer != event.target)
-                            cardContainer.classList.toggle("selected", false);
             }
             deckChanged(event) {
                 const unsavedProgress = this.querySelector(".unsaved-progress");
@@ -10047,6 +10063,16 @@ var Views;
                         UI.Generator.Hyperscript("menu-button", { onclick: loadCollections, title: "Load Collections" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/collection.svg" }),
                             UI.Generator.Hyperscript("span", null, "Load Collections")))),
+                UI.Generator.Hyperscript("menu-button", { title: "Selection" },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/hand-select.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Selection"),
+                    UI.Generator.Hyperscript("drop-down", null,
+                        UI.Generator.Hyperscript("menu-button", { class: "multi-select", title: "Toggle multiselect", onclick: toggleMultiSelect },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/multi-select.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Multiselect")),
+                        UI.Generator.Hyperscript("menu-button", { class: "clear-selection", title: "Clear all selections", onclick: clearSelection },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/empty-selection.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Unselect")))),
                 UI.Generator.Hyperscript("menu-button", { title: "View" },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/view.svg" }),
                     UI.Generator.Hyperscript("span", null, "View"),
@@ -10063,9 +10089,6 @@ var Views;
                         UI.Generator.Hyperscript("menu-button", { class: [useWorkbench ? null : "none", "show-type", App.config.showType ? "marked" : null], onclick: showType, title: "Show Type" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/type.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Type")),
-                        UI.Generator.Hyperscript("menu-button", { class: [useWorkbench ? null : "none", "clear-selection"], title: "Clear Selection", onclick: clearSelection },
-                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/hand-select.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Clear Selection")),
                         UI.Generator.Hyperscript("menu-button", { class: useLibrary ? null : "none", onclick: unDockLibrary, title: "Undock Library" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/undock.svg" }),
                             UI.Generator.Hyperscript("span", null, "Undock Library")))),
@@ -10275,8 +10298,11 @@ var Views;
         async function clearSelection(event) {
             const target = event.currentTarget;
             const editor = target.closest("my-editor");
-            for (const element of editor.querySelectorAll(".card-container.selected"))
-                element.classList.remove("selected");
+            for (const element of editor.querySelectorAll("my-entry.selected, my-card-tile.selected"))
+                element.selected = false;
+        }
+        async function toggleMultiSelect(event) {
+            App.multiselect = !App.multiselect;
         }
         async function showDrawTest(event) {
             const target = event.currentTarget;
@@ -10628,7 +10654,13 @@ var Views;
                 clicked(event) {
                     if (event.composedPath().some(x => this.clickables.includes(x.tagName)))
                         return;
-                    this.selected = !this.selected;
+                    const selected = this.selected;
+                    if (!App.multiselect) {
+                        const cardList = this.closest("my-card-list");
+                        for (const cardTile of cardList.querySelectorAll("my-card-tile.selected"))
+                            cardTile.selected = false;
+                    }
+                    this.selected = !selected;
                 }
                 showContextMenu(event) {
                     const editor = this.closest("my-editor");
@@ -10675,7 +10707,15 @@ var Views;
                 }
                 dragStart(event) {
                     event.stopPropagation();
-                    event.dataTransfer.setData("text", JSON.stringify(this.card));
+                    if (this.selected) {
+                        const cards = [];
+                        const cardList = this.closest("my-card-list");
+                        for (const cardTile of cardList.querySelectorAll("my-card-tile.selected"))
+                            cards.push(cardTile.card);
+                        event.dataTransfer.setData("text", JSON.stringify(cards));
+                    }
+                    else
+                        event.dataTransfer.setData("text", JSON.stringify(this.card));
                     event.dataTransfer.effectAllowed = "all";
                 }
             }
@@ -11621,10 +11661,14 @@ var Views;
                 if (this.firstChild instanceof HTMLInputElement) {
                     if (event.key === "Enter") {
                         this.exitEdit();
+                        event.preventDefault();
+                        event.stopPropagation();
                     }
                     if (event.key === "Escape") {
                         this.firstChild.value = this.text;
                         this.exitEdit();
+                        event.preventDefault();
+                        event.stopPropagation();
                     }
                 }
             }.bind(this);
@@ -11706,7 +11750,13 @@ var Views;
             clicked(event) {
                 if (event.composedPath().some(x => this.clickables.includes(x.tagName)))
                     return;
-                this.selected = !this.selected;
+                const selected = this.selected;
+                if (!App.multiselect) {
+                    const workbench = this.closest("my-workbench");
+                    for (const element of workbench.querySelectorAll("my-entry.selected"))
+                        element.selected = false;
+                }
+                this.selected = !selected;
             }
             moveUp() {
                 let sibling = this.previousElementSibling;
@@ -12093,11 +12143,13 @@ var Views;
                 if (event.composedPath().some(x => this.clickables.includes(x.tagName)))
                     return;
                 const anySelected = this.section.querySelectorAll("my-entry.selected").length > 0;
-                const prevCtrl = App.ctrl;
-                App.ctrl = true;
+                if (!App.multiselect) {
+                    const workbench = this.closest("my-workbench");
+                    for (const element of workbench.querySelectorAll("my-entry.selected"))
+                        element.selected = false;
+                }
                 for (const entry of this.section.querySelectorAll("my-entry"))
                     entry.selected = !anySelected;
-                App.ctrl = prevCtrl;
             }
             moveUp() {
                 this.section.moveUp();
