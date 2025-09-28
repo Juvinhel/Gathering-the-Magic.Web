@@ -8047,9 +8047,11 @@ class App {
                 return new Date(value);
             return value;
         }) ?? {};
-        if (Data.Bridge) {
-            for (const collection of await Data.SaveLoad.loadDefaultCollections())
-                this.collections[collection.name] = collection;
+        if (Data.SaveLoadCollection.default) {
+            const collections = await Data.SaveLoadCollection.default();
+            if (collections)
+                for (const collection of collections)
+                    this.collections[collection.name] = collection;
         }
         document.body.style.setProperty("--card-size", App.config.cardSize == "Large" ? "14em" : "8em");
         initChartJS();
@@ -8568,82 +8570,59 @@ var Data;
 })(Data || (Data = {}));
 var Data;
 (function (Data) {
-    Data.SaveLoad = new class {
-        async saveDeck(deck) {
-            if (Data.Bridge) {
-                let saveResult = await Data.Bridge.SaveDeck();
-                if (!saveResult)
-                    return false;
-                const extension = await saveResult.Extension;
-                const format = Data.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
-                deck.name ??= await saveResult.Name;
-                const file = await Data.File.saveDeck(deck, format);
-                saveResult.Save(file.text);
-                return true;
-            }
-            else {
-                const formatName = await UI.Dialog.options({ options: Data.File.deckFileFormats.map(x => x.name), title: "Select File Format!", allowEmpty: true });
-                if (!formatName)
-                    return false;
-                const format = Data.File.deckFileFormats.first(x => x.name == formatName);
-                const fileName = deck.name + "." + format.extensions[0];
-                const file = await Data.File.saveDeck(deck, format);
-                DownloadHelper.downloadData(fileName, file.text, format.mimeTypes[0]);
-                return true;
-            }
-        }
-        async loadDeck() {
-            let file;
-            if (Data.Bridge) {
-                const fileResult = await Data.Bridge.LoadDeck();
-                if (!fileResult)
-                    return;
-                const extension = (await fileResult.Extension).toLowerCase();
-                const text = await fileResult.Load();
-                const name = await fileResult.Name;
-                if (!extension || !text)
-                    return null;
-                file = { name, extension, text };
-            }
-            else {
-                const accept = Data.File.deckFileFormats.map(x => x.extensions.map(e => "." + e).join(", ")).join(", ");
-                const uploadedFile = (await UI.Dialog.upload({ title: "Upload Deck File", accept: accept }))?.[0];
-                if (!uploadedFile)
-                    return null;
-                const [name, extension] = uploadedFile.name.splitLast(".");
-                const text = await uploadedFile.text();
-                file = { name, extension: extension.toLowerCase(), text };
-            }
-            const text = file.text.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
-            const format = Data.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(file.extension, false)));
-            const deck = await Data.File.loadDeck(text, format);
-            deck.name ??= file.name;
-            return deck;
-        }
-        async loadCollections() {
+    class SaveLoadCollectionLocal {
+        async load() {
             let files;
-            if (Data.Bridge) {
-                const fileResults = await Data.Bridge.LoadCollections();
-                if (!fileResults)
-                    return null;
-                files = [];
-                for (const fileResult of fileResults)
-                    files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
+            const fileResults = await Data.Bridge.LoadCollections();
+            if (!fileResults)
+                return null;
+            files = [];
+            for (const fileResult of fileResults)
+                files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
+            const collections = [];
+            for (const file of files) {
+                const collection = await Data.File.CSVFile.load(file.text);
+                collection.name = file.name;
+                if (file.lastModified)
+                    collection.importDate = file.lastModified;
+                collections.push(collection);
             }
-            else {
-                const uploadedFiles = await UI.Dialog.upload({ title: "Upload Collection Files", accept: ".csv", multiple: true });
-                if (!uploadedFiles || !uploadedFiles.length)
-                    return null;
-                files = [];
-                for (const uploadedFile of uploadedFiles) {
-                    const [name, extension] = uploadedFile.name.splitLast(".");
-                    files.push({
-                        name: name,
-                        extension: extension.toLowerCase(),
-                        text: await uploadedFile.text(),
-                        lastModified: uploadedFile.lastModified != 0 ? new Date(uploadedFile.lastModified) : null
-                    });
-                }
+            return collections;
+        }
+        async default() {
+            let files;
+            const fileResults = await Data.Bridge.LoadDefaultCollections();
+            if (!fileResults)
+                return null;
+            files = [];
+            for (const fileResult of fileResults)
+                files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
+            const collections = [];
+            for (const file of files) {
+                const collection = await Data.File.CSVFile.load(file.text);
+                collection.name = file.name;
+                if (file.lastModified)
+                    collection.importDate = file.lastModified;
+                collections.push(collection);
+            }
+            return collections;
+        }
+    }
+    class SaveLoadCollectionWeb {
+        async load() {
+            let files;
+            const uploadedFiles = await UI.Dialog.upload({ title: "Upload Collection Files", accept: ".csv", multiple: true });
+            if (!uploadedFiles || !uploadedFiles.length)
+                return null;
+            files = [];
+            for (const uploadedFile of uploadedFiles) {
+                const [name, extension] = uploadedFile.name.splitLast(".");
+                files.push({
+                    name: name,
+                    extension: extension.toLowerCase(),
+                    text: await uploadedFile.text(),
+                    lastModified: uploadedFile.lastModified != 0 ? new Date(uploadedFile.lastModified) : null
+                });
             }
             const collections = [];
             for (const file of files) {
@@ -8655,29 +8634,95 @@ var Data;
             }
             return collections;
         }
-        async loadDefaultCollections() {
-            let files;
-            if (Data.Bridge) {
-                const fileResults = await Data.Bridge.LoadDefaultCollections();
-                if (!fileResults)
-                    return null;
-                files = [];
-                for (const fileResult of fileResults)
-                    files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
-                const collections = [];
-                for (const file of files) {
-                    const collection = await Data.File.CSVFile.load(file.text);
-                    collection.name = file.name;
-                    if (file.lastModified)
-                        collection.importDate = file.lastModified;
-                    collections.push(collection);
-                }
-                return collections;
-            }
-            else
-                return null;
+    }
+    Data.SaveLoadCollection = Data.Bridge ? new SaveLoadCollectionLocal() : new SaveLoadCollectionWeb();
+})(Data || (Data = {}));
+var Data;
+(function (Data) {
+    class SaveLoadDeckLocal {
+        get currentFilePath() { return localStorage.get("current-deck-file-path"); }
+        set currentFilePath(value) { localStorage.set("current-deck-file-path", value); }
+        async create() {
+            const ret = { name: "New Deck", description: "My new deck", sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
+            this.currentFilePath = null;
+            return ret;
         }
-    }();
+        async open() {
+            const filePath = await Data.Bridge.ShowOpenDeck();
+            if (!filePath)
+                return null;
+            console.log("open", filePath);
+            const { name, extension } = this.splitFilePath(filePath);
+            const format = Data.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            const text = await Data.Bridge.DoOpenDeck(filePath);
+            const deck = await Data.File.loadDeck(text, format);
+            deck.name ??= name;
+            this.currentFilePath = filePath;
+            return deck;
+        }
+        async save(deck) {
+            const filePath = this.currentFilePath ?? await Data.Bridge.ShowSaveDeck();
+            if (!filePath)
+                return false;
+            const { name, extension } = this.splitFilePath(filePath);
+            const format = Data.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            deck.name ??= name;
+            const file = await Data.File.saveDeck(deck, format);
+            await Data.Bridge.DoSaveDeck(filePath, file.text);
+            this.currentFilePath = filePath;
+            return true;
+        }
+        async saveAs(deck) {
+            const filePath = await Data.Bridge.ShowSaveDeck();
+            if (!filePath)
+                return false;
+            const { name, extension } = this.splitFilePath(filePath);
+            const format = Data.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            deck.name ??= name;
+            const text = (await Data.File.saveDeck(deck, format)).text;
+            await Data.Bridge.DoSaveDeck(filePath, text);
+            this.currentFilePath = filePath;
+            return true;
+        }
+        splitFilePath(filePath) {
+            let [path, fileName] = filePath.splitLast("/");
+            if (!fileName) {
+                fileName = path;
+                path = "";
+            }
+            const [name, extension] = filePath.splitLast(".");
+            return { path, name, extension };
+        }
+    }
+    class SaveLoadDeckWeb {
+        async create() {
+            const ret = { name: "New Deck", description: "My new deck", sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
+            return ret;
+        }
+        async open() {
+            const accept = Data.File.deckFileFormats.map(x => x.extensions.map(e => "." + e).join(", ")).join(", ");
+            const uploadedFile = (await UI.Dialog.upload({ title: "Upload Deck File", accept: accept }))?.[0];
+            if (!uploadedFile)
+                return null;
+            const [name, extension] = uploadedFile.name.splitLast(".");
+            const text = (await uploadedFile.text());
+            const format = Data.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            const deck = await Data.File.loadDeck(text, format);
+            deck.name ??= name;
+            return deck;
+        }
+        async saveAs(deck) {
+            const formatName = await UI.Dialog.options({ options: Data.File.deckFileFormats.map(x => x.name), title: "Select File Format!", allowEmpty: true });
+            if (!formatName)
+                return false;
+            const format = Data.File.deckFileFormats.first(x => x.name == formatName);
+            const fileName = deck.name + "." + format.extensions[0];
+            const file = await Data.File.saveDeck(deck, format);
+            DownloadHelper.downloadData(fileName, file.text, format.mimeTypes[0]);
+            return true;
+        }
+    }
+    Data.SaveLoadDeck = Data.Bridge ? new SaveLoadDeckLocal() : new SaveLoadDeckWeb();
 })(Data || (Data = {}));
 var Data;
 (function (Data) {
@@ -8695,6 +8740,7 @@ var Data;
         }
         File.saveDeck = saveDeck;
         async function loadDeck(text, format = "YAML") {
+            text = text?.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
             let file;
             if (typeof format == "string")
                 file = File.deckFileFormats.first(x => x.name.equals(format, false));
@@ -10051,12 +10097,15 @@ var Views;
                         UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: newDeck, title: "New Deck" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/file.svg" }),
                             UI.Generator.Hyperscript("span", null, "New Deck")),
-                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: saveDeck, title: "Save Deck" },
+                        UI.Generator.Hyperscript("menu-button", { class: [useWorkbench ? null : "none", Data.SaveLoadDeck.save ? null : "none"], onclick: saveDeck, title: "Save Deck" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/save.svg" }),
                             UI.Generator.Hyperscript("span", null, "Save Deck")),
-                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: loadDeck, title: "Load Deck" },
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: saveAsDeck, title: "Save As Deck" },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/save.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Save As Deck")),
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: openDeck, title: "Open Deck" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/deck.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Load Deck")),
+                            UI.Generator.Hyperscript("span", null, "Open Deck")),
                         UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: importDeck, title: "Import Deck" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/import.svg" }),
                             UI.Generator.Hyperscript("span", null, "Import Deck")),
@@ -10145,7 +10194,7 @@ var Views;
             const workbench = editor.querySelector("my-workbench");
             try {
                 const deck = workbench.getData();
-                await Data.SaveLoad.saveDeck(deck);
+                await Data.SaveLoadDeck.save(deck);
                 const unsavedProgress = editor.querySelector(".unsaved-progress");
                 unsavedProgress.classList.toggle("none", true);
             }
@@ -10153,27 +10202,31 @@ var Views;
                 UI.Dialog.error(error);
             }
         }
-        async function loadDeck(event) {
+        async function saveAsDeck(event) {
             const target = event.currentTarget;
             const editor = target.closest("my-editor");
             const workbench = editor.querySelector("my-workbench");
             try {
-                const deck = await Data.SaveLoad.loadDeck();
+                const deck = workbench.getData();
+                await Data.SaveLoadDeck.saveAs(deck);
+                const unsavedProgress = editor.querySelector(".unsaved-progress");
+                unsavedProgress.classList.toggle("none", true);
+            }
+            catch (error) {
+                UI.Dialog.error(error);
+            }
+        }
+        async function openDeck(event) {
+            const target = event.currentTarget;
+            const editor = target.closest("my-editor");
+            const workbench = editor.querySelector("my-workbench");
+            try {
+                const deck = await Data.SaveLoadDeck.open();
                 if (!deck)
                     return;
                 await workbench.loadData(deck);
                 const unsavedProgress = editor.querySelector(".unsaved-progress");
                 unsavedProgress.classList.toggle("none", true);
-            }
-            catch (error) {
-                UI.Dialog.error(error);
-            }
-        }
-        async function loadCollections(event) {
-            try {
-                const collections = await Data.SaveLoad.loadCollections();
-                for (const collection of collections)
-                    App.collections[collection.name] = collection;
             }
             catch (error) {
                 UI.Dialog.error(error);
@@ -10195,6 +10248,18 @@ var Views;
                     const unsavedProgress = editor.querySelector(".unsaved-progress");
                     unsavedProgress.classList.toggle("none", true);
                 }
+            }
+            catch (error) {
+                UI.Dialog.error(error);
+            }
+        }
+        async function loadCollections(event) {
+            try {
+                const collections = await Data.SaveLoadCollection.load();
+                if (!collections)
+                    return;
+                for (const collection of collections)
+                    App.collections[collection.name] = collection;
             }
             catch (error) {
                 UI.Dialog.error(error);
