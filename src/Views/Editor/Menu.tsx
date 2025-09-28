@@ -8,8 +8,9 @@ namespace Views.Editor
                 <span>File</span>
                 <drop-down>
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ newDeck } title="New Deck"><color-icon src="img/icons/file.svg" /><span>New Deck</span></menu-button>
-                    <menu-button class={ useWorkbench ? null : "none" } onclick={ saveDeck } title="Save Deck"><color-icon src="img/icons/save.svg" /><span>Save Deck</span></menu-button>
-                    <menu-button class={ useWorkbench ? null : "none" } onclick={ loadDeck } title="Load Deck"><color-icon src="img/icons/deck.svg" /><span>Load Deck</span></menu-button>
+                    <menu-button class={ [useWorkbench ? null : "none", Data.SaveLoadDeck.save ? null : "none"] } onclick={ saveDeck } title="Save Deck"><color-icon src="img/icons/save.svg" /><span>Save Deck</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ saveAsDeck } title="Save As Deck"><color-icon src="img/icons/save.svg" /><span>Save As Deck</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ openDeck } title="Open Deck"><color-icon src="img/icons/deck.svg" /><span>Open Deck</span></menu-button>
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ importDeck } title="Import Deck"><color-icon src="img/icons/import.svg" /><span>Import Deck</span></menu-button>
                     <menu-button onclick={ loadCollections } title="Load Collections"><color-icon src="img/icons/collection.svg" /><span>Load Collections</span></menu-button>
                 </drop-down>
@@ -87,7 +88,7 @@ namespace Views.Editor
         {
             const deck = workbench.getData();
 
-            await Data.SaveLoad.saveDeck(deck);
+            await Data.SaveLoadDeck.save(deck);
 
             const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
             unsavedProgress.classList.toggle("none", true);
@@ -98,7 +99,7 @@ namespace Views.Editor
         }
     }
 
-    async function loadDeck(event: MouseEvent)
+    async function saveAsDeck(event: MouseEvent)
     {
         const target = event.currentTarget as HTMLElement;
         const editor = target.closest("my-editor") as Editor.EditorElement;
@@ -106,10 +107,9 @@ namespace Views.Editor
 
         try
         {
-            const deck = await Data.SaveLoad.loadDeck();
-            if (!deck) return;
+            const deck = workbench.getData();
 
-            await workbench.loadData(deck);
+            await Data.SaveLoadDeck.saveAs(deck);
 
             const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
             unsavedProgress.classList.toggle("none", true);
@@ -120,14 +120,21 @@ namespace Views.Editor
         }
     }
 
-    async function loadCollections(event: Event)
+    async function openDeck(event: MouseEvent)
     {
+        const target = event.currentTarget as HTMLElement;
+        const editor = target.closest("my-editor") as Editor.EditorElement;
+        const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
+
         try
         {
-            const collections = await Data.SaveLoad.loadCollections();
+            const deck = await Data.SaveLoadDeck.open();
+            if (!deck) return;
 
-            for (const collection of collections)
-                App.collections[collection.name] = collection;
+            await workbench.loadData(deck);
+
+            const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
+            unsavedProgress.classList.toggle("none", true);
         }
         catch (error)
         {
@@ -160,6 +167,22 @@ namespace Views.Editor
                 const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
                 unsavedProgress.classList.toggle("none", true);
             }
+        }
+        catch (error)
+        {
+            UI.Dialog.error(error);
+        }
+    }
+
+    async function loadCollections(event: Event)
+    {
+        try
+        {
+            const collections = await Data.SaveLoadCollection.load();
+            if (!collections) return;
+
+            for (const collection of collections)
+                App.collections[collection.name] = collection;
         }
         catch (error)
         {

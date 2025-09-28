@@ -23,10 +23,12 @@ class App
             return value;
         }) ?? {};
 
-        if (Data.Bridge)
+        if (Data.SaveLoadCollection.default)
         {
-            for (const collection of await Data.SaveLoad.loadDefaultCollections())
-                this.collections[collection.name] = collection;
+            const collections = await Data.SaveLoadCollection.default();
+            if (collections)
+                for (const collection of collections)
+                    this.collections[collection.name] = collection;
         }
 
         document.body.style.setProperty("--card-size", App.config.cardSize == "Large" ? "14em" : "8em");
@@ -114,7 +116,7 @@ class App
         }
     }
 
-    private static sampleDeck = {
+    public static sampleDeck = {
         name: "Sample Deck",
         description: "This is a sample deck for demonstration purposes.",
 

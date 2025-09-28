@@ -16,12 +16,13 @@ namespace Data.File
 
     export async function loadDeck(text: string, format: string | File<Deck> = "YAML"): Promise<Deck>
     {
+        text = text?.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
+
         let file: File<Deck>;
         if (typeof format == "string")
             file = deckFileFormats.first(x => x.name.equals(format, false));
         else
             file = format;
-
 
         const deck = await file.load(text);
 
