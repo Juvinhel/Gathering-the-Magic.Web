@@ -1419,19 +1419,21 @@ context-menu:not([open]) {
   height: 0 !important;
 }
 confirm-dialog {
-  backdrop-filter: blur(0.75px);
-  position: absolute;
   z-index: 100000;
+  position: absolute;
   inset: 0;
-  visibility: collapse;
-  opacity: 0;
+  backdrop-filter: blur(0.75px);
   background-color: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s, visibility 0.3s;
 }
-confirm-dialog[open=true],
-confirm-dialog[open] {
-  visibility: visible;
-  opacity: 1;
+confirm-dialog[state="open"] {
+  animation: dialog-fade-in 0.25s;
+}
+confirm-dialog[state="closing"] {
+  animation: dialog-fade-out 0.25s;
+  opacity: 0;
+}
+confirm-dialog:not([state]) {
+  display: none;
 }
 #confirm-dialog {
   display: grid;
@@ -1462,19 +1464,21 @@ confirm-dialog[open] {
   background: var(--highlight-cancel-color);
 }
 container-dialog {
-  backdrop-filter: blur(0.75px);
-  position: absolute;
   z-index: 100000;
+  position: absolute;
   inset: 0;
-  visibility: collapse;
-  opacity: 0;
+  backdrop-filter: blur(0.75px);
   background-color: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s, visibility 0.3s;
 }
-container-dialog[open=true],
-container-dialog[open] {
-  visibility: visible;
-  opacity: 1;
+container-dialog[state="open"] {
+  animation: dialog-fade-in 0.25s;
+}
+container-dialog[state="closing"] {
+  animation: dialog-fade-out 0.25s;
+  opacity: 0;
+}
+container-dialog:not([state]) {
+  display: none;
 }
 #container-dialog-root {
   display: grid;
@@ -1609,20 +1613,38 @@ container-dialog[open] {
   max-height: 100%;
   inset: 0;
 }
-error-dialog {
-  backdrop-filter: blur(0.75px);
-  position: absolute;
-  z-index: 100000;
-  inset: 0;
-  visibility: collapse;
-  opacity: 0;
-  background-color: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s, visibility 0.3s;
+@keyframes dialog-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
-error-dialog[open=true],
-error-dialog[open] {
-  visibility: visible;
-  opacity: 1;
+@keyframes dialog-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+error-dialog {
+  z-index: 100000;
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(0.75px);
+  background-color: rgba(0, 0, 0, 0.3);
+}
+error-dialog[state="open"] {
+  animation: dialog-fade-in 0.25s;
+}
+error-dialog[state="closing"] {
+  animation: dialog-fade-out 0.25s;
+  opacity: 0;
+}
+error-dialog:not([state]) {
+  display: none;
 }
 #error-dialog {
   display: grid;
@@ -1646,19 +1668,21 @@ error-dialog[open] {
   background: var(--highlight-ok-color);
 }
 light-box-dialog {
-  backdrop-filter: blur(0.75px);
-  position: absolute;
   z-index: 100000;
+  position: absolute;
   inset: 0;
-  visibility: collapse;
-  opacity: 0;
+  backdrop-filter: blur(0.75px);
   background-color: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s, visibility 0.3s;
 }
-light-box-dialog[open=true],
-light-box-dialog[open] {
-  visibility: visible;
-  opacity: 1;
+light-box-dialog[state="open"] {
+  animation: dialog-fade-in 0.25s;
+}
+light-box-dialog[state="closing"] {
+  animation: dialog-fade-out 0.25s;
+  opacity: 0;
+}
+light-box-dialog:not([state]) {
+  display: none;
 }
 light-box-dialog > light-box {
   padding: 0;
@@ -1669,19 +1693,21 @@ light-box-dialog > light-box {
   height: 100%;
 }
 message-dialog {
-  backdrop-filter: blur(0.75px);
-  position: absolute;
   z-index: 100000;
+  position: absolute;
   inset: 0;
-  visibility: collapse;
-  opacity: 0;
+  backdrop-filter: blur(0.75px);
   background-color: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s, visibility 0.3s;
 }
-message-dialog[open=true],
-message-dialog[open] {
-  visibility: visible;
-  opacity: 1;
+message-dialog[state="open"] {
+  animation: dialog-fade-in 0.25s;
+}
+message-dialog[state="closing"] {
+  animation: dialog-fade-out 0.25s;
+  opacity: 0;
+}
+message-dialog:not([state]) {
+  display: none;
 }
 #message-dialog {
   display: grid;
@@ -1704,19 +1730,21 @@ message-dialog[open] {
   background: var(--highlight-ok-color);
 }
 option-select-dialog {
-  backdrop-filter: blur(0.75px);
-  position: absolute;
   z-index: 100000;
+  position: absolute;
   inset: 0;
-  visibility: collapse;
-  opacity: 0;
+  backdrop-filter: blur(0.75px);
   background-color: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s, visibility 0.3s;
 }
-option-select-dialog[open=true],
-option-select-dialog[open] {
-  visibility: visible;
-  opacity: 1;
+option-select-dialog[state="open"] {
+  animation: dialog-fade-in 0.25s;
+}
+option-select-dialog[state="closing"] {
+  animation: dialog-fade-out 0.25s;
+  opacity: 0;
+}
+option-select-dialog:not([state]) {
+  display: none;
 }
 #option-select-dialog {
   overflow-x: hidden;
@@ -1730,34 +1758,38 @@ option-select-dialog[open] {
   gap: 0.25em;
 }
 overlay-dialog {
-  backdrop-filter: blur(0.75px);
-  position: absolute;
   z-index: 100000;
+  position: absolute;
   inset: 0;
-  visibility: collapse;
-  opacity: 0;
+  backdrop-filter: blur(0.75px);
   background-color: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s, visibility 0.3s;
 }
-overlay-dialog[open=true],
-overlay-dialog[open] {
-  visibility: visible;
-  opacity: 1;
+overlay-dialog[state="open"] {
+  animation: dialog-fade-in 0.25s;
+}
+overlay-dialog[state="closing"] {
+  animation: dialog-fade-out 0.25s;
+  opacity: 0;
+}
+overlay-dialog:not([state]) {
+  display: none;
 }
 progress-dialog {
-  backdrop-filter: blur(0.75px);
-  position: absolute;
   z-index: 100000;
+  position: absolute;
   inset: 0;
-  visibility: collapse;
-  opacity: 0;
+  backdrop-filter: blur(0.75px);
   background-color: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s, visibility 0.3s;
 }
-progress-dialog[open=true],
-progress-dialog[open] {
-  visibility: visible;
-  opacity: 1;
+progress-dialog[state="open"] {
+  animation: dialog-fade-in 0.25s;
+}
+progress-dialog[state="closing"] {
+  animation: dialog-fade-out 0.25s;
+  opacity: 0;
+}
+progress-dialog:not([state]) {
+  display: none;
 }
 #progress-dialog {
   display: grid;
@@ -1776,19 +1808,21 @@ progress-dialog[open] {
   justify-self: center;
 }
 upload-dialog {
-  backdrop-filter: blur(0.75px);
-  position: absolute;
   z-index: 100000;
+  position: absolute;
   inset: 0;
-  visibility: collapse;
-  opacity: 0;
+  backdrop-filter: blur(0.75px);
   background-color: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s, visibility 0.3s;
 }
-upload-dialog[open=true],
-upload-dialog[open] {
-  visibility: visible;
-  opacity: 1;
+upload-dialog[state="open"] {
+  animation: dialog-fade-in 0.25s;
+}
+upload-dialog[state="closing"] {
+  animation: dialog-fade-out 0.25s;
+  opacity: 0;
+}
+upload-dialog:not([state]) {
+  display: none;
 }
 #upload-dialog {
   display: grid;

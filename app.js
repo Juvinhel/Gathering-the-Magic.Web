@@ -2219,7 +2219,7 @@ var UI;
             }
         }
         closeOnRouting(container) {
-            for (const closeOnRouting of (container ?? document).querySelectorAll("[close-on-routing='true'], [close-on-routing='']"))
+            for (const closeOnRouting of (container ?? document).querySelectorAll("[close-on-routing], [close-on-routing]"))
                 closeOnRouting.close?.();
         }
     }
@@ -3021,35 +3021,17 @@ var UI;
         class OverlayDialog extends Elements.CustomElement {
             constructor() {
                 super();
+                this.addEventListener("animationend", this.animationEnd);
             }
             static get observedAttributes() {
-                return ["open"];
+                return [];
             }
             attributeChangedCallback(name, oldValue, newValue) {
-                switch (name) {
-                    case "open":
-                        this.onOpenChanged(oldValue, newValue);
-                        break;
-                }
             }
             connectedCallback() {
-                this.setAttribute("dialog", "");
-                //? how to do default values?
-                this.setAttribute("close-on-routing", "true");
+                UI.Helper.SetFlagAttribute(this, "dialog", true);
+                UI.Helper.SetFlagAttribute(this, "close-on-routing", true);
             }
-            onOpenChanged(oldValue, newValue) {
-                const oldOpen = oldValue != null;
-                const newOpen = newValue != null;
-                if (oldOpen != newOpen) {
-                    this.dispatchEvent(new Event(newOpen ? "open" : "close"));
-                    if (newOpen)
-                        OverlayDialog.opened.call(this, {});
-                    else
-                        OverlayDialog.closed.call(this, {});
-                }
-            }
-            get open() { return UI.Helper.GetFlagAttribute(this, "open"); }
-            set open(value) { UI.Helper.SetFlagAttribute(this, "open", value); }
             get closeOnRouting() { return UI.Helper.GetFlagAttribute(this, "close-on-routing"); }
             set closeOnRouting(value) { UI.Helper.SetFlagAttribute(this, "close-on-routing", value); }
             showDialog(parent) {
@@ -3059,26 +3041,22 @@ var UI;
                 });
             }
             show(parent) {
-                const volatile = this.parentNode == null;
-                this.bindParent(parent);
-                this.open = true;
-                //TODO: improve? abstract?
-                for (const navBar of document.querySelectorAll("nav-bar"))
-                    navBar.expanded = false;
-                if (volatile)
-                    this.addEventListener("close", () => this.remove(), { once: true });
+                (parent ?? document.body).appendChild(this);
+                this.setAttribute("state", "open");
+                this.dispatchEvent(new Event("open"));
+                OverlayDialog.opened.call(this, {});
             }
             close() {
-                this.open = false;
+                this.setAttribute("state", "closing");
+                this.dispatchEvent(new Event("close"));
+                OverlayDialog.closed.call(this, {});
             }
-            bindParent(parent) {
-                if (this.parentNode == null && parent == null)
-                    parent = document.body;
-                if (parent) {
-                    this.parentNode?.removeChild(this);
-                    parent.appendChild(this);
+            animationEnd = function (event) {
+                if (event.animationName == "dialog-fade-out" && this.getAttribute("state") == "closing") {
+                    this.remove();
+                    this.setAttribute("state", null);
                 }
-            }
+            }.bind(this);
             static closeTop(element) {
                 const closeOnRouting = (element ?? document).querySelector("[dialog]");
                 closeOnRouting?.close?.();
@@ -8070,7 +8048,7 @@ class App {
         const editor = new Views.Editor.EditorElement(useLibrary, useWorkbench);
         document.querySelector("main").append(editor);
         if (useWorkbench) {
-            const lastDeck = localStorage.get("last-deck") ?? App.sampleDeck;
+            const lastDeck = (localStorage.get("last-deck") ?? App.sampleDeck);
             const workbench = editor.querySelector("my-workbench");
             await workbench.loadData(await Data.File.loadDeck(JSON.stringify(lastDeck), "JSON"));
             const unsavedProgress = document.body.querySelector(".unsaved-progress");
@@ -8084,7 +8062,7 @@ class App {
             const editor = document.querySelector("my-editor");
             const workbench = editor.querySelector("my-workbench");
             const deck = workbench.getData();
-            localStorage.set("last-deck", deck);
+            localStorage.set("last-deck", Data.File.JSONFile.removeExtendData(deck));
         }
     }.bind(this);
     static symbols;
@@ -8740,18 +8718,17 @@ var Data;
         }
         File.saveDeck = saveDeck;
         async function loadDeck(text, format = "YAML") {
-            text = text?.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
+            text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
             let file;
             if (typeof format == "string")
                 file = File.deckFileFormats.first(x => x.name.equals(format, false));
             else
                 file = format;
             const deck = await file.load(text);
-            await populate(deck);
             return deck;
         }
         File.loadDeck = loadDeck;
-        async function populate(deck) {
+        async function populateEntriesFromIdentifiers(deck) {
             const progressDialog = await UI.Dialog.progress({ title: "Gathering card info!", displayType: "Absolute" });
             try {
                 const entries = Data.getEntries(deck);
@@ -8769,20 +8746,7 @@ var Data;
                 progressDialog.close();
             }
         }
-        function traverse(deck, func) {
-            for (const section of deck.sections)
-                traverseSection(section, func);
-        }
-        File.traverse = traverse;
-        function traverseSection(section, func) {
-            for (let i = 0; i < section.items.length; ++i) {
-                const item = section.items[i];
-                if ("name" in item)
-                    section.items[i] = func(item);
-                else
-                    traverseSection(item, func);
-            }
-        }
+        File.populateEntriesFromIdentifiers = populateEntriesFromIdentifiers;
     })(File = Data.File || (Data.File = {}));
 })(Data || (Data = {}));
 /// <reference path="File.ts" />
@@ -8872,6 +8836,7 @@ var Data;
                 }
                 if (bannerCard)
                     deck.commanders.push(bannerCard);
+                await File.populateEntriesFromIdentifiers(deck);
                 return deck;
             }
         }();
@@ -8993,7 +8958,7 @@ var Data;
                     const arr = groups[group] ??= [];
                     arr.push(line);
                 }
-                const ret = {
+                const deck = {
                     name,
                     description: null,
                     commanders: [],
@@ -9011,8 +8976,8 @@ var Data;
                         const name = entry.groups["name"].trim();
                         const attributes = entry.groups["attributes"]?.trim();
                         if (attributes && attributes.toLowerCase().includes("commander"))
-                            ret.commanders.push(name);
-                        const topSection = location?.toLowerCase() == "sb" ? ret.sections.first(x => x.title == "side") : ret.sections.first(x => x.title == "main");
+                            deck.commanders.push(name);
+                        const topSection = location?.toLowerCase() == "sb" ? deck.sections.first(x => x.title == "side") : deck.sections.first(x => x.title == "main");
                         let sectionName = group[0];
                         if (topSection.title == "main" && group[0].toLowerCase() == "main")
                             sectionName = null;
@@ -9031,7 +8996,8 @@ var Data;
                         }
                     }
                 }
-                return ret;
+                await File.populateEntriesFromIdentifiers(deck);
+                return deck;
             }
         }();
         File.deckFileFormats.push(File.DECFile);
@@ -9046,12 +9012,32 @@ var Data;
             extensions = ["json"];
             mimeTypes = ["application/json", "text/json"];
             async save(deck) {
-                const d = JSON.parse(JSON.stringify(deck));
-                File.traverse(d, (entry) => { return { quantity: entry.quantity, name: entry.name }; });
+                deck = this.removeExtendData(deck);
                 return JSON.stringify(deck);
             }
             async load(text) {
-                return JSON.parse(text);
+                text = text.replaceAll(/(?:\r\n|\r|\n)/, "");
+                const deck = JSON.parse(text);
+                await File.populateEntriesFromIdentifiers(deck);
+                return deck;
+            }
+            removeExtendData(deck) {
+                deck = JSON.clone(deck);
+                this.traverse(deck, (entry) => { return { quantity: entry.quantity, name: entry.name }; });
+                return deck;
+            }
+            traverse(deck, func) {
+                for (const section of deck.sections)
+                    this.traverseSection(section, func);
+            }
+            traverseSection(section, func) {
+                for (let i = 0; i < section.items.length; ++i) {
+                    const item = section.items[i];
+                    if ("name" in item)
+                        section.items[i] = func(item);
+                    else
+                        this.traverseSection(item, func);
+                }
             }
         }();
         File.deckFileFormats.push(File.JSONFile);
@@ -9089,6 +9075,7 @@ var Data;
                         mainSection.items.push({ quantity, name });
                     }
                 }
+                await File.populateEntriesFromIdentifiers(deck);
                 return deck;
             }
         }();
@@ -9155,6 +9142,7 @@ var Data;
                     if (maybe)
                         deck.sections.first(x => x.title == "maybe").items = maybe.map(this.createItem);
                 }
+                await File.populateEntriesFromIdentifiers(deck);
                 return deck;
             }
             createItem = function (item) {
@@ -10245,6 +10233,8 @@ var Views;
                     const text = deckImport.querySelector(".text-input").value;
                     const deck = await Data.File.loadDeck(text, format);
                     await workbench.loadData(deck);
+                    //TODO: make abstract
+                    localStorage.set("current-deck-file-path", null);
                     const unsavedProgress = editor.querySelector(".unsaved-progress");
                     unsavedProgress.classList.toggle("none", true);
                 }
