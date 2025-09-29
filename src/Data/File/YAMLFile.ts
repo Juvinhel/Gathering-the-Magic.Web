@@ -66,6 +66,8 @@ namespace Data.File
                 if (maybe) deck.sections.first(x => x.title == "maybe").items = maybe.map(this.createItem);
             }
 
+            await populateEntriesFromIdentifiers(deck);
+
             return deck;
         }
 

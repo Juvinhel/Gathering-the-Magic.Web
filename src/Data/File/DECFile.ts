@@ -86,7 +86,7 @@ namespace Data.File
                 arr.push(line);
             }
 
-            const ret: Deck = {
+            const deck: Deck = {
                 name,
                 description: null,
                 commanders: [],
@@ -108,9 +108,9 @@ namespace Data.File
                     const attributes = entry.groups["attributes"]?.trim();
 
                     if (attributes && attributes.toLowerCase().includes("commander"))
-                        ret.commanders.push(name);
+                        deck.commanders.push(name);
 
-                    const topSection = location?.toLowerCase() == "sb" ? ret.sections.first(x => x.title == "side") : ret.sections.first(x => x.title == "main");
+                    const topSection = location?.toLowerCase() == "sb" ? deck.sections.first(x => x.title == "side") : deck.sections.first(x => x.title == "main");
 
                     let sectionName = group[0];
                     if (topSection.title == "main" && group[0].toLowerCase() == "main") sectionName = null;
@@ -131,7 +131,9 @@ namespace Data.File
                 }
             }
 
-            return ret;
+            await populateEntriesFromIdentifiers(deck);
+
+            return deck;
         }
     }();
 

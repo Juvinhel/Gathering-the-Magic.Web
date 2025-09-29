@@ -55,7 +55,8 @@ class App
 
         if (useWorkbench)
         {
-            const lastDeck = localStorage.get("last-deck") ?? App.sampleDeck;
+            const lastDeck: Data.Deck = (localStorage.get("last-deck") ?? App.sampleDeck) as Data.Deck;
+
             const workbench = editor.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
             await workbench.loadData(await Data.File.loadDeck(JSON.stringify(lastDeck), "JSON"));
 
@@ -76,7 +77,7 @@ class App
             const workbench = editor.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
             const deck: Data.Deck = workbench.getData();
 
-            localStorage.set("last-deck", deck);
+            localStorage.set("last-deck", Data.File.JSONFile.removeExtendData(deck));
         }
     }.bind(this);
 

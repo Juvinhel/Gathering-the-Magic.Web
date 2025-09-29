@@ -116,6 +116,8 @@ namespace Data.File
             if (bannerCard)
                 deck.commanders.push(bannerCard);
 
+            await populateEntriesFromIdentifiers(deck);
+
             return deck;
         }
     }();

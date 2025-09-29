@@ -16,7 +16,7 @@ namespace Data.File
 
     export async function loadDeck(text: string, format: string | File<Deck> = "YAML"): Promise<Deck>
     {
-        text = text?.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
+        text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
 
         let file: File<Deck>;
         if (typeof format == "string")
@@ -26,12 +26,10 @@ namespace Data.File
 
         const deck = await file.load(text);
 
-        await populate(deck);
-
         return deck;
     }
 
-    async function populate(deck: Deck)
+    export async function populateEntriesFromIdentifiers(deck: Deck)
     {
         const progressDialog = await UI.Dialog.progress({ title: "Gathering card info!", displayType: "Absolute" });
         try
@@ -52,24 +50,6 @@ namespace Data.File
         finally
         {
             progressDialog.close();
-        }
-    }
-
-    export function traverse(deck: Deck, func: (entry: Entry) => Entry)
-    {
-        for (const section of deck.sections)
-            traverseSection(section, func);
-    }
-
-    function traverseSection(section: Section, func: (entry: Entry) => Entry)
-    {
-        for (let i = 0; i < section.items.length; ++i)
-        {
-            const item = section.items[i];
-            if ("name" in item)
-                section.items[i] = func(item);
-            else
-                traverseSection(item, func);
         }
     }
 
