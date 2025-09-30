@@ -21,6 +21,15 @@ namespace Views.Editor
                 <drop-down>
                     <menu-button class="multi-select" title="Toggle multiselect" onclick={ toggleMultiSelect }><color-icon src="img/icons/multi-select.svg" /><span>Multiselect</span></menu-button>
                     <menu-button class="clear-selection" title="Clear all selections" onclick={ clearSelection }><color-icon src="img/icons/empty-selection.svg" /><span>Unselect</span></menu-button>
+                    <hr />
+                    <menu-button title="Select All Creatures" onclick={ (event: Event) => selectCardsByType(event, "Creature", false) }><color-icon src="img/icons/card-types/creature.svg" /><span>Select All Creatures</span></menu-button>
+                    <menu-button title="Select All Artifacts" onclick={ (event: Event) => selectCardsByType(event, "Artifact") }><color-icon src="img/icons/card-types/artifact.svg" /><span>Select All Artifacts</span></menu-button>
+                    <menu-button title="Select All Enchantments" onclick={ (event: Event) => selectCardsByType(event, "Enchantment") }><color-icon src="img/icons/card-types/enchantment.svg" /><span>Select All Enchantments</span></menu-button>
+                    <menu-button title="Select All Sorceries" onclick={ (event: Event) => selectCardsByType(event, "Sorcery") }><color-icon src="img/icons/card-types/sorcery.svg" /><span>Select All Sorceries</span></menu-button>
+                    <menu-button title="Select All Instants" onclick={ (event: Event) => selectCardsByType(event, "Instant") }><color-icon src="img/icons/card-types/instant.svg" /><span>Select All Instants</span></menu-button>
+                    <menu-button title="Select All Planeswalker" onclick={ (event: Event) => selectCardsByType(event, "Planeswalker") }><color-icon src="img/icons/card-types/planeswalker.svg" /><span>Select All Planeswalker</span></menu-button>
+                    <menu-button title="Select All Battles" onclick={ (event: Event) => selectCardsByType(event, "Battle") }><color-icon src="img/icons/card-types/battle.svg" /><span>Select All Battles</span></menu-button>
+                    <menu-button title="Select All Lands" onclick={ (event: Event) => selectCardsByType(event, "Land", false) }><color-icon src="img/icons/card-types/land.svg" /><span>Select All Lands</span></menu-button>
                 </drop-down>
             </menu-button>
             <menu-button title="View">
@@ -285,7 +294,7 @@ namespace Views.Editor
         await UI.Dialog.show(<Views.Dialogs.DeckList deck={ deck } />, { allowClose: true, title: "Card List" });
     }
 
-    async function showMana(event: Event)
+    function showMana(event: Event)
     {
         const target = event.currentTarget as HTMLElement;
         const editor = target.closest("my-editor") as Editor.EditorElement;
@@ -297,7 +306,7 @@ namespace Views.Editor
         workbench.refreshColumns();
     }
 
-    async function showType(event: Event)
+    function showType(event: Event)
     {
         const target = event.currentTarget as HTMLElement;
         const editor = target.closest("my-editor") as Editor.EditorElement;
@@ -309,7 +318,7 @@ namespace Views.Editor
         workbench.refreshColumns();
     }
 
-    async function clearSelection(event: Event)
+    function clearSelection(event: Event)
     {
         const target = event.currentTarget as HTMLElement;
         const editor = target.closest("my-editor") as Editor.EditorElement;
@@ -318,7 +327,7 @@ namespace Views.Editor
             element.selected = false;
     }
 
-    async function toggleMultiSelect(event: Event)
+    function toggleMultiSelect(event: Event)
     {
         App.multiselect = !App.multiselect;
     }
@@ -436,5 +445,18 @@ namespace Views.Editor
         const span = menuButton.querySelector("span");
         menuButton.title = span.textContent = App.config.cardSize == "Small" ? "Large Cards" : "Small Cards";
         colorIcon.src = App.config.cardSize == "Small" ? "img/icons/scale-up.svg" : "img/icons/scale-down.svg";
+    }
+
+    function selectCardsByType(event: Event, type: string, exclusive: boolean = true)
+    {
+        const target = event.currentTarget as HTMLElement;
+        const editor = target.closest("my-editor") as Editor.EditorElement;
+        const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
+
+        for (const element of workbench.querySelectorAll("my-entry") as NodeListOf<Workbench.EntryElement>)
+        {
+            const match = (exclusive ? element.card.type.card.length == 1 : true) && element.card.type.card.includes(type);
+            element.selected = match;
+        }
     }
 }

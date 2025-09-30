@@ -14,6 +14,7 @@ namespace Views.Workbench
                 <menu-button title="Move Lines Down" onclick={ moveLinesDown.bind(this) }><color-icon src="img/icons/chevron-down.svg" /><span>Move Lines Down</span></menu-button>,
                 <menu-button title="Move Lines to ..." onclick={ moveLinesTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Move Lines to ...</span></menu-button>,
                 <menu-button title="Delete Lines" onclick={ deleteLines.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Delete Lines</span></menu-button>,
+                <hr />,
                 <menu-button title="Sort Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Name</span></menu-button>,
                 <menu-button title="Sort Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Mana</span></menu-button>,
                 <menu-button title="Sort Lines by Color Identity" onclick={ sortByColorIdentity.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Color Identity</span></menu-button>,
@@ -38,9 +39,25 @@ namespace Views.Workbench
                     <menu-button title="Move Section Lines to ..." onclick={ this.moveTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Move Section Lines to ...</span></menu-button>,
                     <menu-button title="Clear Section Lines" onclick={ this.clear.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Clear Section Lines</span></menu-button>,
                     <menu-button title="Add Section" onclick={ this.addSection.bind(this) }><color-icon src="img/icons/unlink.svg" /><span>Add Section</span></menu-button>,
+                    <hr />,
                     <menu-button title="Sort Section Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Name</span></menu-button>,
                     <menu-button title="Sort Section Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Mana</span></menu-button>,
                     <menu-button title="Sort Section Lines by Color Identity" onclick={ sortByColorIdentity.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Color Identity</span></menu-button>,
+                    <hr />,
+                    <menu-button title="Select">
+                        <color-icon src="img/icons/hand-select.svg" />
+                        <span>Select</span>
+                        <drop-down placement="right">
+                            <menu-button title="Select Creatures" onclick={ () => selectCardsByType(this, "Creature", false) }><color-icon src="img/icons/card-types/creature.svg" /><span>Creatures</span></menu-button>
+                            <menu-button title="Select Artifacts" onclick={ () => selectCardsByType(this, "Artifact") }><color-icon src="img/icons/card-types/artifact.svg" /><span>Artifacts</span></menu-button>
+                            <menu-button title="Select Enchantments" onclick={ () => selectCardsByType(this, "Enchantment") }><color-icon src="img/icons/card-types/enchantment.svg" /><span>Enchantments</span></menu-button>
+                            <menu-button title="Select Sorceries" onclick={ () => selectCardsByType(this, "Sorcery") }><color-icon src="img/icons/card-types/sorcery.svg" /><span>Sorceries</span></menu-button>
+                            <menu-button title="Select Instants" onclick={ () => selectCardsByType(this, "Instant") }><color-icon src="img/icons/card-types/instant.svg" /><span>Instants</span></menu-button>
+                            <menu-button title="Select Planeswalker" onclick={ () => selectCardsByType(this, "Planeswalker") }><color-icon src="img/icons/card-types/planeswalker.svg" /><span>Planeswalker</span></menu-button>
+                            <menu-button title="Select Battles" onclick={ () => selectCardsByType(this, "Battle") }><color-icon src="img/icons/card-types/battle.svg" /><span>Battles</span></menu-button>
+                            <menu-button title="Select Lands" onclick={ () => selectCardsByType(this, "Land", false) }><color-icon src="img/icons/card-types/land.svg" /><span>Lands</span></menu-button>
+                        </drop-down>
+                    </menu-button>
                 );
             else
                 menuButtons.push(
@@ -51,9 +68,25 @@ namespace Views.Workbench
                     <menu-button title="Clear Section Lines" onclick={ this.clear.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Clear Section</span></menu-button>,
                     <menu-button title="Dissolve Section and move Lines to Parent Section" onclick={ this.dissolve.bind(this) }><color-icon src="img/icons/add-section.svg" /><span>Dissolve Section</span></menu-button>,
                     <menu-button title="Add Section" onclick={ this.addSection.bind(this) }><color-icon src="img/icons/unlink.svg" /><span>Add Section</span></menu-button>,
+                    <hr />,
                     <menu-button title="Sort Section Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Name</span></menu-button>,
                     <menu-button title="Sort Section Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Mana</span></menu-button>,
                     <menu-button title="Sort Section Lines by Color Identity" onclick={ sortByColorIdentity.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Color Identity</span></menu-button>,
+                    <hr />,
+                    <menu-button title="Select">
+                        <color-icon src="img/icons/hand-select.svg" />
+                        <span>Select</span>
+                        <drop-down placement="right">
+                            <menu-button title="Select Creatures" onclick={ () => selectCardsByType(this, "Creature", false) }><color-icon src="img/icons/card-types/creature.svg" /><span>Creatures</span></menu-button>
+                            <menu-button title="Select Artifacts" onclick={ () => selectCardsByType(this, "Artifact") }><color-icon src="img/icons/card-types/artifact.svg" /><span>Artifacts</span></menu-button>
+                            <menu-button title="Select Enchantments" onclick={ () => selectCardsByType(this, "Enchantment") }><color-icon src="img/icons/card-types/enchantment.svg" /><span>Enchantments</span></menu-button>
+                            <menu-button title="Select Sorceries" onclick={ () => selectCardsByType(this, "Sorcery") }><color-icon src="img/icons/card-types/sorcery.svg" /><span>Sorceries</span></menu-button>
+                            <menu-button title="Select Instants" onclick={ () => selectCardsByType(this, "Instant") }><color-icon src="img/icons/card-types/instant.svg" /><span>Instants</span></menu-button>
+                            <menu-button title="Select Planeswalker" onclick={ () => selectCardsByType(this, "Planeswalker") }><color-icon src="img/icons/card-types/planeswalker.svg" /><span>Planeswalker</span></menu-button>
+                            <menu-button title="Select Battles" onclick={ () => selectCardsByType(this, "Battle") }><color-icon src="img/icons/card-types/battle.svg" /><span>Battles</span></menu-button>
+                            <menu-button title="Select Lands" onclick={ () => selectCardsByType(this, "Land", false) }><color-icon src="img/icons/card-types/land.svg" /><span>Lands</span></menu-button>
+                        </drop-down>
+                    </menu-button>
                 );
         }
 
@@ -175,5 +208,18 @@ namespace Views.Workbench
         }
 
         return selectedLines;
+    }
+
+    function selectCardsByType(section: SectionElement, type: string, exclusive: boolean = true)
+    {
+        const workbench = section.closest("my-workbench") as Workbench.WorkbenchElement;
+        for (const element of workbench.querySelectorAll("my-entry.selected") as NodeListOf<Workbench.EntryElement>)
+            element.selected = false;
+
+        for (const element of section.querySelectorAll("my-entry") as NodeListOf<Workbench.EntryElement>)
+        {
+            const match = (exclusive ? element.card.type.card.length == 1 : true) && element.card.type.card.includes(type);
+            element.selected = match;
+        }
     }
 }
