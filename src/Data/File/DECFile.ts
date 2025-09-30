@@ -90,6 +90,7 @@ namespace Data.File
                 name,
                 description: null,
                 commanders: [],
+                tags: [],
                 sections: [
                     { title: "main", items: [] },
                     { title: "side", items: [] },

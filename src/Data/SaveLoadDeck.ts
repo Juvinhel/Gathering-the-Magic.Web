@@ -15,7 +15,7 @@ namespace Data
 
         public async create(): Promise<Deck>
         {
-            const ret: Deck = { name: "New Deck", description: "My new deck", sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
+            const ret: Deck = { name: "New Deck", description: "My new deck", commanders: [], tags: [], sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
 
             this.currentFilePath = null;
 
@@ -95,7 +95,7 @@ namespace Data
     {
         public async create(): Promise<Deck>
         {
-            const ret: Deck = { name: "New Deck", description: "My new deck", sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
+            const ret: Deck = { name: "New Deck", description: "My new deck", commanders: [], tags: [], sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
 
             return ret;
         }

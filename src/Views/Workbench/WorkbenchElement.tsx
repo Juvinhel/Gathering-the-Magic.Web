@@ -25,6 +25,7 @@ namespace Views.Workbench
                 <label>Name:</label><EditBoxElement class="deck-name" />
                 <label>Description:</label><EditBoxElement class="deck-description" />
                 <label>Commanders:</label><CommanderList />
+                <label>Tags:</label><TagListElement class="deck-tag-list" />
                 <label>Cards:</label><span class="deck-card-count" />
             </div>,
             <div class={ ["list", App.config.listMode.toLowerCase()] } onchildrenchanged={ (event: Event) =>
@@ -56,6 +57,7 @@ namespace Views.Workbench
         public async loadData(deck: Data.Deck)
         {
             if (deck.sections == null) deck.sections = [] as any;
+            if (deck.tags == null) deck.tags = [] as any;
             if (deck.sections.some(s => s.title === "main") == false) deck.sections.push({ title: "main", items: [] });
             if (deck.sections.some(s => s.title === "side") == false) deck.sections.push({ title: "side", items: [] });
             if (deck.sections.some(s => s.title === "maybe") == false) deck.sections.push({ title: "maybe", items: [] });
@@ -64,6 +66,8 @@ namespace Views.Workbench
             nameElement.text = deck.name;
             const descriptionElement = this.querySelector(".deck-description") as EditBoxElement;
             descriptionElement.text = deck.description;
+            const tagListElement = this.querySelector(".deck-tag-list") as TagListElement;
+            tagListElement.tags = deck.tags;
 
             const listElement = this.querySelector(".list");
             listElement.clearChildren();
@@ -210,9 +214,10 @@ namespace Views.Workbench
             const commanders = [...element.querySelectorAll(".commander-list > li")].map(x => x.textContent);
             const name = (element.querySelector(".deck-name") as EditBoxElement).text;
             const description = (element.querySelector(".deck-description") as EditBoxElement).text;
+            const tags = (element.querySelector(".deck-tag-list") as TagListElement).tags;
             const list = element.querySelector(".list");
             const sections = [...list.children].map(getDataFromElement).filter(x => x != null);
-            return { name, description, commanders, sections } as Data.Deck;
+            return { name, description, commanders, tags, sections } as Data.Deck;
         }
         else if (element instanceof SectionElement)
         {

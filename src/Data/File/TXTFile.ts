@@ -20,11 +20,15 @@ namespace Data.File
         {
             const lines = text.splitLines().map(x => x.trim());
             const deck: Deck = {
-                name: null, description: null, sections: [
+                name: null,
+                description: null,
+                commanders: [],
+                tags: [],
+                sections: [
                     { title: "main", items: [] },
                     { title: "side", items: [] },
                     { title: "maybe", items: [] },
-                ]
+                ],
             };
             const mainSection: Section = deck.sections.first(s => s.title == "main");
 

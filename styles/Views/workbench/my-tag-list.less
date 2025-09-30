@@ -1,5 +1,16 @@
-my-edit-box:not(.disabled)
+my-tag-list
 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25em;
+
+    > span
+    {
+        padding: 0.25em;
+        border-radius: 0.25em;
+        background-color: var(--background-color);
+    }
+
     > input
     {
         width: 100%;

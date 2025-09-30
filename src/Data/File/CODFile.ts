@@ -29,6 +29,18 @@ namespace Data.File
                 cockatrice_deck.append(bannerCard);
             }
 
+            if (deck.tags && deck.tags.length >= 1)
+            {
+                const tagsElement = xmlDoc.createElement("tags");
+                for (const tag of deck.tags)
+                {
+                    const tagElement = xmlDoc.createElement("tag");
+                    tagElement.textContent = tag;
+                    tagsElement.append(tagElement);
+                }
+                cockatrice_deck.append(tagsElement);
+            }
+
             for (const section of deck.sections)
             {
                 const zone = xmlDoc.createElement("zone");
@@ -61,6 +73,7 @@ namespace Data.File
             const deckName = root.getElementsByTagName("deckname")[0]?.textContent ?? "";
             const comments = root.getElementsByTagName("comments")[0]?.textContent;
             const bannerCard = root.getElementsByTagName("bannerCard")[0]?.textContent;
+            const tagsElement = root.getElementsByTagName("tags")[0];
 
             const zones = [...root.getElementsByTagName("zone")];
 
@@ -68,6 +81,7 @@ namespace Data.File
                 name: deckName,
                 description: comments,
                 commanders: [],
+                tags: [],
                 sections: [
                     { title: "main", "items": [] },
                     { title: "side", "items": [] },
@@ -115,6 +129,10 @@ namespace Data.File
 
             if (bannerCard)
                 deck.commanders.push(bannerCard);
+
+            if (tagsElement)
+                for (const tagElement of tagsElement.getElementsByTagName("tag"))
+                    deck.tags.push(tagElement.textContent);
 
             await populateEntriesFromIdentifiers(deck);
 

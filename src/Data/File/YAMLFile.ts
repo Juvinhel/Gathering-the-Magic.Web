@@ -10,6 +10,8 @@ namespace Data.File
         {
             const data: any = { name: deck.name, description: deck.description };
             if (deck.commanders && deck.commanders.length > 0) data.commanders = deck.commanders;
+            if (deck.tags && deck.tags.length > 0) data.tags = deck.tags;
+
             const addSection = (obj: any, section: Data.Section) =>
             {
                 if (section.items.length == 0) 
@@ -41,14 +43,21 @@ namespace Data.File
                 name: data.name,
                 description: data.description,
                 commanders: [],
+                tags: [],
                 sections: [
                     { title: "main", items: [] },
                     { title: "side", items: [] },
                     { title: "maybe", items: [] }
                 ]
             };
+
             if (data.commanders)
-                deck.commanders = typeof data.commanders === "string" ? [data.commanders] : data.commanders;
+                if (typeof data.commanders === "string") deck.commanders = [data.commanders.trim()];
+                else deck.commanders = data.commanders.map(x => x.trim());
+
+            if (data.tags)
+                if (typeof data.tags == "string") deck.tags = data.tags.split(",").map(x => x.trim());
+                else deck.tags = data.tags.map(x => x.trim());
 
             if ("main" in data)
             {
