@@ -367,7 +367,9 @@ namespace Views.Editor
             title: "Site Info",
             text: "Name: " + name + "\r\n" +
                 "Version: " + version + "\r\n" +
-                "Build Date: " + buildDate.toLocaleString()
+                "Build Date: " + buildDate.toLocaleString() + "\r\n" +
+                "Information on Cards and Search is provided through the Scryfall API." + "\r\n" +
+                "Card Imagery and Symbols is copyright of Wizards of the Coast, LLC.",
         });
     }
 
