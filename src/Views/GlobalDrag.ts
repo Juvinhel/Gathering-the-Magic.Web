@@ -2,11 +2,11 @@ namespace Views
 {
     export function initGlobalDrag()
     {
-        document.addEventListener("dragstart", beginDrag, { capture: true });
-        document.addEventListener("dragenter", beginDrag, { capture: true });
+        document.body.addEventListener("dragstart", beginDrag, { capture: true });
+        document.body.addEventListener("dragenter", beginDrag, { capture: true });
 
-        document.addEventListener("dragend", endDrag, { capture: true });
-        document.addEventListener("dragleave", (event: DragEvent) =>
+        document.body.addEventListener("drop", endDrag, { capture: true });
+        document.body.addEventListener("dragleave", (event: DragEvent) =>
         {
             const draggedOffScreen: boolean = event.screenX === 0 && event.screenY === 0;
             if (draggedOffScreen) endDrag();
