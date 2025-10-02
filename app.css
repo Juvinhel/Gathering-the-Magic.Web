@@ -163,6 +163,10 @@ dialog {
 ::-ms-input-placeholder {
   color: var(--disabled-color);
 }
+hr {
+  width: 100%;
+  width: -webkit-fill-available;
+}
 :root {
   --page-background-color: #1A1A1A;
   --dark-background-color: #212121;
@@ -914,6 +918,7 @@ color-icon {
 }
 drop-down {
   display: block;
+  position: fixed;
   position-area: center;
   top: anchor(bottom);
   width: max-content;
@@ -931,6 +936,8 @@ drop-down {
 }
 drop-down:not([open]) {
   display: none !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 drop-down[placement="above"] {
   bottom: anchor(top);
@@ -5441,38 +5448,6 @@ aside {
 .collections-overview > *:not(:first-child):nth-child(odd) {
   background-color: rgba(255, 255, 255, 0.1);
 }
-.deck-list {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  grid-template-columns: 1fr;
-  padding-top: 0;
-  padding-bottom: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  border-radius: var(--corner-radius);
-}
-.deck-list > span {
-  display: block;
-  height: max-content;
-  overflow: hidden;
-  border-radius: var(--corner-radius);
-  background-color: white;
-  color: black;
-  font-family: monospace;
-  white-space: pre;
-}
-.deck-list > div {
-  display: flex;
-  position: sticky;
-  bottom: 0;
-  align-items: center;
-  justify-content: right;
-  height: 2em;
-  padding: 0.25em;
-  gap: 0.25em;
-  background-color: var(--background-color);
-  font-size: 1.125em;
-}
 .deck-statistics {
   display: grid;
   grid-template-rows: 1fr auto;
@@ -5535,6 +5510,45 @@ aside {
   background-color: var(--background-color);
   font-size: 1.125em;
 }
+.export-deck {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr;
+  grid-template-areas: "format" "text" "actions";
+  overflow-x: hidden;
+  overflow-y: auto;
+  gap: 1em;
+  border-radius: var(--corner-radius);
+}
+.export-deck > .format-select {
+  grid-area: format;
+  justify-self: start;
+  min-width: 6em;
+}
+.export-deck > .text-output {
+  grid-area: text;
+  min-width: 24em;
+  height: max-content;
+  min-height: 24em;
+  padding: 0.25em;
+  border: none;
+  border-radius: var(--corner-radius);
+  background-color: white;
+  color: black;
+  font-size: 1.125em;
+  font-family: monospace;
+}
+.export-deck > .actions {
+  display: flex;
+  grid-area: actions;
+  align-items: center;
+  justify-content: right;
+  height: 2em;
+  padding: 0.25em;
+  gap: 0.25em;
+  background-color: var(--background-color);
+  font-size: 1.125em;
+}
 .import-deck {
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -5557,7 +5571,6 @@ aside {
   height: max-content;
   min-height: 24em;
   padding: 0.25em;
-  overflow: hidden;
   border: none;
   border-radius: var(--corner-radius);
   background-color: white;
@@ -5904,6 +5917,9 @@ my-workbench .commander-list > li:hover {
   text-decoration: line-through;
   cursor: pointer;
 }
+my-edit-box:not(.disabled) > input {
+  width: 100%;
+}
 my-edit-box:not(.disabled):hover {
   color: var(--accent-color);
 }
@@ -5996,6 +6012,33 @@ my-section > my-section-header {
   grid-column: 1 / -1;
   animation: blinking 0.5s ease-in-out;
 }
+my-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em;
+}
+my-tag-list > span {
+  padding: 0.25em;
+  border-radius: 0.25em;
+  background-color: var(--background-color);
+}
+my-tag-list > input {
+  width: 100%;
+}
+my-tag-list:hover {
+  color: var(--accent-color);
+}
+my-tag-list:hover::after {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: -1em;
+  aspect-ratio: 1;
+  height: 1em;
+  background: center / contain url("img/icons/edit.svg");
+  content: "";
+  filter: brightness(0) invert(1);
+}
 my-workbench {
   --entry-columns: [move] auto [quantity] auto [name] 1fr [type] 0 [mana] 0 [actions] auto;
   display: grid;
@@ -6073,7 +6116,7 @@ my-workbench > .header > * {
   min-width: 1em;
   min-height: 1em;
 }
-my-workbench > .header > input {
+my-workbench > .header > *:not(label) {
   width: 100%;
 }
 my-workbench > .header > label {
@@ -6438,10 +6481,11 @@ my-search .query > button {
 .grid my-entry > .quantity {
   z-index: 1000;
   position: absolute;
+  bottom: 0.25em;
   grid-row: 1;
   grid-column: 1;
   align-self: end;
-  width: calc(100% - 0.5em);
+  width: calc(100% - 0.25em);
   padding: 0.25em;
 }
 .grid my-entry > .move-actions,

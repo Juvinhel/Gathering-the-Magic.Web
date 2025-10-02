@@ -2425,7 +2425,7 @@ var UI;
                     this.dispatchEvent(new Event(Elements.openEventName));
                     // close other dropdowns
                     for (const dropDown of DropDown.dropDowns)
-                        if (dropDown != this && !dropDown.contains(this))
+                        if (dropDown.open && dropDown != this && !dropDown.contains(this))
                             dropDown.close();
                 }
                 if (event.newState == "closed") {
@@ -2662,11 +2662,13 @@ var UI;
             }.bind(this);
             clicked = function (event) {
                 if (this.dropDown)
-                    this.dropDown.open = !this.dropDown.open;
+                    this.dropDown.toggle();
                 else {
-                    for (const dropDown of Elements.DropDown.dropDowns)
-                        if (dropDown.contains(this))
-                            dropDown.close();
+                    let parent = this.parentElement;
+                    do {
+                        if (parent instanceof Elements.DropDown)
+                            parent.close();
+                    } while (parent = parent.parentElement);
                 }
                 event.preventDefault();
                 event.stopPropagation();
@@ -8621,7 +8623,7 @@ var Data;
         get currentFilePath() { return localStorage.get("current-deck-file-path"); }
         set currentFilePath(value) { localStorage.set("current-deck-file-path", value); }
         async create() {
-            const ret = { name: "New Deck", description: "My new deck", sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
+            const ret = { name: "New Deck", description: "My new deck", commanders: [], tags: [], sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
             this.currentFilePath = null;
             return ret;
         }
@@ -8674,7 +8676,7 @@ var Data;
     }
     class SaveLoadDeckWeb {
         async create() {
-            const ret = { name: "New Deck", description: "My new deck", sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
+            const ret = { name: "New Deck", description: "My new deck", commanders: [], tags: [], sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
             return ret;
         }
         async open() {
@@ -8773,6 +8775,15 @@ var Data;
                     bannerCard.textContent = deck.commanders[0];
                     cockatrice_deck.append(bannerCard);
                 }
+                if (deck.tags && deck.tags.length >= 1) {
+                    const tagsElement = xmlDoc.createElement("tags");
+                    for (const tag of deck.tags) {
+                        const tagElement = xmlDoc.createElement("tag");
+                        tagElement.textContent = tag;
+                        tagsElement.append(tagElement);
+                    }
+                    cockatrice_deck.append(tagsElement);
+                }
                 for (const section of deck.sections) {
                     const zone = xmlDoc.createElement("zone");
                     zone.setAttribute("name", section.title);
@@ -8796,11 +8807,13 @@ var Data;
                 const deckName = root.getElementsByTagName("deckname")[0]?.textContent ?? "";
                 const comments = root.getElementsByTagName("comments")[0]?.textContent;
                 const bannerCard = root.getElementsByTagName("bannerCard")[0]?.textContent;
+                const tagsElement = root.getElementsByTagName("tags")[0];
                 const zones = [...root.getElementsByTagName("zone")];
                 const deck = {
                     name: deckName,
                     description: comments,
                     commanders: [],
+                    tags: [],
                     sections: [
                         { title: "main", "items": [] },
                         { title: "side", "items": [] },
@@ -8836,6 +8849,9 @@ var Data;
                 }
                 if (bannerCard)
                     deck.commanders.push(bannerCard);
+                if (tagsElement)
+                    for (const tagElement of tagsElement.getElementsByTagName("tag"))
+                        deck.tags.push(tagElement.textContent);
                 await File.populateEntriesFromIdentifiers(deck);
                 return deck;
             }
@@ -8962,6 +8978,7 @@ var Data;
                     name,
                     description: null,
                     commanders: [],
+                    tags: [],
                     sections: [
                         { title: "main", items: [] },
                         { title: "side", items: [] },
@@ -9052,19 +9069,41 @@ var Data;
             extensions = ["txt"];
             mimeTypes = ["text/plain"];
             async save(deck) {
-                let ret = "";
-                for (const entry of Data.getEntries(deck.sections.first(x => x.title == "main")))
-                    ret += entry.quantity.toFixed() + " " + entry.name + "\r\n";
-                return ret;
+                return this.create(deck);
+            }
+            create(deck) {
+                const commanders = ("commanders" in deck) ? deck.commanders : [];
+                if ("sections" in deck)
+                    deck = deck.sections.first(s => s.title == "main");
+                const cards = Data.collapse(deck);
+                let textCommanders = "";
+                if (commanders.length > 0) {
+                    for (const commander of commanders) {
+                        textCommanders += "1 " + commander + "\r\n";
+                        const entry = cards.first(x => x.name == commander);
+                        entry.quantity -= 1;
+                        if (entry.quantity == 0)
+                            cards.remove(entry);
+                    }
+                    textCommanders += "\r\n";
+                }
+                let text = "";
+                for (const entry of cards.sortBy(x => x.name))
+                    text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
+                return textCommanders + text;
             }
             async load(text) {
                 const lines = text.splitLines().map(x => x.trim());
                 const deck = {
-                    name: null, description: null, sections: [
+                    name: null,
+                    description: null,
+                    commanders: [],
+                    tags: [],
+                    sections: [
                         { title: "main", items: [] },
                         { title: "side", items: [] },
                         { title: "maybe", items: [] },
-                    ]
+                    ],
                 };
                 const mainSection = deck.sections.first(s => s.title == "main");
                 for (const line of lines) {
@@ -9094,6 +9133,8 @@ var Data;
                 const data = { name: deck.name, description: deck.description };
                 if (deck.commanders && deck.commanders.length > 0)
                     data.commanders = deck.commanders;
+                if (deck.tags && deck.tags.length > 0)
+                    data.tags = deck.tags;
                 const addSection = (obj, section) => {
                     if (section.items.length == 0) {
                         obj[section.title] = null;
@@ -9119,6 +9160,7 @@ var Data;
                     name: data.name,
                     description: data.description,
                     commanders: [],
+                    tags: [],
                     sections: [
                         { title: "main", items: [] },
                         { title: "side", items: [] },
@@ -9126,7 +9168,15 @@ var Data;
                     ]
                 };
                 if (data.commanders)
-                    deck.commanders = typeof data.commanders === "string" ? [data.commanders] : data.commanders;
+                    if (typeof data.commanders === "string")
+                        deck.commanders = [data.commanders.trim()];
+                    else
+                        deck.commanders = data.commanders.map(x => x.trim());
+                if (data.tags)
+                    if (typeof data.tags == "string")
+                        deck.tags = data.tags.split(",").map(x => x.trim());
+                    else
+                        deck.tags = data.tags.map(x => x.trim());
                 if ("main" in data) {
                     const main = data["main"];
                     if (main)
@@ -9343,10 +9393,10 @@ var Data;
 var Views;
 (function (Views) {
     function initGlobalDrag() {
-        document.addEventListener("dragstart", beginDrag, { capture: true });
-        document.addEventListener("dragenter", beginDrag, { capture: true });
-        document.addEventListener("dragend", endDrag, { capture: true });
-        document.addEventListener("dragleave", (event) => {
+        document.body.addEventListener("dragstart", beginDrag, { capture: true });
+        document.body.addEventListener("dragenter", beginDrag, { capture: true });
+        document.body.addEventListener("drop", endDrag, { capture: true });
+        document.body.addEventListener("dragleave", (event) => {
             const draggedOffScreen = event.screenX === 0 && event.screenY === 0;
             if (draggedOffScreen)
                 endDrag();
@@ -9456,50 +9506,6 @@ var Views;
             const row = target.closest("div");
             row.remove();
             delete App.collections[key];
-        }
-    })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
-})(Views || (Views = {}));
-var Views;
-(function (Views) {
-    var Dialogs;
-    (function (Dialogs) {
-        function DeckList(args) {
-            const commanders = ("commanders" in args.deck) ? args.deck.commanders : [];
-            let deck = args.deck;
-            if ("sections" in deck)
-                deck = deck.sections.first(s => s.title == "main");
-            const cards = Data.collapse(deck);
-            let textCommanders = "";
-            for (const commander of commanders)
-                textCommanders += "1 " + commander + "\r\n";
-            let text = "";
-            for (const entry of cards.sortBy(x => x.name)) {
-                if (commanders.includes(entry.name)) { // commanders are at start of list
-                    commanders.remove(entry.name);
-                    entry.quantity -= 1;
-                    if (entry.quantity == 0)
-                        continue;
-                }
-                text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
-            }
-            text = textCommanders + text;
-            return UI.Generator.Hyperscript("div", { class: "deck-list" },
-                UI.Generator.Hyperscript("span", null, text),
-                UI.Generator.Hyperscript("div", { class: "actions" },
-                    UI.Generator.Hyperscript("a", { class: "link-button", onclick: selectAllText, title: "Select all text" },
-                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/select.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Select"))));
-        }
-        Dialogs.DeckList = DeckList;
-        function selectAllText(event) {
-            const target = event.currentTarget;
-            const cardList = target.closest(".deck-list");
-            const span = cardList.querySelector("span");
-            const range = document.createRange();
-            range.selectNodeContents(span);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
         }
     })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
 })(Views || (Views = {}));
@@ -9857,6 +9863,41 @@ var Views;
 (function (Views) {
     var Dialogs;
     (function (Dialogs) {
+        function ExportDeck(args) {
+            return UI.Generator.Hyperscript("div", { class: "export-deck" },
+                UI.Generator.Hyperscript("select", { class: "format-select", onchange: (event) => selectFormat(event, args.deck) },
+                    UI.Generator.Hyperscript("option", { value: "cod" }, "COD"),
+                    UI.Generator.Hyperscript("option", { value: "dec" }, "DEC"),
+                    UI.Generator.Hyperscript("option", { value: "json" }, "JSON"),
+                    UI.Generator.Hyperscript("option", { value: "txt", selected: true }, "TXT"),
+                    UI.Generator.Hyperscript("option", { value: "yaml" }, "YAML")),
+                UI.Generator.Hyperscript("textarea", { class: "text-output", readOnly: true, value: Data.File.TXTFile.create(args.deck) }),
+                UI.Generator.Hyperscript("div", { class: "actions" },
+                    UI.Generator.Hyperscript("a", { class: "link-button", onclick: selectAllText, title: "Select all text" },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/select.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Select"))));
+        }
+        Dialogs.ExportDeck = ExportDeck;
+        async function selectFormat(event, deck) {
+            const target = event.currentTarget;
+            const exportDeck = target.closest(".export-deck");
+            const format = target.value;
+            const file = await Data.File.saveDeck(deck, format);
+            const textOutput = exportDeck.querySelector("textarea");
+            textOutput.value = file.text;
+        }
+        function selectAllText(event) {
+            const target = event.currentTarget;
+            const exportDeck = target.closest(".export-deck");
+            const textOutput = exportDeck.querySelector("textarea");
+            textOutput.select();
+        }
+    })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Dialogs;
+    (function (Dialogs) {
         function ImportDeck() {
             return UI.Generator.Hyperscript("div", { class: "import-deck" },
                 UI.Generator.Hyperscript("select", { class: "format-select" },
@@ -9864,7 +9905,7 @@ var Views;
                     UI.Generator.Hyperscript("option", { value: "dec" }, "DEC"),
                     UI.Generator.Hyperscript("option", { value: "json" }, "JSON"),
                     UI.Generator.Hyperscript("option", { value: "txt", selected: true }, "TXT"),
-                    UI.Generator.Hyperscript("option", { value: "YAML" }, "YAML")),
+                    UI.Generator.Hyperscript("option", { value: "yaml" }, "YAML")),
                 UI.Generator.Hyperscript("textarea", { class: "text-input", placeholder: "input text" }),
                 UI.Generator.Hyperscript("button", { class: "ok-button", onclick: okClick }, "OK"),
                 UI.Generator.Hyperscript("button", { class: "cancel-button", onclick: cancelClick }, "Cancel"));
@@ -10082,24 +10123,39 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/file.svg" }),
                     UI.Generator.Hyperscript("span", null, "File"),
                     UI.Generator.Hyperscript("drop-down", null,
-                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: newDeck, title: "New Deck" },
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", title: "New" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/file.svg" }),
-                            UI.Generator.Hyperscript("span", null, "New Deck")),
-                        UI.Generator.Hyperscript("menu-button", { class: [useWorkbench ? null : "none", Data.SaveLoadDeck.save ? null : "none"], onclick: saveDeck, title: "Save Deck" },
+                            UI.Generator.Hyperscript("span", null, "New"),
+                            UI.Generator.Hyperscript("drop-down", { placement: "right" },
+                                UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: newDeck, title: "New Deck" },
+                                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/deck.svg" }),
+                                    UI.Generator.Hyperscript("span", null, "New Deck")))),
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", title: "Open" },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/open.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Open"),
+                            UI.Generator.Hyperscript("drop-down", { placement: "right" },
+                                UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: openDeck, title: "Open Deck" },
+                                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/deck.svg" }),
+                                    UI.Generator.Hyperscript("span", null, "Open Deck")),
+                                UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: importDeck, title: "Import Deck" },
+                                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/import.svg" }),
+                                    UI.Generator.Hyperscript("span", null, "Import Deck")),
+                                UI.Generator.Hyperscript("menu-button", { onclick: loadCollections, title: "Load Collections" },
+                                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/collection.svg" }),
+                                    UI.Generator.Hyperscript("span", null, "Load Collections")))),
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", title: "Save" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/save.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Save Deck")),
-                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: saveAsDeck, title: "Save As Deck" },
-                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/save.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Save As Deck")),
-                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: openDeck, title: "Open Deck" },
-                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/deck.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Open Deck")),
-                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: importDeck, title: "Import Deck" },
-                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/import.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Import Deck")),
-                        UI.Generator.Hyperscript("menu-button", { onclick: loadCollections, title: "Load Collections" },
-                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/collection.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Load Collections")))),
+                            UI.Generator.Hyperscript("span", null, "Save"),
+                            UI.Generator.Hyperscript("drop-down", { placement: "right" },
+                                UI.Generator.Hyperscript("menu-button", { class: [useWorkbench ? null : "none", Data.SaveLoadDeck.save ? null : "none"], onclick: saveDeck, title: "Save Deck" },
+                                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/deck.svg" }),
+                                    UI.Generator.Hyperscript("span", null, "Save Deck")),
+                                UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: saveAsDeck, title: "Save Deck as ..." },
+                                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/deck.svg" }),
+                                    UI.Generator.Hyperscript("span", null, "Save Deck as ...")),
+                                UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: exportDeck, title: "Export Deck" },
+                                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/export.svg" }),
+                                    UI.Generator.Hyperscript("span", null, "Export Deck")))))),
                 UI.Generator.Hyperscript("menu-button", { title: "Selection" },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/hand-select.svg" }),
                     UI.Generator.Hyperscript("span", null, "Selection"),
@@ -10109,7 +10165,32 @@ var Views;
                             UI.Generator.Hyperscript("span", null, "Multiselect")),
                         UI.Generator.Hyperscript("menu-button", { class: "clear-selection", title: "Clear all selections", onclick: clearSelection },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/empty-selection.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Unselect")))),
+                            UI.Generator.Hyperscript("span", null, "Unselect")),
+                        UI.Generator.Hyperscript("hr", null),
+                        UI.Generator.Hyperscript("menu-button", { title: "Select All Creatures", onclick: (event) => selectCardsByType(event, "Creature", false) },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/creature.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Select All Creatures")),
+                        UI.Generator.Hyperscript("menu-button", { title: "Select All Artifacts", onclick: (event) => selectCardsByType(event, "Artifact") },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/artifact.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Select All Artifacts")),
+                        UI.Generator.Hyperscript("menu-button", { title: "Select All Enchantments", onclick: (event) => selectCardsByType(event, "Enchantment") },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/enchantment.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Select All Enchantments")),
+                        UI.Generator.Hyperscript("menu-button", { title: "Select All Sorceries", onclick: (event) => selectCardsByType(event, "Sorcery") },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/sorcery.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Select All Sorceries")),
+                        UI.Generator.Hyperscript("menu-button", { title: "Select All Instants", onclick: (event) => selectCardsByType(event, "Instant") },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/instant.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Select All Instants")),
+                        UI.Generator.Hyperscript("menu-button", { title: "Select All Planeswalker", onclick: (event) => selectCardsByType(event, "Planeswalker") },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/planeswalker.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Select All Planeswalker")),
+                        UI.Generator.Hyperscript("menu-button", { title: "Select All Battles", onclick: (event) => selectCardsByType(event, "Battle") },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/battle.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Select All Battles")),
+                        UI.Generator.Hyperscript("menu-button", { title: "Select All Lands", onclick: (event) => selectCardsByType(event, "Land", false) },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/land.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Select All Lands")))),
                 UI.Generator.Hyperscript("menu-button", { title: "View" },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/view.svg" }),
                     UI.Generator.Hyperscript("span", null, "View"),
@@ -10136,9 +10217,6 @@ var Views;
                         UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: sortCards, title: "Sort Cards" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                             UI.Generator.Hyperscript("span", null, "Sort Cards")),
-                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showDeckList, title: "Show Deck List" },
-                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/numbered-list.svg" }),
-                            UI.Generator.Hyperscript("span", null, "Show Deck List")),
                         UI.Generator.Hyperscript("menu-button", { class: ["show-missing-cards", useWorkbench ? null : "none"], onclick: showMissingCards, title: "Show Missing Cards" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/missing-card.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Missing Cards")),
@@ -10168,7 +10246,7 @@ var Views;
                 const result = await UI.Dialog.confirm({ title: "Create new Deck?", text: "Create a new Deck?\nAll unsaved progress will be lost!" });
                 if (!result)
                     return;
-                await workbench.loadData({ name: "New Deck", description: "My new deck", sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] });
+                await workbench.loadData({ name: "New Deck", description: "My new deck", commanders: [], tags: [], sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] });
                 const unsavedProgress = editor.querySelector(".unsaved-progress");
                 unsavedProgress.classList.toggle("none", true);
             }
@@ -10226,7 +10304,7 @@ var Views;
             const workbench = editor.querySelector("my-workbench");
             try {
                 const deckImport = Views.Dialogs.ImportDeck();
-                await UI.Dialog.show(deckImport, { title: "Import Deck", allowClose: true, icon: "img/icons/import-dialog.svg" });
+                await UI.Dialog.show(deckImport, { title: "Import Deck", allowClose: true, icon: "img/icons/import-export-dialog.svg" });
                 const ok = deckImport.classList.contains("ok");
                 if (ok) {
                     const format = deckImport.querySelector(".format-select").value;
@@ -10238,6 +10316,19 @@ var Views;
                     const unsavedProgress = editor.querySelector(".unsaved-progress");
                     unsavedProgress.classList.toggle("none", true);
                 }
+            }
+            catch (error) {
+                UI.Dialog.error(error);
+            }
+        }
+        async function exportDeck(event) {
+            const target = event.currentTarget;
+            const editor = target.closest("my-editor");
+            const workbench = editor.querySelector("my-workbench");
+            try {
+                const deck = workbench.getData();
+                const deckExport = Views.Dialogs.ExportDeck({ deck });
+                await UI.Dialog.show(deckExport, { title: "Export Deck", allowClose: true, icon: "img/icons/import-export-dialog.svg" });
             }
             catch (error) {
                 UI.Dialog.error(error);
@@ -10327,14 +10418,7 @@ var Views;
                 App.collections[selectCollectionOption];
             await UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.MissingCards, { collection: collection, deck: cards, workbench: workbench }), { allowClose: true, title: "Missing Cards List" });
         }
-        async function showDeckList(event) {
-            const target = event.currentTarget;
-            const editor = target.closest("my-editor");
-            const workbench = editor.querySelector("my-workbench");
-            const deck = workbench.getData();
-            await UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.DeckList, { deck: deck }), { allowClose: true, title: "Card List" });
-        }
-        async function showMana(event) {
+        function showMana(event) {
             const target = event.currentTarget;
             const editor = target.closest("my-editor");
             const workbench = editor.querySelector("my-workbench");
@@ -10342,7 +10426,7 @@ var Views;
             target.classList.toggle("marked", App.config.showMana);
             workbench.refreshColumns();
         }
-        async function showType(event) {
+        function showType(event) {
             const target = event.currentTarget;
             const editor = target.closest("my-editor");
             const workbench = editor.querySelector("my-workbench");
@@ -10350,13 +10434,13 @@ var Views;
             target.classList.toggle("marked", App.config.showType);
             workbench.refreshColumns();
         }
-        async function clearSelection(event) {
+        function clearSelection(event) {
             const target = event.currentTarget;
             const editor = target.closest("my-editor");
             for (const element of editor.querySelectorAll("my-entry.selected, my-card-tile.selected"))
                 element.selected = false;
         }
-        async function toggleMultiSelect(event) {
+        function toggleMultiSelect(event) {
             App.multiselect = !App.multiselect;
         }
         async function showDrawTest(event) {
@@ -10383,7 +10467,9 @@ var Views;
                 title: "Site Info",
                 text: "Name: " + name + "\r\n" +
                     "Version: " + version + "\r\n" +
-                    "Build Date: " + buildDate.toLocaleString()
+                    "Build Date: " + buildDate.toLocaleString() + "\r\n" +
+                    "Information on Cards and Search is provided through the Scryfall API." + "\r\n" +
+                    "Card Imagery and Symbols is copyright of Wizards of the Coast, LLC.",
             });
         }
         function showCollectionsOverview(event) {
@@ -10441,6 +10527,15 @@ var Views;
             const span = menuButton.querySelector("span");
             menuButton.title = span.textContent = App.config.cardSize == "Small" ? "Large Cards" : "Small Cards";
             colorIcon.src = App.config.cardSize == "Small" ? "img/icons/scale-up.svg" : "img/icons/scale-down.svg";
+        }
+        function selectCardsByType(event, type, exclusive = true) {
+            const target = event.currentTarget;
+            const editor = target.closest("my-editor");
+            const workbench = editor.querySelector("my-workbench");
+            for (const element of workbench.querySelectorAll("my-entry")) {
+                const match = (exclusive ? element.card.type.card.length == 1 : true) && element.card.type.card.includes(type);
+                element.selected = match;
+            }
         }
     })(Editor = Views.Editor || (Views.Editor = {}));
 })(Views || (Views = {}));
@@ -11884,7 +11979,7 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
                     UI.Generator.Hyperscript("span", null, "Move Lines to ...")), UI.Generator.Hyperscript("menu-button", { title: "Delete Lines", onclick: deleteLines.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Delete Lines")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Name", onclick: sortByName.bind(this) },
+                    UI.Generator.Hyperscript("span", null, "Delete Lines")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Name", onclick: sortByName.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                     UI.Generator.Hyperscript("span", null, "Sort by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Mana", onclick: sortByMana.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
@@ -11917,13 +12012,40 @@ var Views;
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
                         UI.Generator.Hyperscript("span", null, "Clear Section Lines")), UI.Generator.Hyperscript("menu-button", { title: "Add Section", onclick: this.addSection.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Add Section")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
+                        UI.Generator.Hyperscript("span", null, "Add Section")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                         UI.Generator.Hyperscript("span", null, "Sort Section Lines by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Mana", onclick: sortByMana.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                         UI.Generator.Hyperscript("span", null, "Sort Section Lines by Mana")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Color Identity", onclick: sortByColorIdentity.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Color Identity")));
+                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Color Identity")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Select" },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/hand-select.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Select"),
+                        UI.Generator.Hyperscript("drop-down", { placement: "right" },
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Creatures", onclick: () => selectCardsByType(this, "Creature", false) },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/creature.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Creatures")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Artifacts", onclick: () => selectCardsByType(this, "Artifact") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/artifact.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Artifacts")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Enchantments", onclick: () => selectCardsByType(this, "Enchantment") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/enchantment.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Enchantments")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Sorceries", onclick: () => selectCardsByType(this, "Sorcery") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/sorcery.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Sorceries")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Instants", onclick: () => selectCardsByType(this, "Instant") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/instant.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Instants")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Planeswalker", onclick: () => selectCardsByType(this, "Planeswalker") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/planeswalker.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Planeswalker")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Battles", onclick: () => selectCardsByType(this, "Battle") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/battle.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Battles")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Lands", onclick: () => selectCardsByType(this, "Land", false) },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/land.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Lands")))));
                 else
                     menuButtons.push(UI.Generator.Hyperscript("menu-button", { title: "Move Section Up", onclick: this.moveUp.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" }),
@@ -11939,13 +12061,40 @@ var Views;
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/add-section.svg" }),
                         UI.Generator.Hyperscript("span", null, "Dissolve Section")), UI.Generator.Hyperscript("menu-button", { title: "Add Section", onclick: this.addSection.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Add Section")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
+                        UI.Generator.Hyperscript("span", null, "Add Section")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                         UI.Generator.Hyperscript("span", null, "Sort Section Lines by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Mana", onclick: sortByMana.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                         UI.Generator.Hyperscript("span", null, "Sort Section Lines by Mana")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Color Identity", onclick: sortByColorIdentity.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Color Identity")));
+                        UI.Generator.Hyperscript("span", null, "Sort Section Lines by Color Identity")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Select" },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/hand-select.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Select"),
+                        UI.Generator.Hyperscript("drop-down", { placement: "right" },
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Creatures", onclick: () => selectCardsByType(this, "Creature", false) },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/creature.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Creatures")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Artifacts", onclick: () => selectCardsByType(this, "Artifact") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/artifact.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Artifacts")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Enchantments", onclick: () => selectCardsByType(this, "Enchantment") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/enchantment.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Enchantments")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Sorceries", onclick: () => selectCardsByType(this, "Sorcery") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/sorcery.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Sorceries")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Instants", onclick: () => selectCardsByType(this, "Instant") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/instant.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Instants")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Planeswalker", onclick: () => selectCardsByType(this, "Planeswalker") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/planeswalker.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Planeswalker")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Battles", onclick: () => selectCardsByType(this, "Battle") },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/battle.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Battles")),
+                            UI.Generator.Hyperscript("menu-button", { title: "Select Lands", onclick: () => selectCardsByType(this, "Land", false) },
+                                UI.Generator.Hyperscript("color-icon", { src: "img/icons/card-types/land.svg" }),
+                                UI.Generator.Hyperscript("span", null, "Lands")))));
             }
             UI.ContextMenu.show(event, ...menuButtons);
             event.stopPropagation();
@@ -12046,6 +12195,15 @@ var Views;
                     throw new Error("Some lines have different parents!");
             }
             return selectedLines;
+        }
+        function selectCardsByType(section, type, exclusive = true) {
+            const workbench = section.closest("my-workbench");
+            for (const element of workbench.querySelectorAll("my-entry.selected"))
+                element.selected = false;
+            for (const element of section.querySelectorAll("my-entry")) {
+                const match = (exclusive ? element.card.type.card.length == 1 : true) && element.card.type.card.includes(type);
+                element.selected = match;
+            }
         }
     })(Workbench = Views.Workbench || (Views.Workbench = {}));
 })(Views || (Views = {}));
@@ -12279,6 +12437,100 @@ var Views;
 (function (Views) {
     var Workbench;
     (function (Workbench) {
+        class TagListElement extends HTMLElement {
+            constructor() {
+                super();
+            }
+            static get observedAttributes() {
+                return ["tags"];
+            }
+            attributeChangedCallback(name, oldValue, newValue) {
+                switch (name) {
+                    case "tags":
+                        if (this.firstChild instanceof HTMLInputElement)
+                            this.firstChild.value = newValue;
+                        else {
+                            this.clearChildren();
+                            const tags = newValue?.split(",").map(x => x.trim()) ?? [];
+                            for (const tag of tags)
+                                this.appendChild(UI.Generator.Hyperscript("span", { title: tag }, tag));
+                        }
+                        break;
+                }
+            }
+            connectedCallback() {
+                this.addEventListener("dblclick", this.doDBLClick, { capture: true });
+                this.addEventListener("keyup", this.doKeyUp, { capture: true });
+                this.addEventListener("focusout", this.doFocusOut);
+            }
+            disconnectedCallback() {
+                this.removeEventListener("dblclick", this.doDBLClick, { capture: true });
+                this.removeEventListener("keyup", this.doKeyUp, { capture: true });
+                this.removeEventListener("focusout", this.doFocusOut);
+            }
+            get tags() {
+                return this.getAttribute("tags")?.split(",").map(x => x.trim()) ?? [];
+            }
+            set tags(value) {
+                this.setAttribute("tags", value.join(", "));
+            }
+            doDBLClick = function (event) {
+                if (!this.classList.contains("disabled") && this.firstChild instanceof HTMLSpanElement) {
+                    this.clearChildren();
+                    const text = this.tags.join(", ");
+                    this.append(UI.Generator.Hyperscript("input", { type: "text", value: text }));
+                    this.firstChild.focus();
+                }
+            }.bind(this);
+            doFocusOut = function (event) {
+                this.exitEdit();
+            }.bind(this);
+            isExiting = false;
+            exitEdit() {
+                if (this.isExiting)
+                    return;
+                this.isExiting = true;
+                try {
+                    if (this.firstChild instanceof HTMLInputElement) {
+                        const newText = this.firstChild.value;
+                        const oldText = this.tags.join(", ");
+                        this.firstChild.remove();
+                        const tags = newText.split(", ").map(x => x.trim());
+                        for (const tag of tags)
+                            this.appendChild(UI.Generator.Hyperscript("span", { title: tag }, tag));
+                        if (newText != oldText) {
+                            this.tags = tags;
+                            this.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                    }
+                }
+                catch { }
+                this.isExiting = false;
+            }
+            doKeyUp = function (event) {
+                if (this.firstChild instanceof HTMLInputElement) {
+                    if (event.key === "Enter") {
+                        this.exitEdit();
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    if (event.key === "Escape") {
+                        this.firstChild.value = this.tags.join(", ");
+                        this.exitEdit();
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                }
+            }.bind(this);
+        }
+        Workbench.TagListElement = TagListElement;
+        customElements.define("my-tag-list", TagListElement);
+    })(Workbench = Views.Workbench || (Views.Workbench = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Workbench;
+    (function (Workbench) {
         class WorkbenchElement extends HTMLElement {
             constructor() {
                 super();
@@ -12299,6 +12551,8 @@ var Views;
                         UI.Generator.Hyperscript(Workbench.EditBoxElement, { class: "deck-description" }),
                         UI.Generator.Hyperscript("label", null, "Commanders:"),
                         UI.Generator.Hyperscript(Workbench.CommanderList, null),
+                        UI.Generator.Hyperscript("label", null, "Tags:"),
+                        UI.Generator.Hyperscript(Workbench.TagListElement, { class: "deck-tag-list" }),
                         UI.Generator.Hyperscript("label", null, "Cards:"),
                         UI.Generator.Hyperscript("span", { class: "deck-card-count" })), UI.Generator.Hyperscript("div", { class: ["list", App.config.listMode.toLowerCase()], onchildrenchanged: (event) => {
                             const list = event.currentTarget;
@@ -12321,6 +12575,8 @@ var Views;
             async loadData(deck) {
                 if (deck.sections == null)
                     deck.sections = [];
+                if (deck.tags == null)
+                    deck.tags = [];
                 if (deck.sections.some(s => s.title === "main") == false)
                     deck.sections.push({ title: "main", items: [] });
                 if (deck.sections.some(s => s.title === "side") == false)
@@ -12331,6 +12587,8 @@ var Views;
                 nameElement.text = deck.name;
                 const descriptionElement = this.querySelector(".deck-description");
                 descriptionElement.text = deck.description;
+                const tagListElement = this.querySelector(".deck-tag-list");
+                tagListElement.tags = deck.tags;
                 const listElement = this.querySelector(".list");
                 listElement.clearChildren();
                 for (const section of deck.sections)
@@ -12446,9 +12704,10 @@ var Views;
                 const commanders = [...element.querySelectorAll(".commander-list > li")].map(x => x.textContent);
                 const name = element.querySelector(".deck-name").text;
                 const description = element.querySelector(".deck-description").text;
+                const tags = element.querySelector(".deck-tag-list").tags;
                 const list = element.querySelector(".list");
                 const sections = [...list.children].map(getDataFromElement).filter(x => x != null);
-                return { name, description, commanders, sections };
+                return { name, description, commanders, tags, sections };
             }
             else if (element instanceof Workbench.SectionElement) {
                 const title = element.querySelector(".title").text;
