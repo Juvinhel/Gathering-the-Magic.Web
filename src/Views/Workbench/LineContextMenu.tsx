@@ -15,9 +15,9 @@ namespace Views.Workbench
                 <menu-button title="Move Lines to ..." onclick={ moveLinesTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Move Lines to ...</span></menu-button>,
                 <menu-button title="Delete Lines" onclick={ deleteLines.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Delete Lines</span></menu-button>,
                 <hr />,
-                <menu-button title="Sort Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Name</span></menu-button>,
-                <menu-button title="Sort Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Mana</span></menu-button>,
-                <menu-button title="Sort Lines by Color Identity" onclick={ sortByColorIdentity.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Color Identity</span></menu-button>,
+                <menu-button title="Sort Lines by Name" onclick={ sortSelectionByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Name</span></menu-button>,
+                <menu-button title="Sort Lines by Mana" onclick={ sortSelectionByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Mana</span></menu-button>,
+                <menu-button title="Sort Lines by Color Identity" onclick={ sortSelectionByColorIdentity.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort by Color Identity</span></menu-button>,
             );
         }
         else if (this instanceof EntryElement)
@@ -142,10 +142,10 @@ namespace Views.Workbench
             line.delete();
     }
 
-    export async function sortByName(this: SectionElement | EntryElement)
+    export async function sortSelectionByName(this: SectionElement | EntryElement)
     {
         const workbench = this.closest("my-workbench") as WorkbenchElement;
-        const selectedLines = (getSelectedLines(workbench) ?? (this instanceof SectionElement ? [...this.lines] : [this])).filter(x => x instanceof EntryElement);
+        const selectedLines = getSelectedLines(workbench);
 
         if (selectedLines.length == 1) throw new Error("Only one line selected!");
 
@@ -160,7 +160,22 @@ namespace Views.Workbench
         else parentElement.prepend(...sortedLines);
     }
 
-    export async function sortByMana(this: SectionElement | EntryElement)
+    export async function sortByName(this: SectionElement)
+    {
+        const selectedLines = [...this.lines];
+        for (const line of selectedLines)
+            line.remove();
+
+        const selectedSections = selectedLines.filter(x => x instanceof SectionElement);
+        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderBy(x => x.title);
+        console.log(selectedEntries, selectedSections);
+
+        const list = this.querySelector(".list");
+        list.append(...selectedEntries);
+        list.append(...selectedSections);
+    }
+
+    export async function sortSelectionByMana(this: SectionElement | EntryElement)
     {
         const workbench = this.closest("my-workbench") as WorkbenchElement;
         const selectedLines = (getSelectedLines(workbench) ?? (this instanceof SectionElement ? [...this.lines] : [this])).filter(x => x instanceof EntryElement);
@@ -178,7 +193,21 @@ namespace Views.Workbench
         else parentElement.prepend(...sortedLines);
     }
 
-    export async function sortByColorIdentity(this: SectionElement | EntryElement)
+    export async function sortByMana(this: SectionElement)
+    {
+        const selectedLines = [...this.lines];
+        for (const line of selectedLines)
+            line.remove();
+
+        const selectedSections = selectedLines.filter(x => x instanceof SectionElement);
+        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderBy(x => x.card.manaValue);
+
+        const list = this.querySelector(".list");
+        list.append(...selectedEntries);
+        list.append(...selectedSections);
+    }
+
+    export async function sortSelectionByColorIdentity(this: SectionElement | EntryElement)
     {
         const workbench = this.closest("my-workbench") as WorkbenchElement;
         const selectedLines = (getSelectedLines(workbench) ?? (this instanceof SectionElement ? [...this.lines] : [this])).filter(x => x instanceof EntryElement);
@@ -194,6 +223,20 @@ namespace Views.Workbench
         const sortedLines = selectedLines.orderBy(x => x.card.colorOrder);
         if (insertPosition) insertPosition.after(...sortedLines);
         else parentElement.prepend(...sortedLines);
+    }
+
+    export async function sortByColorIdentity(this: SectionElement)
+    {
+        const selectedLines = [...this.lines];
+        for (const line of selectedLines)
+            line.remove();
+
+        const selectedSections = selectedLines.filter(x => x instanceof SectionElement);
+        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderBy(x => x.card.colorOrder);
+
+        const list = this.querySelector(".list");
+        list.append(...selectedEntries);
+        list.append(...selectedSections);
     }
 
     function getSelectedLines(workbench: WorkbenchElement, checkLayer: boolean = true): (SectionElement | EntryElement)[]
