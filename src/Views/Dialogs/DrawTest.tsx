@@ -3,7 +3,7 @@ namespace Views.Dialogs
     export function DrawTest(args: { deck: Data.Deck; })
     {
         const deck = args.deck;
-        const entries =  Data.getEntries(deck.sections.first(s => s.title == "main"));
+        const entries = Data.getEntries(deck.sections.first(s => s.title == "main"));
 
         const cards: Data.API.Card[] = [];
         for (const entry of entries)
@@ -36,8 +36,8 @@ namespace Views.Dialogs
 
     function cardTile(card: Data.API.Card)
     {
-        return <div class="card-tile" card={ card } onclick={ () => showImageDialog(card.img) }>
-            <div class="image"><img src="img/card-back.png" lazy-image={ card.img } /></div>
+        return <div class={ ["card-tile", "card"] } card={ card } onclick={ () => showImageDialog(card.img) }>
+            <img src="img/card-back.png" lazy-image={ card.img } />
         </div>;
     }
 
