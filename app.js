@@ -12138,7 +12138,7 @@ var Views;
         Workbench.deleteLines = deleteLines;
         async function sortByName() {
             const workbench = this.closest("my-workbench");
-            const selectedLines = getSelectedLines(workbench) ?? (this instanceof Workbench.SectionElement ? [...this.lines] : [this]);
+            const selectedLines = (getSelectedLines(workbench) ?? (this instanceof Workbench.SectionElement ? [...this.lines] : [this])).filter(x => x instanceof Workbench.EntryElement);
             if (selectedLines.length == 1)
                 throw new Error("Only one line selected!");
             const parentElement = selectedLines[0].parentElement;
@@ -12154,14 +12154,14 @@ var Views;
         Workbench.sortByName = sortByName;
         async function sortByMana() {
             const workbench = this.closest("my-workbench");
-            const selectedLines = getSelectedLines(workbench) ?? (this instanceof Workbench.SectionElement ? [...this.lines] : [this]);
+            const selectedLines = (getSelectedLines(workbench) ?? (this instanceof Workbench.SectionElement ? [...this.lines] : [this])).filter(x => x instanceof Workbench.EntryElement);
             if (selectedLines.length == 1)
                 throw new Error("Only one line selected!");
             const parentElement = selectedLines[0].parentElement;
             const insertPosition = selectedLines[0].previousElementSibling;
             for (const line of selectedLines)
                 line.remove();
-            const sortedLines = selectedLines.orderBy(x => x instanceof Workbench.EntryElement ? x.card.manaValue : Number.MAX_SAFE_INTEGER);
+            const sortedLines = selectedLines.orderBy(x => x.card.manaValue);
             if (insertPosition)
                 insertPosition.after(...sortedLines);
             else
