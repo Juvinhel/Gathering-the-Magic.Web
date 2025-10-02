@@ -1,31 +1,43 @@
-.deck-list
+.export-deck
 {
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: auto 1fr auto;
     grid-template-columns: 1fr;
-    padding-top: 0;
-    padding-bottom: 0;
+    grid-template-areas:
+        "format"
+        "text"
+        "actions";
     overflow-x: hidden;
     overflow-y: auto;
+    gap: 1em;
     border-radius: var(--corner-radius);
 
-    > span
+    > .format-select
     {
-        display: block;
+        grid-area: format;
+        justify-self: start;
+        min-width: 6em;
+    }
+
+    > .text-output
+    {
+        grid-area: text;
+        min-width: 24em;
         height: max-content;
-        overflow: hidden;
+        min-height: 24em;
+        padding: 0.25em;
+        border: none;
         border-radius: var(--corner-radius);
         background-color: white;
         color: black;
+        font-size: 1.125em;
         font-family: monospace;
-        white-space: pre;
     }
 
-    > div
+    > .actions
     {
         display: flex;
-        position: sticky;
-        bottom: 0;
+        grid-area: actions;
         align-items: center;
         justify-content: right;
         height: 2em;

@@ -8,12 +8,34 @@ namespace Data.File
 
         public async save(deck: Deck): Promise<string>
         {
-            let ret = "";
+            return this.create(deck);
+        }
 
-            for (const entry of getEntries(deck.sections.first(x => x.title == "main")))
-                ret += entry.quantity.toFixed() + " " + entry.name + "\r\n";
+        public create(deck: Data.Deck | Data.Section | Data.Entry[]): string
+        {
+            const commanders: string[] = ("commanders" in deck) ? deck.commanders : [];
+            if ("sections" in deck) deck = deck.sections.first(s => s.title == "main");
+            const cards = Data.collapse(deck);
 
-            return ret;
+            let textCommanders = "";
+            if (commanders.length > 0)
+            {
+                for (const commander of commanders)
+                {
+                    textCommanders += "1 " + commander + "\r\n";
+
+                    const entry = cards.first(x => x.name == commander);
+                    entry.quantity -= 1;
+                    if (entry.quantity == 0) cards.remove(entry);
+                }
+                textCommanders += "\r\n";
+            }
+
+            let text = "";
+            for (const entry of cards.sortBy(x => x.name))
+                text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
+
+            return textCommanders + text;
         }
 
         public async load(text: string): Promise<Deck>
