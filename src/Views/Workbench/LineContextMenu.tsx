@@ -145,7 +145,7 @@ namespace Views.Workbench
     export async function sortByName(this: SectionElement | EntryElement)
     {
         const workbench = this.closest("my-workbench") as WorkbenchElement;
-        const selectedLines = getSelectedLines(workbench) ?? (this instanceof SectionElement ? [...this.lines] : [this]);
+        const selectedLines = (getSelectedLines(workbench) ?? (this instanceof SectionElement ? [...this.lines] : [this])).filter(x => x instanceof EntryElement);
 
         if (selectedLines.length == 1) throw new Error("Only one line selected!");
 
@@ -163,7 +163,7 @@ namespace Views.Workbench
     export async function sortByMana(this: SectionElement | EntryElement)
     {
         const workbench = this.closest("my-workbench") as WorkbenchElement;
-        const selectedLines = getSelectedLines(workbench) ?? (this instanceof SectionElement ? [...this.lines] : [this]);
+        const selectedLines = (getSelectedLines(workbench) ?? (this instanceof SectionElement ? [...this.lines] : [this])).filter(x => x instanceof EntryElement);
 
         if (selectedLines.length == 1) throw new Error("Only one line selected!");
 
@@ -173,7 +173,7 @@ namespace Views.Workbench
         for (const line of selectedLines)
             line.remove();
 
-        const sortedLines = selectedLines.orderBy(x => x instanceof EntryElement ? x.card.manaValue : Number.MAX_SAFE_INTEGER);
+        const sortedLines = selectedLines.orderBy(x => x.card.manaValue);
         if (insertPosition) insertPosition.after(...sortedLines);
         else parentElement.prepend(...sortedLines);
     }
