@@ -11978,11 +11978,11 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }),
                     UI.Generator.Hyperscript("span", null, "Move Lines to ...")), UI.Generator.Hyperscript("menu-button", { title: "Delete Lines", onclick: deleteLines.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Delete Lines")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Name", onclick: sortByName.bind(this) },
+                    UI.Generator.Hyperscript("span", null, "Delete Lines")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Name", onclick: sortSelectionByName.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Sort by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Mana", onclick: sortByMana.bind(this) },
+                    UI.Generator.Hyperscript("span", null, "Sort by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Mana", onclick: sortSelectionByMana.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Sort by Mana")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Color Identity", onclick: sortByColorIdentity.bind(this) },
+                    UI.Generator.Hyperscript("span", null, "Sort by Mana")), UI.Generator.Hyperscript("menu-button", { title: "Sort Lines by Color Identity", onclick: sortSelectionByColorIdentity.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                     UI.Generator.Hyperscript("span", null, "Sort by Color Identity")));
             }
@@ -12136,9 +12136,9 @@ var Views;
                 line.delete();
         }
         Workbench.deleteLines = deleteLines;
-        async function sortByName() {
+        async function sortSelectionByName() {
             const workbench = this.closest("my-workbench");
-            const selectedLines = (getSelectedLines(workbench) ?? (this instanceof Workbench.SectionElement ? [...this.lines] : [this])).filter(x => x instanceof Workbench.EntryElement);
+            const selectedLines = getSelectedLines(workbench);
             if (selectedLines.length == 1)
                 throw new Error("Only one line selected!");
             const parentElement = selectedLines[0].parentElement;
@@ -12151,8 +12151,20 @@ var Views;
             else
                 parentElement.prepend(...sortedLines);
         }
+        Workbench.sortSelectionByName = sortSelectionByName;
+        async function sortByName() {
+            const selectedLines = [...this.lines];
+            for (const line of selectedLines)
+                line.remove();
+            const selectedSections = selectedLines.filter(x => x instanceof Workbench.SectionElement);
+            const selectedEntries = selectedLines.filter(x => x instanceof Workbench.EntryElement).orderBy(x => x.title);
+            console.log(selectedEntries, selectedSections);
+            const list = this.querySelector(".list");
+            list.append(...selectedEntries);
+            list.append(...selectedSections);
+        }
         Workbench.sortByName = sortByName;
-        async function sortByMana() {
+        async function sortSelectionByMana() {
             const workbench = this.closest("my-workbench");
             const selectedLines = (getSelectedLines(workbench) ?? (this instanceof Workbench.SectionElement ? [...this.lines] : [this])).filter(x => x instanceof Workbench.EntryElement);
             if (selectedLines.length == 1)
@@ -12167,8 +12179,19 @@ var Views;
             else
                 parentElement.prepend(...sortedLines);
         }
+        Workbench.sortSelectionByMana = sortSelectionByMana;
+        async function sortByMana() {
+            const selectedLines = [...this.lines];
+            for (const line of selectedLines)
+                line.remove();
+            const selectedSections = selectedLines.filter(x => x instanceof Workbench.SectionElement);
+            const selectedEntries = selectedLines.filter(x => x instanceof Workbench.EntryElement).orderBy(x => x.card.manaValue);
+            const list = this.querySelector(".list");
+            list.append(...selectedEntries);
+            list.append(...selectedSections);
+        }
         Workbench.sortByMana = sortByMana;
-        async function sortByColorIdentity() {
+        async function sortSelectionByColorIdentity() {
             const workbench = this.closest("my-workbench");
             const selectedLines = (getSelectedLines(workbench) ?? (this instanceof Workbench.SectionElement ? [...this.lines] : [this])).filter(x => x instanceof Workbench.EntryElement);
             if (selectedLines.length == 1)
@@ -12182,6 +12205,17 @@ var Views;
                 insertPosition.after(...sortedLines);
             else
                 parentElement.prepend(...sortedLines);
+        }
+        Workbench.sortSelectionByColorIdentity = sortSelectionByColorIdentity;
+        async function sortByColorIdentity() {
+            const selectedLines = [...this.lines];
+            for (const line of selectedLines)
+                line.remove();
+            const selectedSections = selectedLines.filter(x => x instanceof Workbench.SectionElement);
+            const selectedEntries = selectedLines.filter(x => x instanceof Workbench.EntryElement).orderBy(x => x.card.colorOrder);
+            const list = this.querySelector(".list");
+            list.append(...selectedEntries);
+            list.append(...selectedSections);
         }
         Workbench.sortByColorIdentity = sortByColorIdentity;
         function getSelectedLines(workbench, checkLayer = true) {
