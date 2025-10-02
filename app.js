@@ -9816,9 +9816,8 @@ var Views;
         }
         Dialogs.DrawTest = DrawTest;
         function cardTile(card) {
-            return UI.Generator.Hyperscript("div", { class: "card-tile", card: card, onclick: () => showImageDialog(card.img) },
-                UI.Generator.Hyperscript("div", { class: "image" },
-                    UI.Generator.Hyperscript("img", { src: "img/card-back.png", "lazy-image": card.img })));
+            return UI.Generator.Hyperscript("div", { class: ["card-tile", "card"], card: card, onclick: () => showImageDialog(card.img) },
+                UI.Generator.Hyperscript("img", { src: "img/card-back.png", "lazy-image": card.img }));
         }
         async function showImageDialog(img) {
             await UI.Dialog.lightBox({ pages: [{ content: img }] });
