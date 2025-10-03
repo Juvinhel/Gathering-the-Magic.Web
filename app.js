@@ -12486,7 +12486,8 @@ var Views;
                             this.clearChildren();
                             const tags = newValue?.split(",").map(x => x.trim()) ?? [];
                             for (const tag of tags)
-                                this.appendChild(UI.Generator.Hyperscript("span", { title: tag }, tag));
+                                if (tag)
+                                    this.appendChild(UI.Generator.Hyperscript("span", { title: tag }, tag));
                         }
                         break;
                 }
@@ -12508,7 +12509,8 @@ var Views;
                 this.setAttribute("tags", value.join(", "));
             }
             doDBLClick = function (event) {
-                if (!this.classList.contains("disabled") && this.firstChild instanceof HTMLSpanElement) {
+                console.log("dbclick");
+                if (!this.classList.contains("disabled")) {
                     this.clearChildren();
                     const text = this.tags.join(", ");
                     this.append(UI.Generator.Hyperscript("input", { type: "text", value: text }));
@@ -12530,7 +12532,8 @@ var Views;
                         this.firstChild.remove();
                         const tags = newText.split(", ").map(x => x.trim());
                         for (const tag of tags)
-                            this.appendChild(UI.Generator.Hyperscript("span", { title: tag }, tag));
+                            if (tag)
+                                this.appendChild(UI.Generator.Hyperscript("span", { title: tag }, tag));
                         if (newText != oldText) {
                             this.tags = tags;
                             this.dispatchEvent(new Event("change", { bubbles: true }));
