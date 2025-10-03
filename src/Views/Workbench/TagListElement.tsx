@@ -24,7 +24,7 @@ namespace Views.Workbench
                         this.clearChildren();
                         const tags = newValue?.split(",").map(x => x.trim()) ?? [];
                         for (const tag of tags)
-                            this.appendChild(<span title={ tag }>{ tag }</span>);
+                            if (tag) this.appendChild(<span title={ tag }>{ tag }</span>);
                     }
                     break;
             }
@@ -56,13 +56,14 @@ namespace Views.Workbench
 
         private doDBLClick = function (this: TagListElement, event: Event)
         {
-            if (!this.classList.contains("disabled") && this.firstChild instanceof HTMLSpanElement)
+            console.log("dbclick");
+            if (!this.classList.contains("disabled"))
             {
                 this.clearChildren();
 
                 const text = this.tags.join(", ");
                 this.append(<input type="text" value={ text } />);
-                this.firstChild.focus();
+                (this.firstChild as HTMLInputElement).focus();
             }
         }.bind(this);
 
@@ -86,7 +87,7 @@ namespace Views.Workbench
                     this.firstChild.remove();
                     const tags = newText.split(", ").map(x => x.trim());
                     for (const tag of tags)
-                        this.appendChild(<span title={ tag }>{ tag }</span>);
+                        if (tag) this.appendChild(<span title={ tag }>{ tag }</span>);
 
                     if (newText != oldText)
                     {
