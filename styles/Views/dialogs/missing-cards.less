@@ -3,13 +3,15 @@
     display: grid;
     grid-template-rows: 1fr auto;
     grid-template-columns: 1fr;
+    grid-template-areas: "table" "actions";
     padding-top: 0;
     padding-bottom: 0;
     overflow-x: hidden;
     overflow-y: auto;
 
-    > table
+    > .table
     {
+        grid-area: table;
         width: 100%;
         height: max-content;
         border-collapse: collapse;
@@ -54,11 +56,27 @@
         }
     }
 
+    > .text-output
+    {
+        grid-area: table;
+        min-width: 24em;
+        height: max-content;
+        min-height: 24em;
+        padding: 0.25em;
+        border: none;
+        border-radius: var(--corner-radius);
+        background-color: white;
+        color: black;
+        font-size: 1.125em;
+        font-family: monospace;
+    }
+
     > div
     {
         display: flex;
         position: sticky;
         bottom: 0;
+        grid-area: actions;
         align-items: center;
         justify-content: right;
         height: 2em;

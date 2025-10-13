@@ -10,8 +10,12 @@ namespace Views.Dialogs
 
         const sortedCards = cards.filter(x => !Data.isBasicLand(x.name)).sortBy(x => x.name);
 
+        let text = "";
+        for (const card of sortedCards)
+            text += card.quantity.toFixed() + " " + card.name + "\r\n";
+
         return <div class="missing-cards">
-            <table>
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Quantity</th>
@@ -37,7 +41,9 @@ namespace Views.Dialogs
                     </tr>
                 </tfoot>
             </table>
+            <textarea class={ ["text-output", "none"] } readOnly={ true } value={ text } />
             <div class="actions">
+                <a class="link-button" onclick={ selectAllText } title="Select all text"><color-icon src="img/icons/select.svg" /><span>Select</span></a>
                 <a class="link-button" onclick={ () => downloadMissingCards(sortedCards) } title="Download as txt"><color-icon src="img/icons/download.svg" /><span>Download</span></a>
                 { args.workbench ? <a class="link-button" onclick={ () => markMissingCards(args.workbench, sortedCards) } title="Highlight missing cards"><color-icon src="img/icons/brush.svg" /><span>Highlight</span></a> : null }
             </div>
@@ -82,6 +88,27 @@ namespace Views.Dialogs
         {
             const showMissingCards = menu.querySelector(".show-missing-cards") as HTMLElement;
             showMissingCards.classList.toggle("marked", true);
+        }
+    }
+
+    function selectAllText(event: Event)
+    {
+        const target = event.currentTarget as HTMLElement;
+        const missingCards = target.closest(".missing-cards") as HTMLElement;
+        const textOutput = missingCards.querySelector("textarea");
+        const table = missingCards.querySelector("table");
+        const select = target.classList.toggle("marked");
+        if (select)
+        {
+            table.classList.toggle("none", true);
+            textOutput.classList.toggle("none", false);
+
+            textOutput.select();
+        }
+        else
+        {
+            table.classList.toggle("none", false);
+            textOutput.classList.toggle("none", true);
         }
     }
 }
