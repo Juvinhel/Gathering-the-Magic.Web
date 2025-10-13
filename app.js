@@ -9934,8 +9934,11 @@ var Views;
                 entry.quantity -= collection.cards[entry.name] ?? 0;
             const cards = collapsedEntries.filter(x => x.quantity > 0);
             const sortedCards = cards.filter(x => !Data.isBasicLand(x.name)).sortBy(x => x.name);
+            let text = "";
+            for (const card of sortedCards)
+                text += card.quantity.toFixed() + " " + card.name + "\r\n";
             return UI.Generator.Hyperscript("div", { class: "missing-cards" },
-                UI.Generator.Hyperscript("table", null,
+                UI.Generator.Hyperscript("table", { class: "table" },
                     UI.Generator.Hyperscript("thead", null,
                         UI.Generator.Hyperscript("tr", null,
                             UI.Generator.Hyperscript("th", null, "Quantity"),
@@ -9951,7 +9954,11 @@ var Views;
                             UI.Generator.Hyperscript("td", null, sortedCards.sum(c => c.quantity)),
                             UI.Generator.Hyperscript("td", null, "Cards"),
                             UI.Generator.Hyperscript("td", null, sortedCards.sum(c => c.price).toFixed(2) + " €")))),
+                UI.Generator.Hyperscript("textarea", { class: ["text-output", "none"], readOnly: true, value: text }),
                 UI.Generator.Hyperscript("div", { class: "actions" },
+                    UI.Generator.Hyperscript("a", { class: "link-button", onclick: selectAllText, title: "Select all text" },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/select.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Select")),
                     UI.Generator.Hyperscript("a", { class: "link-button", onclick: () => downloadMissingCards(sortedCards), title: "Download as txt" },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/download.svg" }),
                         UI.Generator.Hyperscript("span", null, "Download")),
@@ -9987,6 +9994,22 @@ var Views;
             if (menu) {
                 const showMissingCards = menu.querySelector(".show-missing-cards");
                 showMissingCards.classList.toggle("marked", true);
+            }
+        }
+        function selectAllText(event) {
+            const target = event.currentTarget;
+            const missingCards = target.closest(".missing-cards");
+            const textOutput = missingCards.querySelector("textarea");
+            const table = missingCards.querySelector("table");
+            const select = target.classList.toggle("marked");
+            if (select) {
+                table.classList.toggle("none", true);
+                textOutput.classList.toggle("none", false);
+                textOutput.select();
+            }
+            else {
+                table.classList.toggle("none", false);
+                textOutput.classList.toggle("none", true);
             }
         }
     })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));

@@ -5598,45 +5598,61 @@ aside {
   display: grid;
   grid-template-rows: 1fr auto;
   grid-template-columns: 1fr;
+  grid-template-areas: "table" "actions";
   padding-top: 0;
   padding-bottom: 0;
   overflow-x: hidden;
   overflow-y: auto;
 }
-.missing-cards > table {
+.missing-cards > .table {
+  grid-area: table;
   width: 100%;
   height: max-content;
   border-collapse: collapse;
 }
-.missing-cards > table tr:nth-child(odd) {
+.missing-cards > .table tr:nth-child(odd) {
   background-color: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
-.missing-cards > table th {
+.missing-cards > .table th {
   font-size: 1.125em;
   text-align: left;
 }
-.missing-cards > table td {
+.missing-cards > .table td {
   padding: 0.125em;
 }
-.missing-cards > table td:last-child {
+.missing-cards > .table td:last-child {
   text-align: end;
 }
-.missing-cards > table thead {
+.missing-cards > .table thead {
   background: var(--background-color);
 }
-.missing-cards > table tfoot {
+.missing-cards > .table tfoot {
   z-index: initial;
   position: relative;
 }
-.missing-cards > table tfoot td {
+.missing-cards > .table tfoot td {
   border-top: 1px white solid;
   font-weight: bold;
+}
+.missing-cards > .text-output {
+  grid-area: table;
+  min-width: 24em;
+  height: max-content;
+  min-height: 24em;
+  padding: 0.25em;
+  border: none;
+  border-radius: var(--corner-radius);
+  background-color: white;
+  color: black;
+  font-size: 1.125em;
+  font-family: monospace;
 }
 .missing-cards > div {
   display: flex;
   position: sticky;
   bottom: 0;
+  grid-area: actions;
   align-items: center;
   justify-content: right;
   height: 2em;
