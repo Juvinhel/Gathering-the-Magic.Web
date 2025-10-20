@@ -1636,6 +1636,75 @@ container-dialog:not([state]) {
     opacity: 1;
   }
 }
+download-dialog {
+  z-index: 100000;
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(0.75px);
+  background-color: rgba(0, 0, 0, 0.3);
+}
+download-dialog[state="open"] {
+  animation: dialog-fade-in 0.25s;
+}
+download-dialog[state="closing"] {
+  animation: dialog-fade-out 0.25s;
+  opacity: 0;
+}
+download-dialog:not([state]) {
+  display: none;
+}
+#download-dialog {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  grid-template-columns: 1fr;
+  grid-template-areas: "list" "counters" "actions";
+  gap: 1em;
+}
+#download-dialog > #download-dialog-file-list {
+  grid-area: list;
+  width: 100%;
+  columns: 18rem 3;
+  column-fill: balance;
+  column-rule-color: #414141;
+  column-rule-style: solid;
+}
+#download-dialog > #download-dialog-file-list > li {
+  grid-gap: 0.25rem;
+  display: grid;
+  grid-template-columns: 1.5rem 1fr max-content;
+}
+#download-dialog > #download-dialog-file-list > li *:nth-child(1) {
+  font-weight: bold;
+}
+#download-dialog > #download-dialog-file-list > li > a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#download-dialog > #download-dialog-counters {
+  display: grid;
+  grid-auto-flow: row;
+  grid-area: counters;
+}
+#download-dialog > #download-dialog-actions {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-area: actions;
+  width: max-content;
+  gap: 0.25em;
+}
+#download-dialog > #download-dialog-actions > * {
+  padding: 0.25em;
+}
+#download-dialog > #download-dialog-actions > a {
+  justify-self: center;
+}
+#download-dialog > #download-dialog-progress {
+  display: grid;
+  justify-items: center;
+  width: max-content;
+  gap: 0.25em;
+}
 error-dialog {
   z-index: 100000;
   position: absolute;
@@ -2252,6 +2321,21 @@ nav-bar > query-box {
   #pagination-navigation-drop-down-list > li:hover::before {
     color: var(--foreground-color);
   }
+}
+#simple-paging-root {
+  display: grid;
+  z-index: 100;
+  grid-template-rows: 1fr;
+  grid-auto-columns: auto;
+  grid-auto-flow: column;
+  justify-content: end;
+  height: max-content;
+  gap: 0.25em;
+  user-select: none;
+}
+#simple-paging-root > .selected {
+  color: var(--accent-color);
+  font-weight: bold;
 }
 lazy-placeholder {
   width: 100%;
@@ -3350,6 +3434,20 @@ tab-header {
   z-index: 2;
   background: var(--accent-color);
   color: var(--foreground-color);
+}
+#tag-list-root {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em;
+}
+#tag-list-root > * {
+  padding: 0.125em 0.25em;
+  border-radius: var(--corner-radius);
+  background-color: var(--dark-background-color);
+  user-select: none;
+}
+#tag-list-root > *:hover {
+  background-color: var(--accent-color);
 }
 tool-tip {
   position-area: center;
@@ -5399,6 +5497,7 @@ aside {
   grid-row: 1;
   justify-content: center;
   width: var(--card-size, 8em);
+  padding: 0 !important;
   background-image: url(img/card-back.png);
   background-position: center;
   background-size: contain;
@@ -5418,6 +5517,54 @@ aside {
   padding: 0 0.075em;
   background-repeat: no-repeat;
   color: transparent !important;
+}
+.collections-multi-select {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas: "list list" "cancel ok";
+  gap: 1em;
+}
+.collections-multi-select > .list {
+  display: grid;
+  grid-template-columns: repeat(100, max-content);
+  grid-auto-rows: max-content;
+  grid-auto-flow: row;
+  row-gap: 0.25em;
+  grid-area: list;
+  padding-top: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.collections-multi-select > .list > * {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: subgrid;
+  grid-auto-flow: column;
+  grid-column: 1 / -1;
+  align-items: end;
+  padding: 0.125em;
+  gap: 0.5em;
+  border-radius: var(--corner-radius);
+}
+.collections-multi-select > .list > *:nth-child(odd) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.collections-multi-select > .ok-button {
+  grid-area: ok;
+  background: var(--ok-color);
+  color: var(--foreground-color);
+}
+.collections-multi-select > .ok-button:hover {
+  background: var(--highlight-ok-color);
+}
+.collections-multi-select > .cancel-button {
+  grid-area: cancel;
+  background: var(--cancel-color);
+  color: var(--foreground-color);
+}
+.collections-multi-select > .cancel-button:hover {
+  background: var(--highlight-cancel-color);
 }
 .collections-overview {
   display: grid;
@@ -5601,39 +5748,51 @@ aside {
   grid-template-areas: "table" "actions";
   padding-top: 0;
   padding-bottom: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
 }
 .missing-cards > .table {
+  position: relative;
   grid-area: table;
   width: 100%;
-  height: max-content;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: none;
   border-collapse: collapse;
 }
-.missing-cards > .table tr:nth-child(odd) {
+.missing-cards > .table tr:not(:first-child):not(:last-child):nth-child(odd) {
   background-color: rgba(255, 255, 255, 0.1);
-  color: #fff;
 }
 .missing-cards > .table th {
+  z-index: 1000;
+  position: sticky;
+  top: 0;
+  background-color: var(--background-color);
+  font-weight: bold;
   font-size: 1.125em;
+}
+.missing-cards > .table th > * {
+  border-bottom: 1px white solid;
+}
+.missing-cards > .table tr:last-child td {
+  z-index: 1000;
+  position: sticky;
+  bottom: 0;
+  background-color: var(--background-color);
+  font-weight: bold;
+}
+.missing-cards > .table tr:last-child td > * {
+  border-top: 1px white solid;
+  border-bottom: 3px white double;
+}
+.missing-cards > .table span,
+.missing-cards > .table a {
+  display: flex;
+  width: 100%;
+  padding: 0.25em;
   text-align: left;
 }
-.missing-cards > .table td {
-  padding: 0.125em;
-}
-.missing-cards > .table td:last-child {
+.missing-cards > .table span:last-child,
+.missing-cards > .table a:last-child {
   text-align: end;
-}
-.missing-cards > .table thead {
-  background: var(--background-color);
-}
-.missing-cards > .table tfoot {
-  z-index: initial;
-  position: relative;
-}
-.missing-cards > .table tfoot td {
-  border-top: 1px white solid;
-  font-weight: bold;
 }
 .missing-cards > .text-output {
   grid-area: table;

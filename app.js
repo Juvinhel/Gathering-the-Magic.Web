@@ -414,6 +414,12 @@ class DownloadHelper {
         link.setAttribute('download', fileName);
         link.click();
     }
+    static downloadUrl(fileName, url) {
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        link.click();
+    }
 }
 class Enum {
     static has(eenum, value) {
@@ -1835,11 +1841,27 @@ var UI;
                 uploadDialog.mode = options.mode;
             if ("title" in options)
                 uploadDialog.title = options.title;
+            if ("allowClose" in options)
+                uploadDialog.allowClose = options.allowClose;
             if ("accept" in options)
                 uploadDialog.accept = options.accept;
             if ("multiple" in options)
                 uploadDialog.multiple = options.multiple;
             return await uploadDialog.showDialog();
+        }
+        async download(options) {
+            const downloadDialog = new UI.Elements.DownloadDialog();
+            if (options.mode)
+                downloadDialog.mode = options.mode;
+            if ("title" in options)
+                downloadDialog.title = options.title;
+            if ("allowClose" in options)
+                downloadDialog.allowClose = options.allowClose;
+            if ("files" in options)
+                downloadDialog.files = options.files;
+            if ("zipName" in options)
+                downloadDialog.zipName = options.zipName;
+            return await downloadDialog.showDialog();
         }
         async progress(options) {
             const progressDialog = new UI.Elements.ProgressDialog();
@@ -3216,6 +3238,130 @@ var UI;
 (function (UI) {
     var Elements;
     (function (Elements) {
+        class DownloadDialog extends Elements.ContainerDialog {
+            constructor() {
+                super();
+                this.allowClose = false;
+                this.title = "Download";
+                this.icon = "img/icons/upload.svg";
+                this.appendChild(this.build1());
+            }
+            fileList;
+            totalFileCountElement;
+            totalFileSizeElement;
+            downloadListElement;
+            downloadZipButton;
+            downloadBatchButton;
+            downloadProgressElement;
+            downloadProgressTextElement;
+            build1() {
+                return (UI.Generator.Hyperscript("div", { id: "download-dialog" },
+                    this.fileList = UI.Generator.Hyperscript("ul", { id: "download-dialog-file-list" }),
+                    UI.Generator.Hyperscript("span", { id: "download-dialog-counters" },
+                        this.totalFileCountElement = UI.Generator.Hyperscript("span", null, "Total Files: 0"),
+                        this.totalFileSizeElement = UI.Generator.Hyperscript("span", null, "Total Size: 0b")),
+                    UI.Generator.Hyperscript("div", { id: "download-dialog-actions" },
+                        this.downloadZipButton = UI.Generator.Hyperscript("button", { id: "download-dialog-download-zip", onclick: this.downloadZip }, "Download Zip"),
+                        this.downloadBatchButton = UI.Generator.Hyperscript("button", { id: "download-dialog-download-batch", onclick: this.downloadBatch }, "Download Batch"),
+                        this.downloadListElement = UI.Generator.Hyperscript("a", { id: "download-dialog-download-list", download: "list.txt" }, "Download List")),
+                    UI.Generator.Hyperscript("div", { id: "download-dialog-progress" },
+                        this.downloadProgressElement = UI.Generator.Hyperscript("progress", { value: 0, max: 0 }),
+                        this.downloadProgressTextElement = UI.Generator.Hyperscript("span", null, "0%"))));
+            }
+            files;
+            zipName = "files.zip";
+            build2() {
+                let i = 0;
+                for (const file of this.files) {
+                    let readableSize = file.size ? Math.calculateHumanReadableFileSize(file.size) : "? kB";
+                    this.fileList.append(UI.Generator.Hyperscript("li", null,
+                        UI.Generator.Hyperscript("span", null, ++i),
+                        UI.Generator.Hyperscript("a", { class: "download-item link", href: file.url, download: file.name + "." + file.extension, title: file.name + "." + file.extension }, file.name),
+                        UI.Generator.Hyperscript("span", { title: file.size?.toString() ?? "unknown size" }, readableSize),
+                        UI.Generator.Hyperscript("span", { title: file.date?.toString() ?? "unknown date" }, file.date?.toLocaleDateString())));
+                }
+                this.totalFileCountElement.textContent = "Total Files: " + this.files.length;
+                this.totalFileSizeElement.textContent = "Total Size: " + (this.files.some(x => x.size == null) ? "? kB" : Math.calculateHumanReadableFileSize(this.files.sum(x => x.size)));
+                this.downloadListElement.href = "data:text/plain;base64," + btoa(this.files.map(f => f.url).join("\n"));
+            }
+            downloadZip = async function () {
+                try {
+                    this.downloadZipButton.classList.toggle("disabled");
+                    this.downloadBatchButton.classList.toggle("disabled");
+                    this.downloadProgressTextElement.textContent = "0%";
+                    this.downloadProgressElement.value = 0;
+                    this.downloadProgressElement.max = this.files.length;
+                    //@ts-ignore
+                    const zip = new JSZip();
+                    for (const file of this.files) {
+                        const url = file.url;
+                        const fileName = file.name + "." + file.extension;
+                        const response = await fetch(url);
+                        if (!response.ok)
+                            throw response.status + " " + response.statusText;
+                        const data = await response.blob();
+                        zip.file(fileName, data);
+                        this.downloadProgressElement.value++;
+                        this.downloadProgressTextElement.textContent = (this.downloadProgressElement.value / this.files.length).toLocaleString(undefined, { style: "percent", minimumFractionDigits: 2 });
+                    }
+                    this.downloadProgressTextElement.textContent = "Compressing";
+                    const base64 = await zip.generateAsync({ type: "base64" });
+                    const dataUrl = "data:application/zip;base64," + base64;
+                    DownloadHelper.downloadUrl(this.zipName, dataUrl);
+                    this.downloadProgressTextElement.textContent = "Finished!";
+                    this.downloadZipButton.classList.toggle("disabled");
+                    this.downloadBatchButton.classList.toggle("disabled");
+                }
+                catch (error) {
+                    UI.Dialog.error(error);
+                }
+                if (!this.allowClose)
+                    this.close();
+            }.bind(this);
+            downloadBatch = async function () {
+                try {
+                    this.downloadZipButton.classList.toggle("disabled");
+                    this.downloadBatchButton.classList.toggle("disabled");
+                    this.downloadProgressTextElement.textContent = "0%";
+                    this.downloadProgressElement.value = 0;
+                    this.downloadProgressElement.max = this.files.length;
+                    for (const file of this.files) {
+                        const url = file.url;
+                        const fileName = file.name + "." + file.extension;
+                        const response = await fetch(url);
+                        if (!response.ok)
+                            throw response.status + " " + response.statusText;
+                        const data = await response.blob();
+                        const dataUrl = await readDataUri(data);
+                        DownloadHelper.downloadUrl(fileName, dataUrl);
+                        this.downloadProgressElement.value++;
+                        this.downloadProgressTextElement.textContent = (this.downloadProgressElement.value / this.files.length).toLocaleString(undefined, { style: "percent", minimumFractionDigits: 2 });
+                    }
+                    this.downloadProgressTextElement.textContent = "Finished!";
+                    this.downloadZipButton.classList.toggle("disabled");
+                    this.downloadBatchButton.classList.toggle("disabled");
+                }
+                catch (error) {
+                    UI.Dialog.error(error);
+                }
+                if (!this.allowClose)
+                    this.close();
+            }.bind(this);
+            async showDialog(parent) {
+                this.build2();
+                await super.showDialog(parent);
+            }
+            result;
+        }
+        Elements.DownloadDialog = DownloadDialog;
+    })(Elements = UI.Elements || (UI.Elements = {}));
+})(UI || (UI = {}));
+customElements.define("download-dialog", UI.Elements.DownloadDialog);
+/// <reference path="ContainerDialog.tsx" />
+var UI;
+(function (UI) {
+    var Elements;
+    (function (Elements) {
         class ErrorDialog extends Elements.ContainerDialog {
             constructor() {
                 super();
@@ -4163,6 +4309,70 @@ var UI;
     })(Elements = UI.Elements || (UI.Elements = {}));
 })(UI || (UI = {}));
 customElements.define("pagination-navigation", UI.Elements.PaginationNavigation);
+var UI;
+(function (UI) {
+    var Elements;
+    (function (Elements) {
+        class SimplePaging extends UI.Elements.CustomElement {
+            constructor() {
+                super();
+                this.shadowRoot.appendChild(this.build());
+                this.root = this.shadowRoot.getElementById("simple-paging-root");
+            }
+            root;
+            build() {
+                return (UI.Generator.Hyperscript("div", { id: "simple-paging-root" }));
+            }
+            static get observedAttributes() { return ["current", "max"]; }
+            attributeChangedCallback(name, oldValue, newValue) {
+                if (oldValue == newValue)
+                    return;
+                switch (name) {
+                    case "current":
+                        this.createPageLinks();
+                        break;
+                    case "max":
+                        this.createPageLinks();
+                        break;
+                }
+            }
+            get current() { return parseInt(this.getAttribute("current")); }
+            set current(value) { this.setAttribute("current", value.toFixed()); }
+            get max() { return parseInt(this.getAttribute("max")); }
+            set max(value) { this.setAttribute("max", value.toFixed()); }
+            createPageLinks() {
+                this.root.clearChildren();
+                if (this.max <= 1)
+                    return;
+                if (this.current < 1)
+                    return;
+                if (this.current > 1)
+                    this.root.append(UI.Generator.Hyperscript("a", { class: "page", onclick: () => this.navigate(this.current - 1) }, "<"));
+                if (this.current - 2 > 1)
+                    this.root.append(UI.Generator.Hyperscript("a", { class: "page", onclick: () => this.navigate(1) }, "1"));
+                for (let p = this.current - 2; p <= this.current + 2; ++p) {
+                    const page = p;
+                    if (page < 1)
+                        continue;
+                    if (page > this.max)
+                        continue;
+                    this.root.append(UI.Generator.Hyperscript("a", { class: ["page", page == this.current ? "selected" : null], onclick: () => this.navigate(page) }, page));
+                }
+                if (this.current + 2 < this.max)
+                    this.root.append(UI.Generator.Hyperscript("a", { class: "page", onclick: () => this.navigate(this.max) }, this.max));
+                if (this.current < this.max)
+                    this.root.append(UI.Generator.Hyperscript("a", { class: "page", onclick: () => this.navigate(this.current + 1) }, ">"));
+            }
+            navigate(page) {
+                const event = new Event("pagingchanged", { bubbles: true });
+                event.page = page;
+                this.dispatchEvent(event);
+            }
+        }
+        Elements.SimplePaging = SimplePaging;
+    })(Elements = UI.Elements || (UI.Elements = {}));
+})(UI || (UI = {}));
+customElements.define("simple-paging", UI.Elements.SimplePaging);
 var UI;
 (function (UI) {
     var Elements;
@@ -5382,6 +5592,49 @@ var UI;
     })(Elements = UI.Elements || (UI.Elements = {}));
 })(UI || (UI = {}));
 customElements.define("tab-header", UI.Elements.TabHeader);
+var UI;
+(function (UI) {
+    var Elements;
+    (function (Elements) {
+        class TagList extends UI.Elements.CustomElement {
+            constructor() {
+                super();
+                this.shadowRoot.appendChild(this.build());
+                this.root = this.shadowRoot.getElementById("tag-list-root");
+            }
+            root;
+            build() {
+                return (UI.Generator.Hyperscript("div", { id: "tag-list-root" }));
+            }
+            static get observedAttributes() { return ["tags"]; }
+            attributeChangedCallback(name, oldValue, newValue) {
+                if (oldValue == newValue)
+                    return;
+                switch (name) {
+                    case "tags":
+                        this.tagsChanged(newValue);
+                        break;
+                }
+            }
+            get tags() { return this.getAttribute("tags").split(",").map(t => t.trim()); }
+            set tags(value) { this.setAttribute("tags", value.join(", ")); }
+            tagsChanged(value) {
+                this.root.clearChildren();
+                for (const tag of this.tags)
+                    this.root.append(UI.Generator.Hyperscript("span", { title: tag, onclick: this.tagClicked }, tag));
+            }
+            tagClicked = function (event) {
+                const span = event.currentTarget;
+                const tag = span.title;
+                const tagClickedEvent = new Event("tagclicked", { bubbles: true });
+                tagClickedEvent.tag = tag;
+                this.dispatchEvent(tagClickedEvent);
+            }.bind(this);
+        }
+        Elements.TagList = TagList;
+    })(Elements = UI.Elements || (UI.Elements = {}));
+})(UI || (UI = {}));
+customElements.define("tag-list", UI.Elements.TagList);
 var UI;
 (function (UI) {
     var Elements;
@@ -9484,6 +9737,28 @@ var Views;
 (function (Views) {
     var Dialogs;
     (function (Dialogs) {
+        async function showCollectionMultiSelect(args) {
+            const collections = args?.collections == null ? Object.values(App.collections) : (Array.isArray(args.collections) ? args.collections : Object.values(args.collections));
+            console.log("collections", collections);
+            const element = UI.Generator.Hyperscript("div", { class: "collections-multi-select" },
+                UI.Generator.Hyperscript("div", { class: "list" }, collections.orderBy(c => c.name, String.localeCompare).map((c, i) => UI.Generator.Hyperscript("div", null,
+                    UI.Generator.Hyperscript("input", { id: "collection" + i.toFixed(), type: "checkbox", title: c.name, collection: c, checked: true }, c.name),
+                    UI.Generator.Hyperscript("label", { for: "collection" + i.toFixed(), title: c.name }, c.name)))),
+                UI.Generator.Hyperscript("button", { class: "ok-button", onclick: function (event) { result = true; UI.Dialog.close(event.currentTarget); } }, "OK"),
+                UI.Generator.Hyperscript("button", { class: "cancel-button", onclick: function (event) { result = false; UI.Dialog.close(event.currentTarget); } }, "Cancel"));
+            let result = false;
+            await UI.Dialog.show(element, { title: "Select Collections", allowClose: true });
+            if (!result)
+                return [];
+            return [...element.querySelectorAll("input[type=checkbox]:checked")].map(x => x["collection"]);
+        }
+        Dialogs.showCollectionMultiSelect = showCollectionMultiSelect;
+    })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Dialogs;
+    (function (Dialogs) {
         function CollectionsOverview(args) {
             const collections = args.collections;
             const allowDelete = args.allowDelete ?? true;
@@ -9938,22 +10213,29 @@ var Views;
             for (const card of sortedCards)
                 text += card.quantity.toFixed() + " " + card.name + "\r\n";
             return UI.Generator.Hyperscript("div", { class: "missing-cards" },
-                UI.Generator.Hyperscript("table", { class: "table" },
-                    UI.Generator.Hyperscript("thead", null,
+                UI.Generator.Hyperscript("table", { class: "table", cellpadding: "0" },
+                    UI.Generator.Hyperscript("tbody", null,
                         UI.Generator.Hyperscript("tr", null,
-                            UI.Generator.Hyperscript("th", null, "Quantity"),
-                            UI.Generator.Hyperscript("th", null, "Name"),
-                            UI.Generator.Hyperscript("th", null, "Price"))),
-                    UI.Generator.Hyperscript("tbody", null, sortedCards.map(c => UI.Generator.Hyperscript("tr", null,
-                        UI.Generator.Hyperscript("td", null, c.quantity),
-                        UI.Generator.Hyperscript("td", { title: c.name },
-                            UI.Generator.Hyperscript("a", { href: c.links.Scryfall, target: "_blank" }, c.name)),
-                        UI.Generator.Hyperscript("td", null, c.price.toFixed(2) + " €")))),
-                    UI.Generator.Hyperscript("tfoot", null,
+                            UI.Generator.Hyperscript("th", null,
+                                UI.Generator.Hyperscript("span", null, "#")),
+                            UI.Generator.Hyperscript("th", null,
+                                UI.Generator.Hyperscript("span", null, "Name")),
+                            UI.Generator.Hyperscript("th", null,
+                                UI.Generator.Hyperscript("span", null, "Price"))),
+                        sortedCards.map(c => UI.Generator.Hyperscript("tr", null,
+                            UI.Generator.Hyperscript("td", null,
+                                UI.Generator.Hyperscript("span", null, c.quantity)),
+                            UI.Generator.Hyperscript("td", { title: c.name },
+                                UI.Generator.Hyperscript("a", { href: c.links.Scryfall, target: "_blank" }, c.name)),
+                            UI.Generator.Hyperscript("td", null,
+                                UI.Generator.Hyperscript("span", null, c.price.toFixed(2) + " €")))),
                         UI.Generator.Hyperscript("tr", null,
-                            UI.Generator.Hyperscript("td", null, sortedCards.sum(c => c.quantity)),
-                            UI.Generator.Hyperscript("td", null, "Cards"),
-                            UI.Generator.Hyperscript("td", null, sortedCards.sum(c => c.price).toFixed(2) + " €")))),
+                            UI.Generator.Hyperscript("td", null,
+                                UI.Generator.Hyperscript("span", null, sortedCards.sum(c => c.quantity))),
+                            UI.Generator.Hyperscript("td", null,
+                                UI.Generator.Hyperscript("span", null, "Cards")),
+                            UI.Generator.Hyperscript("td", null,
+                                UI.Generator.Hyperscript("span", null, sortedCards.sum(c => c.price).toFixed(2) + " €"))))),
                 UI.Generator.Hyperscript("textarea", { class: ["text-output", "none"], readOnly: true, value: text }),
                 UI.Generator.Hyperscript("div", { class: "actions" },
                     UI.Generator.Hyperscript("a", { class: "link-button", onclick: selectAllText, title: "Select all text" },
@@ -10415,10 +10697,9 @@ var Views;
             const selectCardsOption = await UI.Dialog.options({ title: "Select Cards for Comparison", options: selectCardsOptions, allowEmpty: true });
             if (!selectCardsOption)
                 return;
-            const selectCollectionOptions = Object.keys(App.collections).sort(String.localeCompare);
-            selectCollectionOptions.insertAt(0, "All Collections");
-            const selectCollectionOption = await UI.Dialog.options({ title: "Select Collection for Comparison", options: selectCollectionOptions, allowEmpty: true });
-            if (!selectCollectionOption)
+            const collections = await Views.Dialogs.showCollectionMultiSelect();
+            console.log("collections", collections);
+            if (!collections || !collections.length)
                 return;
             let cards;
             switch (selectCardsOption) {
@@ -10435,9 +10716,7 @@ var Views;
                     cards = deck.sections.first(s => s.title == "maybe");
                     break;
             }
-            const collection = selectCollectionOption == "All Collections" ?
-                Data.combineCollections("All Collections", Object.values(App.collections)) :
-                App.collections[selectCollectionOption];
+            const collection = collections.length == 1 ? collections[0] : Data.combineCollections("Collections", collections);
             await UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.MissingCards, { collection: collection, deck: cards, workbench: workbench }), { allowClose: true, title: "Missing Cards List" });
         }
         function showMana(event) {
