@@ -1,0 +1,65 @@
+.collections-multi-select
+{
+    display: grid;
+    grid-template-rows: 1fr auto;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+        "list list"
+        "cancel ok";
+    gap: 1em;
+
+    > .list
+    {
+        display: grid;
+        grid-template-columns: repeat(100, max-content);
+        grid-auto-rows: max-content;
+        grid-auto-flow: row;
+        row-gap: 0.25em;
+        grid-area: list;
+        padding-top: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        > *
+        {
+            display: grid;
+            grid-template-rows: 1fr;
+            grid-template-columns: subgrid;
+            grid-auto-flow: column;
+            grid-column: 1 / -1;
+            align-items: end;
+            padding: 0.125em;
+            gap: 0.5em;
+            border-radius: var(--corner-radius);
+        }
+
+        > *:nth-child(odd)
+        {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    }
+
+    > .ok-button
+    {
+        grid-area: ok;
+        background: var(--ok-color);
+        color: var(--foreground-color);
+
+        &:hover
+        {
+            background: var(--highlight-ok-color);
+        }
+    }
+
+    > .cancel-button
+    {
+        grid-area: cancel;
+        background: var(--cancel-color);
+        color: var(--foreground-color);
+
+        &:hover
+        {
+            background: var(--highlight-cancel-color);
+        }
+    }
+}

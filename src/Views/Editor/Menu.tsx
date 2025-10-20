@@ -299,10 +299,9 @@ namespace Views.Editor
         const selectCardsOption = await UI.Dialog.options({ title: "Select Cards for Comparison", options: selectCardsOptions, allowEmpty: true });
         if (!selectCardsOption) return;
 
-        const selectCollectionOptions = Object.keys(App.collections).sort(String.localeCompare);
-        selectCollectionOptions.insertAt(0, "All Collections");
-        const selectCollectionOption = await UI.Dialog.options({ title: "Select Collection for Comparison", options: selectCollectionOptions, allowEmpty: true });
-        if (!selectCollectionOption) return;
+        const collections = await Dialogs.showCollectionMultiSelect();
+        console.log("collections", collections);
+        if (!collections || !collections.length) return;
 
         let cards: Data.Deck | Data.Section;
         switch (selectCardsOption)
@@ -313,10 +312,7 @@ namespace Views.Editor
             case "maybe": cards = deck.sections.first(s => s.title == "maybe"); break;
         }
 
-        const collection = selectCollectionOption == "All Collections" ?
-            Data.combineCollections("All Collections", Object.values(App.collections)) :
-            App.collections[selectCollectionOption];
-
+        const collection = collections.length == 1 ? collections[0] : Data.combineCollections("Collections", collections);
         await UI.Dialog.show(<Views.Dialogs.MissingCards collection={ collection } deck={ cards } workbench={ workbench } />, { allowClose: true, title: "Missing Cards List" });
     }
 

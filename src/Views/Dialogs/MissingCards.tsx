@@ -15,31 +15,27 @@ namespace Views.Dialogs
             text += card.quantity.toFixed() + " " + card.name + "\r\n";
 
         return <div class="missing-cards">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Quantity</th>
-                        <th>Name</th>
-                        <th>Price</th>
-                    </tr>
-                </thead>
+            <table class="table" cellpadding="0">
                 <tbody>
+                    <tr>
+                        <th><span>#</span></th>
+                        <th><span>Name</span></th>
+                        <th><span>Price</span></th>
+                    </tr>
                     {
                         sortedCards.map(c =>
                             <tr>
-                                <td>{ c.quantity }</td>
+                                <td><span>{ c.quantity }</span></td>
                                 <td title={ c.name }><a href={ c.links.Scryfall } target="_blank">{ c.name }</a></td>
-                                <td>{ c.price.toFixed(2) + " €" }</td>
+                                <td><span>{ c.price.toFixed(2) + " €" }</span></td>
                             </tr>)
                     }
-                </tbody>
-                <tfoot>
                     <tr>
-                        <td>{ sortedCards.sum(c => c.quantity) }</td>
-                        <td>Cards</td>
-                        <td>{ sortedCards.sum(c => c.price).toFixed(2) + " €" }</td>
+                        <td><span>{ sortedCards.sum(c => c.quantity) }</span></td>
+                        <td><span>Cards</span></td>
+                        <td><span>{ sortedCards.sum(c => c.price).toFixed(2) + " €" }</span></td>
                     </tr>
-                </tfoot>
+                </tbody>
             </table>
             <textarea class={ ["text-output", "none"] } readOnly={ true } value={ text } />
             <div class="actions">

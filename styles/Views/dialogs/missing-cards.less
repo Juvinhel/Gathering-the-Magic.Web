@@ -6,52 +6,65 @@
     grid-template-areas: "table" "actions";
     padding-top: 0;
     padding-bottom: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
 
     > .table
     {
+        position: relative;
         grid-area: table;
         width: 100%;
-        height: max-content;
+        overflow-x: hidden;
+        overflow-y: auto;
+        border: none;
         border-collapse: collapse;
 
-        tr:nth-child(odd)
+        tr:not(:first-child):not(:last-child):nth-child(odd)
         {
             background-color: rgba(255, 255, 255, 0.1);
-            color: #fff;
         }
 
         th
         {
+            z-index: 1000;
+            position: sticky;
+            top: 0;
+            background-color: var(--background-color);
+            font-weight: bold;
             font-size: 1.125em;
-            text-align: left;
+
+            > *
+            {
+                border-bottom: 1px white solid;
+            }
         }
 
-        td
+        tr:last-child
         {
-            padding: 0.125em;
+            td
+            {
+                z-index: 1000;
+                position: sticky;
+                bottom: 0;
+                background-color: var(--background-color);
+                font-weight: bold;
+
+                > *
+                {
+                    border-top: 1px white solid;
+                    border-bottom: 3px white double;
+                }
+            }
+        }
+
+        span, a
+        {
+            display: flex;
+            width: 100%;
+            padding: 0.25em;
+            text-align: left;
 
             &:last-child
             {
                 text-align: end;
-            }
-        }
-
-        thead
-        {
-            background: var(--background-color);
-        }
-
-        tfoot
-        {
-            z-index: initial;
-            position: relative;
-
-            td
-            {
-                border-top: 1px white solid;
-                font-weight: bold;
             }
         }
     }
