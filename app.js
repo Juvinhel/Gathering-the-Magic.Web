@@ -8873,8 +8873,15 @@ var Data;
 var Data;
 (function (Data) {
     class SaveLoadDeckLocal {
-        get currentFilePath() { return localStorage.get("current-deck-file-path"); }
-        set currentFilePath(value) { localStorage.set("current-deck-file-path", value); }
+        constructor() {
+            this.internal_currentFilePath = localStorage.get("current-deck-file-path");
+        }
+        internal_currentFilePath; // prevent multiple open instances from interfering with another
+        get currentFilePath() { return this.internal_currentFilePath; }
+        set currentFilePath(value) {
+            this.internal_currentFilePath = value;
+            localStorage.set("current-deck-file-path", value);
+        }
         async create() {
             const ret = { name: "New Deck", description: "My new deck", commanders: [], tags: [], sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] };
             this.currentFilePath = null;
