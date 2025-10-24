@@ -10,8 +10,18 @@ namespace Data
 
     class SaveLoadDeckLocal implements SaveLoadDeck
     {
-        private get currentFilePath(): string { return localStorage.get("current-deck-file-path"); }
-        private set currentFilePath(value: string) { localStorage.set("current-deck-file-path", value); }
+        constructor ()
+        {
+            this.internal_currentFilePath = localStorage.get("current-deck-file-path");
+        }
+
+        private internal_currentFilePath; // prevent multiple open instances from interfering with another
+        private get currentFilePath(): string { return this.internal_currentFilePath; }
+        private set currentFilePath(value: string)
+        {
+            this.internal_currentFilePath = value;
+            localStorage.set("current-deck-file-path", value);
+        }
 
         public async create(): Promise<Deck>
         {
