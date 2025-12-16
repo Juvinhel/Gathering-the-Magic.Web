@@ -921,6 +921,7 @@ drop-down {
   position: fixed;
   position-area: center;
   top: anchor(bottom);
+  place-self: start;
   width: max-content;
   min-width: anchor-size(width);
   height: max-content;
@@ -5494,7 +5495,6 @@ aside {
 .card {
   aspect-ratio: 5 / 7;
   display: flex;
-  grid-row: 1;
   justify-content: center;
   width: var(--card-size, 8em);
   padding: 0 !important;
@@ -5740,6 +5740,52 @@ aside {
 }
 .import-deck > .cancel-button:hover {
   background: var(--highlight-cancel-color);
+}
+.mana-curve-overview {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-auto-columns: max-content;
+  grid-auto-flow: column;
+  padding: 0;
+  overflow: auto;
+}
+.mana-curve-overview > div {
+  display: grid;
+  grid-template-rows: max-content 1fr max-content;
+  grid-template-columns: 1fr;
+  width: var(--card-size);
+  min-height: max-content;
+  padding: 0.25em;
+  gap: 0.25em;
+  border-radius: 0.25em;
+}
+.mana-curve-overview > div:nth-child(even) {
+  background-color: hsla(0, 0%, 100%, 0.1);
+}
+.mana-curve-overview > div > span {
+  align-self: center;
+  justify-self: center;
+  font-weight: bold;
+}
+.mana-curve-overview > div > div {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-auto-rows: max-content;
+  grid-auto-flow: row;
+  height: max-content;
+  gap: 0.25em;
+  transition: height 0.15s ease-out;
+}
+.mana-curve-overview > div > div > * {
+  width: 100%;
+  height: calc(var(--card-size) / 8);
+  overflow: visible;
+}
+.mana-curve-overview > div > div > *:hover {
+  height: max-content;
+}
+.mana-curve-overview > div > div > *:last-child {
+  height: max-content;
 }
 .missing-cards {
   display: grid;

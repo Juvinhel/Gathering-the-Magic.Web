@@ -3249,9 +3249,10 @@ var UI;
             fileList;
             totalFileCountElement;
             totalFileSizeElement;
-            downloadListElement;
             downloadZipButton;
             downloadBatchButton;
+            sendToJDownloaderButton;
+            downloadListElement;
             downloadProgressElement;
             downloadProgressTextElement;
             build1() {
@@ -3263,6 +3264,7 @@ var UI;
                     UI.Generator.Hyperscript("div", { id: "download-dialog-actions" },
                         this.downloadZipButton = UI.Generator.Hyperscript("button", { id: "download-dialog-download-zip", onclick: this.downloadZip }, "Download Zip"),
                         this.downloadBatchButton = UI.Generator.Hyperscript("button", { id: "download-dialog-download-batch", onclick: this.downloadBatch }, "Download Batch"),
+                        this.sendToJDownloaderButton = UI.Generator.Hyperscript("button", { id: "download-dialog-send-to-jdownloader", onclick: this.sendToJDownloader }, "Send to JDownloader"),
                         this.downloadListElement = UI.Generator.Hyperscript("a", { id: "download-dialog-download-list", download: "list.txt" }, "Download List")),
                     UI.Generator.Hyperscript("div", { id: "download-dialog-progress" },
                         this.downloadProgressElement = UI.Generator.Hyperscript("progress", { value: 0, max: 0 }),
@@ -3346,6 +3348,19 @@ var UI;
                 }
                 if (!this.allowClose)
                     this.close();
+            }.bind(this);
+            sendToJDownloader = async function () {
+                const data = new URLSearchParams();
+                data.append("source", location.toString());
+                data.append("submit", "Send to JDownloader");
+                let urls = "";
+                for (const file of this.files)
+                    urls += (urls ? "\r\n" : "") + file.url;
+                data.append("urls", urls);
+                await fetch("http://127.0.0.1:9666/flash/add", {
+                    method: "post",
+                    body: data,
+                });
             }.bind(this);
             async showDialog(parent) {
                 this.build2();
@@ -10209,6 +10224,51 @@ var Views;
 (function (Views) {
     var Dialogs;
     (function (Dialogs) {
+        class ManaCurveOverview {
+            constructor(attr) {
+                this.deck = attr.deck;
+                this.entries = Data.getEntries(this.deck.sections.first(s => s.title == "main"));
+                const highestManaValue = this.entries.max(x => x.manaValue);
+                for (let i = 0; i <= highestManaValue; ++i)
+                    this.curve[i] = [];
+                for (const entry of this.entries)
+                    if (!entry.type.card.includes("Land"))
+                        this.curve[entry.manaValue].push(entry);
+            }
+            deck;
+            entries;
+            curve = {};
+            render() {
+                return this.root = UI.Generator.Hyperscript("div", { class: "mana-curve-overview" }, this.buildCurve());
+            }
+            *buildCurve() {
+                for (const column of Object.entries(this.curve).orderBy(x => parseInt(x[0])))
+                    yield UI.Generator.Hyperscript("div", null,
+                        UI.Generator.Hyperscript("span", null, column[0].toString()),
+                        UI.Generator.Hyperscript("div", null, this.buildColumn(column[1])),
+                        UI.Generator.Hyperscript("span", null,
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/trading-card.svg" }),
+                            UI.Generator.Hyperscript("span", null, column[1].sum(x => x.quantity).toString())));
+            }
+            *buildColumn(entries) {
+                for (const entry of entries.orderBy(x => x.colorOrder))
+                    for (let i = 0; i < entry.quantity; ++i)
+                        yield UI.Generator.Hyperscript("div", null,
+                            UI.Generator.Hyperscript("div", { class: ["card-tile", "card"], title: entry.name, card: entry, onclick: () => showImageDialog(entry.img) },
+                                UI.Generator.Hyperscript("img", { src: "img/card-back.png", "lazy-image": entry.img })));
+            }
+            root;
+        }
+        Dialogs.ManaCurveOverview = ManaCurveOverview;
+        async function showImageDialog(img) {
+            await UI.Dialog.lightBox({ pages: [{ content: img }] });
+        }
+    })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Dialogs;
+    (function (Dialogs) {
         function MissingCards(args) {
             const collection = args.collection;
             const collapsedEntries = Data.collapse(args.deck);
@@ -10537,6 +10597,9 @@ var Views;
                         UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showDeckStatistics, title: "Show Deck Statistics" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/pie-chart.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Deck Statistics")),
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showManaCurve, title: "Show Mana Curve" },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/mana-staff.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Show Mana Curve")),
                         UI.Generator.Hyperscript("menu-button", { onclick: showCollectionsOverview, title: "Show Collections" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/collection.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Collections")))),
@@ -10763,7 +10826,14 @@ var Views;
             const editor = target.closest("my-editor");
             const workbench = editor.querySelector("my-workbench");
             const deck = workbench.getData();
-            UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.DeckStatistics, { deck: deck }), { allowClose: true, title: "Deck Statistics" });
+            UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.DeckStatistics, { deck: deck }), { allowClose: true, title: "Deck Statistics", mode: "fill" });
+        }
+        async function showManaCurve(event) {
+            const target = event.currentTarget;
+            const editor = target.closest("my-editor");
+            const workbench = editor.querySelector("my-workbench");
+            const deck = workbench.getData();
+            UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.ManaCurveOverview, { deck: deck }), { allowClose: true, title: "Mana Curve", mode: "fill" });
         }
         async function siteInfo(event) {
             const result = await fetch("manifest.json");
