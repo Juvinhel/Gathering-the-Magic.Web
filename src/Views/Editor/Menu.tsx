@@ -70,6 +70,7 @@ namespace Views.Editor
                     <menu-button class={ ["show-missing-cards", useWorkbench ? null : "none"] } onclick={ showMissingCards } title="Show Missing Cards"><color-icon src="img/icons/missing-card.svg" /><span>Show Missing Cards</span></menu-button>
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ showDrawTest } title="Show Draw Test"><color-icon src="img/icons/cards.svg" /><span>Show Draw Test</span></menu-button>
                     <menu-button class={ useWorkbench ? null : "none" } onclick={ showDeckStatistics } title="Show Deck Statistics"><color-icon src="img/icons/pie-chart.svg" /><span>Show Deck Statistics</span></menu-button>
+                    <menu-button class={ useWorkbench ? null : "none" } onclick={ showManaCurve } title="Show Mana Curve"><color-icon src="img/icons/mana-staff.svg" /><span>Show Mana Curve</span></menu-button>
                     <menu-button onclick={ showCollectionsOverview } title="Show Collections"><color-icon src="img/icons/collection.svg" /><span>Show Collections</span></menu-button>
                 </drop-down>
             </menu-button>
@@ -373,7 +374,18 @@ namespace Views.Editor
 
         const deck = workbench.getData();
 
-        UI.Dialog.show(<Views.Dialogs.DeckStatistics deck={ deck } />, { allowClose: true, title: "Deck Statistics" });
+        UI.Dialog.show(<Views.Dialogs.DeckStatistics deck={ deck } />, { allowClose: true, title: "Deck Statistics", mode: "fill" });
+    }
+
+    async function showManaCurve(event: Event)
+    {
+        const target = event.currentTarget as HTMLElement;
+        const editor = target.closest("my-editor") as Editor.EditorElement;
+        const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
+
+        const deck = workbench.getData();
+
+        UI.Dialog.show(<Views.Dialogs.ManaCurveOverview deck={ deck } />, { allowClose: true, title: "Mana Curve", mode: "fill" });
     }
 
     async function siteInfo(event: Event)

@@ -1,0 +1,61 @@
+.mana-curve-overview
+{
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-auto-columns: max-content;
+    grid-auto-flow: column;
+    padding: 0;
+    overflow: auto;
+
+    > div
+    {
+        display: grid;
+        grid-template-rows: max-content 1fr max-content;
+        grid-template-columns: 1fr;
+        width: var(--card-size);
+        min-height: max-content;
+        padding: 0.25em;
+        gap: 0.25em;
+        border-radius: 0.25em;
+
+        &:nth-child(even)
+        {
+            background-color: hsla(0, 0%, 100%, 0.1);
+        }
+
+        > span
+        {
+            align-self: center;
+            justify-self: center;
+            font-weight: bold;
+        }
+
+        > div
+        {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-auto-rows: max-content;
+            grid-auto-flow: row;
+            height: max-content;
+            gap: 0.25em;
+            transition: height 0.15s ease-out;
+
+            > *
+            {
+                width: 100%;
+                height: calc(var(--card-size) / 8);
+                overflow: visible;
+
+                &:hover
+                {
+                    height: max-content;
+                }
+
+                &:last-child
+                {
+                    height: max-content;
+                }
+            }
+        }
+    }
+}
