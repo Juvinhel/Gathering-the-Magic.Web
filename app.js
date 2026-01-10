@@ -10159,6 +10159,32 @@ var Views;
 (function (Views) {
     var Dialogs;
     (function (Dialogs) {
+        function EDHPowerLevel(args) {
+            return UI.Generator.Hyperscript("iframe", { class: "edhpowerlevel-dialog", oninserted: async (event) => {
+                    const file = await Data.File.saveDeck(args.deck, "TXT");
+                    const url = "https://edhpowerlevel.com?d=" + encodeForEDHPowerLevel(file.text);
+                    console.log("file.text", file.text);
+                    const iframe = event.target;
+                    iframe.src = url;
+                } });
+        }
+        Dialogs.EDHPowerLevel = EDHPowerLevel;
+        function encodeForEDHPowerLevel(text) {
+            const lines = [];
+            for (const line of text.splitLines()) {
+                lines.push(line.split("(")[0].replace(/ *\[[^)]*\] */g, " ").replace(/ *<[^)]*> */g, " ").trim());
+            }
+            let ret = lines.join("~");
+            ret = encodeURIComponent(ret).replace(/%20/g, "+") + "~Z~";
+            return ret;
+        }
+        function EDHPowerLevelEncode(d) { var arr = d.split(/[\r\n~]/); arr.forEach((c, i) => { c = c.split("(")[0]; c = c.replace(/ *\[[^)]*\] */g, " "); c = c.replace(/ *<[^)]*> */g, " "); c = c.trim(); arr[i] = c; }); var nd = arr.join("~"); d = encodeURIComponent(nd).replace(/%20/g, "+") + "~Z~"; return d; }
+    })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Dialogs;
+    (function (Dialogs) {
         function ExportDeck(args) {
             return UI.Generator.Hyperscript("div", { class: "export-deck" },
                 UI.Generator.Hyperscript("select", { class: "format-select", onchange: (event) => selectFormat(event, args.deck) },
@@ -10600,6 +10626,9 @@ var Views;
                         UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showManaCurve, title: "Show Mana Curve" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/mana-staff.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Mana Curve")),
+                        UI.Generator.Hyperscript("menu-button", { class: useWorkbench ? null : "none", onclick: showEDHPowerLevel, title: "Show EDHPowerLevel" },
+                            UI.Generator.Hyperscript("color-icon", { src: "img/icons/edhpowerlevel.svg" }),
+                            UI.Generator.Hyperscript("span", null, "Show EDHPowerLevel")),
                         UI.Generator.Hyperscript("menu-button", { onclick: showCollectionsOverview, title: "Show Collections" },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/collection.svg" }),
                             UI.Generator.Hyperscript("span", null, "Show Collections")))),
@@ -10852,6 +10881,13 @@ var Views;
         }
         function showCollectionsOverview(event) {
             UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.CollectionsOverview, { collections: App.collections }), { allowClose: true, title: "Collections Overview" });
+        }
+        async function showEDHPowerLevel(event) {
+            const target = event.currentTarget;
+            const editor = target.closest("my-editor");
+            const workbench = editor.querySelector("my-workbench");
+            const deck = workbench.getData();
+            UI.Dialog.show(UI.Generator.Hyperscript(Views.Dialogs.EDHPowerLevel, { deck: deck }), { allowClose: true, title: "EDHPowerLevel", mode: "fill", icon: "img/icons/edhpowerlevel.svg" });
         }
         function showGridOrLines(event) {
             const menuButton = event.currentTarget;
