@@ -10,10 +10,6 @@
         },
         {
             "label": "Init dist",
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            },
             "dependsOn": [
                 "Create dist",
             ],
@@ -30,10 +26,6 @@
             "label": "Create dist",
             "type": "shell",
             "command": "New-Item",
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            },
             "args": [
                 "-ItemType",
                 "Directory",
@@ -54,7 +46,6 @@
             "problemMatcher": [
                 "$tsc"
             ],
-            "hide": true,
         },
         {
             "label": "Build LESS",
@@ -68,7 +59,6 @@
                 "kind": "build",
                 "isDefault": false
             },
-            "hide": true,
         },
         {
             "label": "Copy Modules",
@@ -134,10 +124,6 @@
             "label": "Build ServiceWorker",
             "command": "workbox generateSW workbox-config.js",
             "type": "shell",
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            },
             "hide": true,
         },
         {
@@ -169,15 +155,11 @@
             ],
             "group": {
                 "kind": "build",
-                "isDefault": false
+                "isDefault": true
             },
         },
         {
             "label": "Init publish",
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            },
             "dependsOn": [
                 "Create publish",
             ],
@@ -194,10 +176,6 @@
             "label": "Create publish",
             "type": "shell",
             "command": "New-Item",
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            },
             "args": [
                 "-ItemType",
                 "Directory",
@@ -211,10 +189,6 @@
             "label": "Zip publish",
             "type": "shell",
             "command": "Compress-Archive",
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            },
             "args": [
                 "-Path",
                 "dist/*",
