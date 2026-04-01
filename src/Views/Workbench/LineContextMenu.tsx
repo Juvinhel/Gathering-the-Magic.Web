@@ -188,7 +188,7 @@ namespace Views.Workbench
         for (const line of selectedLines)
             line.remove();
 
-        const sortedLines = selectedLines.orderBy(x => x.card.manaValue);
+        const sortedLines = selectedLines.orderByThenBy(x => x.card.manaValue, x => x.title);
         if (insertPosition) insertPosition.after(...sortedLines);
         else parentElement.prepend(...sortedLines);
     }
@@ -200,7 +200,7 @@ namespace Views.Workbench
             line.remove();
 
         const selectedSections = selectedLines.filter(x => x instanceof SectionElement);
-        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderBy(x => x.card.manaValue);
+        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderByThenBy(x => x.card.manaValue, x => x.title);
 
         const list = this.querySelector(".list");
         list.append(...selectedEntries);
@@ -220,7 +220,7 @@ namespace Views.Workbench
         for (const line of selectedLines)
             line.remove();
 
-        const sortedLines = selectedLines.orderBy(x => x.card.colorOrder);
+        const sortedLines = selectedLines.orderByThenBy(x => x.card.colorOrder, x => x.title);
         if (insertPosition) insertPosition.after(...sortedLines);
         else parentElement.prepend(...sortedLines);
     }
@@ -232,7 +232,7 @@ namespace Views.Workbench
             line.remove();
 
         const selectedSections = selectedLines.filter(x => x instanceof SectionElement);
-        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderBy(x => x.card.colorOrder);
+        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderByThenBy(x => x.card.colorOrder, x => x.title);
 
         const list = this.querySelector(".list");
         list.append(...selectedEntries);
