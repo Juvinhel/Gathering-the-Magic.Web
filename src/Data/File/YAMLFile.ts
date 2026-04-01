@@ -8,17 +8,13 @@ namespace Data.File
 
         public async save(deck: Deck): Promise<string>
         {
-            const data: any = { name: deck.name, description: deck.description };
+            const data: any = { name: deck.name };
+            if (deck.description) data.description = deck.description;
             if (deck.commanders && deck.commanders.length > 0) data.commanders = deck.commanders;
             if (deck.tags && deck.tags.length > 0) data.tags = deck.tags;
 
             const addSection = (obj: any, section: Data.Section) =>
             {
-                if (section.items.length == 0) 
-                {
-                    obj[section.title] = null;
-                    return;
-                }
                 obj[section.title] = [];
                 for (const item of section.items)
                     if ("name" in item)
@@ -32,7 +28,8 @@ namespace Data.File
             };
 
             for (const section of deck.sections)
-                addSection(data, section);
+                if (section.items && section.items.length > 0)
+                    addSection(data, section);
             return YAML.stringify(data);
         }
 
