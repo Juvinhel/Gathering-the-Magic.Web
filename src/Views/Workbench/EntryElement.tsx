@@ -10,10 +10,12 @@ namespace Views.Workbench
 
             const card = JSON.clone(entry);
             delete card.quantity;
+            delete card.comment;
 
             this.title = card.name;
             this.card = card;
             this.quantity = entry.quantity;
+            this.comment = entry.comment;
 
             this.append(...this.build());
 
@@ -52,6 +54,8 @@ namespace Views.Workbench
 
         public card: Data.API.Card;
         public quantity: number;
+        public comment: string;
+
         public get selected() { return this.classList.contains("selected"); }
         public set selected(value: boolean)
         {

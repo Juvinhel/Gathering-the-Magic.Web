@@ -116,17 +116,16 @@ namespace Views.Library.List
         {
             event.stopPropagation();
 
+            let dragData: TransferData;
             if (this.selected)
             {
-                const cards: Data.API.Card[] = [];
                 const cardList = this.closest("my-card-list") as CardListElement;
-                for (const cardTile of cardList.querySelectorAll("my-card-tile.selected") as NodeListOf<CardTileElement>)
-                    cards.push(cardTile.card);
-                event.dataTransfer.setData("text", JSON.stringify(cards));
+                dragData = serializeElements(...cardList.querySelectorAll("my-card-tile.selected") as NodeListOf<CardTileElement>);
             }
             else
-                event.dataTransfer.setData("text", JSON.stringify(this.card));
+                dragData = serializeElements(this);
 
+            event.dataTransfer.setData("text", JSON.stringify(dragData));
             event.dataTransfer.effectAllowed = "all";
         }
     }

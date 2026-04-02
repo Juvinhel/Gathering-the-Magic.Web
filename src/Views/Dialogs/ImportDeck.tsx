@@ -9,6 +9,7 @@ namespace Views.Dialogs
                 <option value="json">JSON</option>
                 <option value="txt" selected={ true }>TXT</option>
                 <option value="yaml">YAML</option>
+                <option value="idec">IDEC</option>
             </select>
             <textarea class="text-input" placeholder="input text" />
             <button class="ok-button" onclick={ okClick }>OK</button>

@@ -16,8 +16,7 @@ namespace Views.Workbench
             return;
         }
 
-        let data: DragData;
-        data = buildDragData(this);
+        const data: TransferData = serializeElements(this);
         event.dataTransfer.setData("text", JSON.stringify(data));
         event.dataTransfer.effectAllowed = "all";
     }
@@ -54,7 +53,7 @@ namespace Views.Workbench
             const data = event.dataTransfer.getData("text");
             if (!data) return;
 
-            const draggedData = await parseDragData(data);
+            const draggedData = await parseTransferData(data);
             const newElements: HTMLElement[] = [];
             if (Array.isArray(draggedData))
             {
@@ -122,62 +121,24 @@ namespace Views.Workbench
         }
     }
 
-    function getDragData(element: HTMLElement): any
-    {
-        if (element instanceof EntryElement)
-            return { quantity: element.quantity, name: element.card.name };
-        else if (element instanceof SectionElement)
-        {
-            const title = element.title;
-            const children = [...element.querySelector(".list").children];
-            return { title, items: children.map(getDragData) };
-        }
-        else throw new Error("Cannot get dragdata of Element!");
-    }
-
-    export function buildDragData(elements: HTMLElement | HTMLElement[]): DragData
-    {
-        if (Array.isArray(elements))
-        {
-            const children: HTMLElement[] = [...elements];
-            for (let i = 0; i < children.length; ++i)
-            {
-                const child = children[i];
-
-                for (let x = i + 1; x < children.length; ++x)
-                {
-                    if (child.contains(children[x]))
-                    {
-                        children.removeAt(x);
-                        --x;
-                    }
-                }
-            }
-
-            return children.map(getDragData).filter(x => x != null);
-        }
-        else
-            return getDragData(elements as HTMLElement);
-    }
-
-    async function parseDragData(data: string): Promise<DragData>
+    async function parseTransferData(data: string): Promise<TransferData>
     {
         const progressDialog = await UI.Dialog.progress({ title: "Gathering card info!", displayType: "Absolute" });
         try
         {
-            let dragData: DragData;
+            let TransferData: TransferData;
             if (data.trim().startsWithAny(["[", "{"])) 
             {
-                dragData = JSON.parse(data);
+                TransferData = JSON.parse(data);
             }
             else if (data.startsWith("https://") || data.startsWith("http://"))
             {
                 const identifier = await Data.API.getIdentifierFromUrl(data);
-                dragData = { ...identifier, quantity: 1 };
+                TransferData = { ...identifier, quantity: 1 };
             }
             else
             {
-                dragData = [];
+                TransferData = [];
                 const lines = data.splitLines().map(x => x.trim());
                 for (const line of lines)
                 {
@@ -195,12 +156,12 @@ namespace Views.Workbench
                     else
                         name = line;
 
-                    dragData.push({ quantity: quantity, name: name.trim() });
+                    TransferData.push({ quantity: quantity, name: name.trim() });
                 }
             }
 
-            const cards: DragCard[] = [];
-            flattenDragData(cards, dragData);
+            const cards: TransferCard[] = [];
+            flattenTransferData(cards, TransferData);
 
             progressDialog.max = cards.length;
             progressDialog.value = 0;
@@ -219,7 +180,7 @@ namespace Views.Workbench
                 progressDialog.value = i;
             }
 
-            return dragData;
+            return TransferData;
         }
         finally
         {
@@ -227,25 +188,21 @@ namespace Views.Workbench
         }
     }
 
-    function flattenDragData(result: DragCard[], data: DragData)
+    function flattenTransferData(result: TransferCard[], data: TransferData)
     {
         if (Array.isArray(data))
         {
             for (const item of data)
-                flattenDragData(result, item);
+                flattenTransferData(result, item);
         }
         else if ("title" in data)
         {
             for (const item of data.items)
-                flattenDragData(result, item);
+                flattenTransferData(result, item);
         }
         else if ("name" in data || "id" in data || ("set" in data && "no" in data))
             result.push(data);
         else
-            throw new DataError("Unknown DragData", { data });
+            throw new DataError("Unknown TransferData", { data });
     }
-
-    export type DragCard = Data.API.Identifier & { quantity: number; };
-    export type DragSection = { title: "string", items: (DragCard | DragSection)[]; };
-    export type DragData = DragCard | DragSection | (DragCard | DragSection)[];
 }

@@ -15,10 +15,11 @@ namespace Data
 
     export type Section = {
         title: string;
+        comment?: string;
         items: (Entry | Section)[];
     };
 
-    export type Entry = API.Card & { quantity: number; };
+    export type Entry = API.Card & { quantity: number; comment?: string; };
 
     export function getEntries(deck: Deck | Section): Entry[]
     {

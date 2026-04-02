@@ -9,6 +9,7 @@ namespace Views.Dialogs
                 <option value="json">JSON</option>
                 <option value="txt" selected={ true }>TXT</option>
                 <option value="yaml">YAML</option>
+                <option value="idec">IDEC</option>
             </select>
             <textarea class="text-output" readOnly={ true } value={ Data.File.TXTFile.create(args.deck) } />
             <div class="actions">

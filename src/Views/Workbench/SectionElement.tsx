@@ -9,6 +9,7 @@ namespace Views.Workbench
             this.classList.add("section");
             if (topLevel) this.classList.add("top-level");
             this.title = section.title;
+            this.comment = section.comment;
 
             // order matters
             this.addEventListener("calccardcount", this.calcCardCount.bind(this));
@@ -84,6 +85,8 @@ namespace Views.Workbench
                     heading.textContent = super.title;
             }
         }
+
+        public comment: string;
 
         public addSection()
         {
