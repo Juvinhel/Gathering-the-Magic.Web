@@ -46,7 +46,7 @@ namespace Views.Workbench
 
         public get tags(): string[]
         {
-            return this.getAttribute("tags")?.split(",").map(x => x.trim()) ?? [];
+            return this.getAttribute("tags")?.split(",").map(x => x.trim()).filter(x => x) ?? [];
         }
 
         public set tags(value: string[])

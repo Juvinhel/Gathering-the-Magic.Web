@@ -2,9 +2,9 @@ namespace Data
 {
     export type Deck = {
         name: string;
-        description: string;
-        commanders: string[];
-        tags: string[];
+        description?: string;
+        commanders?: string[];
+        tags?: string[];
 
         sections: [
             { title: "main", items: (Entry | Section)[]; },

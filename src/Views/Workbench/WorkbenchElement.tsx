@@ -57,7 +57,6 @@ namespace Views.Workbench
         public async loadData(deck: Data.Deck)
         {
             if (deck.sections == null) deck.sections = [] as any;
-            if (deck.tags == null) deck.tags = [] as any;
             if (deck.sections.some(s => s.title === "main") == false) deck.sections.push({ title: "main", items: [] });
             if (deck.sections.some(s => s.title === "side") == false) deck.sections.push({ title: "side", items: [] });
             if (deck.sections.some(s => s.title === "maybe") == false) deck.sections.push({ title: "maybe", items: [] });
@@ -65,9 +64,9 @@ namespace Views.Workbench
             const nameElement = this.querySelector(".deck-name") as EditBoxElement;
             nameElement.text = deck.name;
             const descriptionElement = this.querySelector(".deck-description") as EditBoxElement;
-            descriptionElement.text = deck.description;
+            if (deck.description) descriptionElement.text = deck.description?.trim();
             const tagListElement = this.querySelector(".deck-tag-list") as TagListElement;
-            tagListElement.tags = deck.tags;
+            if (deck.tags) tagListElement.tags = deck.tags;
 
             const listElement = this.querySelector(".list");
             listElement.clearChildren();
@@ -224,12 +223,15 @@ namespace Views.Workbench
             const title = (element.querySelector(".title") as EditBoxElement).text;
             const list = element.querySelector(".list");
             const items = [...list.children].map(getDataFromElement).filter(x => x != null);
-            return { title, items } as Data.Section;
+            const section = { title, items } as Data.Section;
+            if (element.comment) section.comment = element.comment;
+            return section;
         }
         else if (element instanceof EntryElement)
         {
             const entry = JSON.clone(element.card) as Data.Entry;
             entry.quantity = element.quantity;
+            if (element.comment) entry.comment = element.comment;
             return entry;
         }
 
