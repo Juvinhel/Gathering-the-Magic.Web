@@ -130,12 +130,6 @@ Array.prototype.groupBy = function (func) {
     }
     return ret;
 };
-Array.prototype.distinct = function () {
-    function onlyUnique(value, index, self) {
-        return self.indexOf(value) === index;
-    }
-    return this.filter(onlyUnique);
-};
 Array.prototype.skip = function (count) {
     return this.slice(count);
 };
@@ -184,12 +178,28 @@ Array.prototype.orderBy = function (selector, comparer) {
         });
     return intermediate.map(e => e[1]);
 };
+Array.prototype.orderByThenBy = function (...selectors) {
+    const intermediate = this.clone();
+    intermediate.sort(function (a, b) {
+        for (const selector of selectors) {
+            const ae = selector(a);
+            const be = selector(b);
+            if (ae != be)
+                return ae > be ? 1 : -1;
+        }
+        return 0;
+    });
+    return intermediate;
+};
 Array.prototype.sum = function (selector) {
     let ret = 0;
     selector ??= (item) => item;
     for (const item of this)
         ret += selector(item);
     return ret;
+};
+Array.prototype.distinct = function () {
+    return this.filter((value, index, array) => array.indexOf(value) === index);
 };
 Array.prototype.mapAndFilter = function (callbackfn, excludeNull) {
     return this.reduce((filtered, item) => {
@@ -361,6 +371,54 @@ class Comparer {
         return object1 == object2;
     }
 }
+const ConfigHelper = new class ConfigHelper {
+    async load(url = "config.json", defaults) {
+        try {
+            const response = await fetch(url);
+            const text = await response.text();
+            const result = JSON.parse(text);
+            this.loadDefaults(result, defaults);
+            return result;
+        }
+        catch {
+            return this.clone(defaults);
+        }
+    }
+    /* private */ loadDefaults(config, defaultConfig) {
+        for (const key of Object.keys(defaultConfig)) {
+            if (config[key] == null)
+                config[key] = this.clone(defaultConfig[key]);
+            else if (typeof config[key] === "object") {
+                if (Array.isArray(config[key]))
+                    continue;
+                if (config[key] instanceof RegExp)
+                    continue;
+                this.loadDefaults(config[key], defaultConfig[key]);
+            }
+        }
+    }
+    /* private */ clone(obj) {
+        if (typeof obj === "object") {
+            if (obj instanceof RegExp) {
+                return new RegExp(obj.source, obj.flags);
+            }
+            else if (Array.isArray(obj)) {
+                const ret = [];
+                for (const item of obj)
+                    ret.push(this.clone(item));
+                return ret;
+            }
+            else {
+                const ret = {};
+                for (const key of Object.keys(obj))
+                    ret[key] = this.clone(obj[key]);
+                return ret;
+            }
+        }
+        else
+            return JSON.clone(obj);
+    }
+}();
 class Cookie {
     static Parse(text) {
         if (!text)
@@ -405,10 +463,13 @@ function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 class DownloadHelper {
-    static downloadData(fileName, data, mimetype = "text/json;charset=utf-8") {
-        let dataString = typeof data == "string" ? data : JSON.stringify(data);
-        let text = "data:" + mimetype + "," + dataString;
-        const uri = encodeURI(text);
+    static downloadData(fileName, data, mimetype) {
+        if (data instanceof String)
+            data = data.toString();
+        if (!mimetype)
+            mimetype = typeof data == "string" ? "text/plain" : "text/json";
+        data = typeof data == "string" ? data : JSON.stringify(data);
+        const uri = "data:" + mimetype + "," + encodeURIComponent(data);
         const link = document.createElement('a');
         link.setAttribute('href', uri);
         link.setAttribute('download', fileName);
@@ -497,6 +558,16 @@ Node.prototype.clone = function () {
             myClone.addEventListener(event.type, event.listener, event.options);
     }
     return myClone;
+};
+Node.prototype.insertAt = function (index, ...nodes) {
+    if (index == 0 || this.childNodes.length == 0)
+        this.prepend(...nodes);
+    while (index < 0)
+        index = this.childNodes.length + index;
+    if (index > 0) {
+        const nextNode = this.childNodes[index] ?? this.childNodes[this.childNodes.length - 1];
+        nextNode.before(...nodes);
+    }
 };
 HTMLCollection.prototype.cast = function () {
     return this;
@@ -858,6 +929,77 @@ RegExp.parse = function (string, modifiers) {
     const t = a.join("");
     return new RegExp(pattern, t);
 };
+class RessourceDictionary {
+    constructor(name, extensions) {
+        this.name = name;
+        this.extensions = extensions ? [...extensions] : [];
+    }
+    name;
+    files;
+    extensions;
+    async initialize() {
+        this.files = {};
+        const root = new URL(this.name, document.baseURI).href;
+        for await (const file of this.crawlDirectoryListing(root)) {
+            const path = file.substring(root.length).trimLeft("/");
+            if (this.extensions.length > 0)
+                if (!this.extensions.some(e => path.toLowerCase().endsWith("." + e.toLowerCase())))
+                    continue;
+            this.files[path] = file;
+        }
+    }
+    crawlDirectoryListing(root) {
+        const urls = [];
+        const done = [];
+        urls.unshift(root);
+        async function* scanForFiles() {
+            while (urls.length) {
+                const current = urls.shift();
+                done.unshift(current);
+                try {
+                    const { folders, files } = await scanFolder(current);
+                    urls.unshift(...folders);
+                    for (const file of files)
+                        yield file;
+                }
+                catch { }
+            }
+        }
+        async function scanFolder(url) {
+            const folders = [];
+            const files = [];
+            try {
+                const response = await fetch(url + "/"); // folders end with /
+                const text = await response.text();
+                const parser = new DOMParser();
+                const html = parser.parseFromString(text, "text/html");
+                const links = html.querySelectorAll("a");
+                for (const link of links) {
+                    const href = new URL(link.getAttribute("href"), url).toString(); // make rooted based on url
+                    if (!href.startsWith(root))
+                        continue;
+                    if (done.includes(href))
+                        continue;
+                    if (link.href.endsWith("/")) // check untrimmed url
+                     { // IIS
+                        folders.push(href);
+                        continue;
+                    }
+                    if (link.classList.values().some(c => c.includes("directory"))) { // Live Server
+                        folders.push(href);
+                        continue;
+                    }
+                    files.push(href);
+                }
+            }
+            catch (exception) {
+                console.log(exception);
+            }
+            return { folders, files };
+        }
+        return scanForFiles();
+    }
+}
 function evalWithScope(scope, script) {
     return Function('"use strict";return (' + script + ')').bind(scope)();
 }
@@ -3249,10 +3391,9 @@ var UI;
             fileList;
             totalFileCountElement;
             totalFileSizeElement;
+            downloadListElement;
             downloadZipButton;
             downloadBatchButton;
-            sendToJDownloaderButton;
-            downloadListElement;
             downloadProgressElement;
             downloadProgressTextElement;
             build1() {
@@ -3264,7 +3405,6 @@ var UI;
                     UI.Generator.Hyperscript("div", { id: "download-dialog-actions" },
                         this.downloadZipButton = UI.Generator.Hyperscript("button", { id: "download-dialog-download-zip", onclick: this.downloadZip }, "Download Zip"),
                         this.downloadBatchButton = UI.Generator.Hyperscript("button", { id: "download-dialog-download-batch", onclick: this.downloadBatch }, "Download Batch"),
-                        this.sendToJDownloaderButton = UI.Generator.Hyperscript("button", { id: "download-dialog-send-to-jdownloader", onclick: this.sendToJDownloader }, "Send to JDownloader"),
                         this.downloadListElement = UI.Generator.Hyperscript("a", { id: "download-dialog-download-list", download: "list.txt" }, "Download List")),
                     UI.Generator.Hyperscript("div", { id: "download-dialog-progress" },
                         this.downloadProgressElement = UI.Generator.Hyperscript("progress", { value: 0, max: 0 }),
@@ -3348,19 +3488,6 @@ var UI;
                 }
                 if (!this.allowClose)
                     this.close();
-            }.bind(this);
-            sendToJDownloader = async function () {
-                const data = new URLSearchParams();
-                data.append("source", location.toString());
-                data.append("submit", "Send to JDownloader");
-                let urls = "";
-                for (const file of this.files)
-                    urls += (urls ? "\r\n" : "") + file.url;
-                data.append("urls", urls);
-                await fetch("http://127.0.0.1:9666/flash/add", {
-                    method: "post",
-                    body: data,
-                });
             }.bind(this);
             async showDialog(parent) {
                 this.build2();
@@ -4379,9 +4506,21 @@ var UI;
                     this.root.append(UI.Generator.Hyperscript("a", { class: "page", onclick: () => this.navigate(this.current + 1) }, ">"));
             }
             navigate(page) {
+                if (page < 0)
+                    page = 0;
+                if (page > this.max)
+                    page = this.max;
+                if (page == this.current)
+                    return;
                 const event = new Event("pagingchanged", { bubbles: true });
                 event.page = page;
                 this.dispatchEvent(event);
+            }
+            navigatePrevious() {
+                this.navigate(this.current - 1);
+            }
+            navigateNext() {
+                this.navigate(this.current + 1);
             }
         }
         Elements.SimplePaging = SimplePaging;
@@ -5631,8 +5770,8 @@ var UI;
                         break;
                 }
             }
-            get tags() { return this.getAttribute("tags").split(",").map(t => t.trim()); }
-            set tags(value) { this.setAttribute("tags", value.join(", ")); }
+            get tags() { return this.getAttribute("tags")?.split(",").map(t => t.trim()).filter(t => t) ?? []; }
+            set tags(value) { this.setAttribute("tags", value?.join(", ")); }
             tagsChanged(value) {
                 this.root.clearChildren();
                 for (const tag of this.tags)
@@ -6224,7 +6363,7 @@ var UI;
                         for (const entry of Object.entries(value)) {
                             let key = entry[0];
                             for (let i = 0; i < key.length; ++i)
-                                if (key[i] == key[i].toUpperCase()) // is uppercase
+                                if (key[i].match(/[A-Z]/)) // uppercase ascii letter
                                     key = key.substring(0, i) + "-" + key[i].toLowerCase() + key.substring(i + 1);
                             let v = entry[1];
                             let priority = undefined;
@@ -8906,7 +9045,6 @@ var Data;
             const filePath = await Data.Bridge.ShowOpenDeck();
             if (!filePath)
                 return null;
-            console.log("open", filePath);
             const { name, extension } = this.splitFilePath(filePath);
             const format = Data.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
             const text = await Data.Bridge.DoOpenDeck(filePath);
@@ -9299,6 +9437,182 @@ var Data;
 (function (Data) {
     var File;
     (function (File) {
+        File.IDECFile = new class IDECFile {
+            name = "IDEC";
+            extensions = ["idec"];
+            mimeTypes = ["application/idec"];
+            async save(deck) {
+                let ret = "";
+                ret += "name: " + deck.name + "\r\n";
+                if (deck.description) {
+                    const lines = deck.description.splitLines();
+                    ret += "description: " + lines[0] + "\r\n";
+                    for (const line of lines.skip(1))
+                        ret += "# " + line + "\r\n";
+                }
+                if (deck.commanders && deck.commanders.length > 0) {
+                    ret += "commanders: " + "\r\n";
+                    for (const commander of deck.commanders)
+                        ret += "  - " + commander + "\r\n";
+                }
+                if (deck.tags && deck.tags.length > 0) {
+                    ret += "tags: " + "\r\n";
+                    for (const tag of deck.tags)
+                        ret += "  - " + tag + "\r\n";
+                }
+                for (const section of deck.sections)
+                    if (section.items && section.items.length > 0)
+                        ret += this.writeSection(0, section);
+                return ret;
+            }
+            writeSection(indention, section) {
+                let ret = "  ".repeat(indention) + section.title + ":\r\n";
+                if (section.comment)
+                    for (const commentLine of section.comment.splitLines())
+                        ret += "  ".repeat(indention + 1) + "# " + commentLine + "\r\n";
+                if (section.items)
+                    for (const item of section.items)
+                        if (Data.isSection(item))
+                            ret += this.writeSection(indention + 1, item);
+                        else if (Data.isEntry(item))
+                            ret += this.writeEntry(indention + 1, item);
+                return ret;
+            }
+            writeEntry(indention, entry) {
+                let ret = "";
+                ret += "  ".repeat(indention) + "- " + entry.quantity + " " + entry.name + "\r\n";
+                if (entry.comment)
+                    for (const commentLine of entry.comment.splitLines())
+                        ret += "  ".repeat(indention + 1) + "# " + commentLine + "\r\n";
+                return ret;
+            }
+            async load(text) {
+                const ret = { sections: [] };
+                const result = this.parse(text);
+                const nameField = getProperty(result, "name");
+                if (!nameField || !nameField.value)
+                    throw new Error("Deck name is missing");
+                ret.name = nameField.value;
+                const descriptionField = getProperty(result, "description");
+                if (descriptionField && descriptionField.value) {
+                    ret.description = descriptionField.value;
+                    for (const comment of result.tokens.filter(t => t.type == "comment"))
+                        ret.description += "\r\n" + comment.text;
+                }
+                const commandersField = getProperty(result, "commanders");
+                if (commandersField && commandersField.tokens.filter(x => x.type == "item").length)
+                    ret.commanders = commandersField.tokens.filter(x => x.type == "item").map(x => x.text);
+                const tagsField = getProperty(result, "tags");
+                if (tagsField && tagsField.tokens.filter(x => x.type == "item").length)
+                    ret.tags = tagsField.tokens.filter(x => x.type == "item").map(x => x.text);
+                const mainField = getProperty(result, "main");
+                if (mainField)
+                    ret.sections.push(this.loadSection(mainField));
+                else
+                    ret.sections.push({ title: "main", items: [] });
+                const sideField = getProperty(result, "side");
+                if (sideField)
+                    ret.sections.push(this.loadSection(sideField));
+                else
+                    ret.sections.push({ title: "side", items: [] });
+                const maybeField = getProperty(result, "maybe");
+                if (maybeField)
+                    ret.sections.push(this.loadSection(maybeField));
+                else
+                    ret.sections.push({ title: "maybe", items: [] });
+                await File.populateEntriesFromIdentifiers(ret);
+                return ret;
+            }
+            sectionRegex = /^\s*(?<title>[^:]+)\s*:\s*$/;
+            lineRegex = /^\s*(?<quantity>[0-9]+)?\s*(?<name>[^\(\)]*)\s*((?<set>\(\s*[^\(\)]+\s*\))\s*(?<setno>.*)?)?\s*$/;
+            loadSection(p) {
+                const ret = { items: [] };
+                const section = p.text.match(this.sectionRegex);
+                ret.title = section.groups.title.trim();
+                const comment = this.getComment(p);
+                if (comment)
+                    ret.comment = comment;
+                for (const token of p.tokens) {
+                    switch (token.type) {
+                        case "property":
+                            ret.items.push(this.loadSection(token));
+                            break;
+                        case "item":
+                            const line = token.text.match(this.lineRegex);
+                            const quantity = parseInt(line.groups.quantity?.trim() ?? "1");
+                            const name = line.groups.name.trim();
+                            const set = line.groups.set?.substring(1).substrEnd(1); // not needed yet
+                            const setNo = line.groups.setno; // not needed yet
+                            const comment = this.getComment(token);
+                            const entry = { quantity, name };
+                            if (comment)
+                                entry.comment = comment;
+                            ret.items.push(entry);
+                            break;
+                    }
+                }
+                return ret;
+            }
+            getComment(token) {
+                let ret = "";
+                for (const comment of token.tokens.filter(x => x.type == "comment"))
+                    ret += comment.text + "\r\n";
+                return ret.trim() ?? null;
+            }
+            parse(text) {
+                const ret = { tokens: [] };
+                const layers = [];
+                for (const line of text.splitLines()) {
+                    const [indention, text] = this.getIndention(line);
+                    if (!text)
+                        continue;
+                    let token;
+                    if (text.startsWith("#")) { // comment
+                        token = { type: "comment", text: text.substring(1).trim(), tokens: [] };
+                    }
+                    else if (text.startsWith("-")) { // item
+                        token = { type: "item", text: text.substring(1).trim(), tokens: [] };
+                    }
+                    else { // property
+                        const [key, value] = text.splitFirst(":");
+                        const ptoken = { type: "property", text: text.trim(), tokens: [], key: key.trim() };
+                        if (value?.trim())
+                            ptoken.value = value.trim();
+                        token = ptoken;
+                    }
+                    if (indention == 0)
+                        ret.tokens.push(token);
+                    else {
+                        const parent = layers[indention - 1];
+                        parent.tokens.push(token);
+                    }
+                    layers.length = indention + 1; // cut off everything that comes after
+                    layers[indention] = token;
+                }
+                return ret;
+            }
+            getIndention(line) {
+                let i = 0;
+                while (line[0] == " ") {
+                    ++i;
+                    line = line.substring(1);
+                }
+                return [i / 2, line.trimRight()];
+            }
+        }();
+        File.deckFileFormats.push(File.IDECFile);
+    })(File = Data.File || (Data.File = {}));
+})(Data || (Data = {}));
+function isProperty(token) {
+    return "key" in token;
+}
+function getProperty(token, key) {
+    return token.tokens.first(x => isProperty(x) && x.key == key);
+}
+var Data;
+(function (Data) {
+    var File;
+    (function (File) {
         File.JSONFile = new class JSONFile {
             name = "JSON";
             extensions = ["json"];
@@ -9315,7 +9629,12 @@ var Data;
             }
             removeExtendData(deck) {
                 deck = JSON.clone(deck);
-                this.traverse(deck, (entry) => { return { quantity: entry.quantity, name: entry.name }; });
+                this.traverse(deck, (entry) => {
+                    const ret = { quantity: entry.quantity, name: entry.name };
+                    if (entry.comment)
+                        ret.comment = entry.comment;
+                    return ret;
+                });
                 return deck;
             }
             traverse(deck, func) {
@@ -9348,27 +9667,49 @@ var Data;
             }
             create(deck) {
                 const commanders = ("commanders" in deck) ? deck.commanders : [];
-                if ("sections" in deck)
-                    deck = deck.sections.first(s => s.title == "main");
-                const cards = Data.collapse(deck);
+                let main;
+                let side;
+                if ("sections" in deck) {
+                    main = Data.collapse(deck.sections.first(s => s.title == "main"));
+                    side = Data.collapse(deck.sections.first(s => s.title == "side"));
+                }
+                else if ("title" in deck)
+                    main = Data.collapse(deck);
+                else
+                    main = deck;
                 let textCommanders = "";
                 if (commanders.length > 0) {
                     for (const commander of commanders) {
                         textCommanders += "1 " + commander + "\r\n";
-                        const entry = cards.first(x => x.name == commander);
+                        const entry = main.first(x => x.name == commander);
                         entry.quantity -= 1;
                         if (entry.quantity == 0)
-                            cards.remove(entry);
+                            main.remove(entry);
                     }
                     textCommanders += "\r\n";
                 }
                 let text = "";
-                for (const entry of cards.sortBy(x => x.name))
+                for (const entry of main.sortBy(x => x.name))
                     text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
+                if (side && side.length > 0) {
+                    text += "\r\n";
+                    text += "Sideboard\r\n";
+                    for (const entry of side.sortBy(x => x.name))
+                        text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
+                }
                 return textCommanders + text;
             }
             async load(text) {
                 const lines = text.splitLines().map(x => x.trim());
+                let main;
+                let side;
+                if (lines.some(x => x.equals("Sideboard", false))) {
+                    const i = lines.findIndex(x => x.equals("Sideboard", false));
+                    main = lines.slice(0, i);
+                    side = lines.slice(i + 1);
+                }
+                else
+                    main = lines;
                 const deck = {
                     name: null,
                     description: null,
@@ -9381,16 +9722,31 @@ var Data;
                     ],
                 };
                 const mainSection = deck.sections.first(s => s.title == "main");
-                for (const line of lines) {
-                    const entry = line.match(/^\s*(?<quantity>[0-9]+)\s+(?<name>[^#]*)\s*$/);
-                    if (entry) {
-                        const quantity = parseInt(entry.groups["quantity"].trim());
-                        const name = entry.groups["name"].trim();
-                        mainSection.items.push({ quantity, name });
+                for (const line of main) {
+                    const entry = this.parseLine(line);
+                    if (entry)
+                        mainSection.items.push(entry);
+                }
+                if (side) {
+                    const sideSection = deck.sections.first(s => s.title == "side");
+                    for (const line of side) {
+                        const entry = this.parseLine(line);
+                        if (entry)
+                            sideSection.items.push(entry);
                     }
                 }
                 await File.populateEntriesFromIdentifiers(deck);
                 return deck;
+            }
+            lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^#]+)\s*$/;
+            parseLine(line) {
+                const match = line.match(this.lineRegex);
+                if (match) {
+                    const quantity = parseInt(match.groups.quantity?.trim() ?? "1");
+                    const name = match.groups["name"].trim();
+                    return { quantity, name };
+                }
+                return null;
             }
         }();
         File.deckFileFormats.push(File.TXTFile);
@@ -9405,16 +9761,14 @@ var Data;
             extensions = ["yaml", "yml"];
             mimeTypes = ["application/yaml"];
             async save(deck) {
-                const data = { name: deck.name, description: deck.description };
+                const data = { name: deck.name };
+                if (deck.description)
+                    data.description = deck.description;
                 if (deck.commanders && deck.commanders.length > 0)
                     data.commanders = deck.commanders;
                 if (deck.tags && deck.tags.length > 0)
                     data.tags = deck.tags;
                 const addSection = (obj, section) => {
-                    if (section.items.length == 0) {
-                        obj[section.title] = null;
-                        return;
-                    }
                     obj[section.title] = [];
                     for (const item of section.items)
                         if ("name" in item)
@@ -9426,7 +9780,8 @@ var Data;
                         }
                 };
                 for (const section of deck.sections)
-                    addSection(data, section);
+                    if (section.items && section.items.length > 0)
+                        addSection(data, section);
                 return YAML.stringify(data);
             }
             async load(yaml) {
@@ -9744,13 +10099,52 @@ var Views;
 })(Views || (Views = {}));
 var Views;
 (function (Views) {
+    function serializeElements(...elements) {
+        if (elements.length > 1) {
+            const children = [...elements].distinct();
+            return children.map(getTransferData);
+        }
+        else
+            return getTransferData(elements[0]);
+    }
+    Views.serializeElements = serializeElements;
+    function getTransferData(element) {
+        if (element instanceof Views.Workbench.EntryElement) {
+            const ret = { quantity: element.quantity, name: element.title };
+            if (element.comment)
+                ret.comment = element.comment;
+            return ret;
+        }
+        else if (element instanceof Views.Workbench.SectionElement) {
+            const children = [...element.querySelector(".list").children];
+            const ret = { title: element.title, items: children.map(getTransferData) };
+            if (element.comment)
+                ret.comment = element.comment;
+            return ret;
+        }
+        else if (element instanceof Views.Library.List.CardTileElement) {
+            const ret = { name: element.card.name };
+            return ret;
+        }
+        else
+            throw new Error("Cannot get tranferData of Element!");
+    }
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
     function parseSymbolText(text) {
         if (!text)
             return "";
-        return text.replaceAll(/\{.*?\}/, (value) => {
-            const code = value.substring(1, value.length - 1).trim().toUpperCase();
-            const symbol = App.symbols.first(x => x.code == code);
-            return `<i class="symbol" style="background-image: url('${symbol.icon}')">${value}</i>`;
+        return text.replaceAll(/(\{.*?\})|(\[.*?\])/, (value) => {
+            const type = value[0] == "{" ? "symbol" : "card";
+            const code = value.substring(1, value.length - 1).trim();
+            if (type == "symbol") {
+                const symbol = App.symbols.first(x => x.code.equals(code, false));
+                return `<i class="symbol" style="background-image: url('${symbol.icon}')">${value}</i>`;
+            }
+            else {
+                return `<a href="#" onclick="this.closest('my-editor').querySelector('my-card-info').findCard({ name: '${code}' })">${code}</a>`;
+            }
         });
     }
     Views.parseSymbolText = parseSymbolText;
@@ -9761,7 +10155,6 @@ var Views;
     (function (Dialogs) {
         async function showCollectionMultiSelect(args) {
             const collections = args?.collections == null ? Object.values(App.collections) : (Array.isArray(args.collections) ? args.collections : Object.values(args.collections));
-            console.log("collections", collections);
             const element = UI.Generator.Hyperscript("div", { class: "collections-multi-select" },
                 UI.Generator.Hyperscript("div", { class: "list" }, collections.orderBy(c => c.name, String.localeCompare).map((c, i) => UI.Generator.Hyperscript("div", null,
                     UI.Generator.Hyperscript("input", { id: "collection" + i.toFixed(), type: "checkbox", title: c.name, collection: c, checked: true }, c.name),
@@ -10163,7 +10556,6 @@ var Views;
             return UI.Generator.Hyperscript("iframe", { class: "edhpowerlevel-dialog", oninserted: async (event) => {
                     const file = await Data.File.saveDeck(args.deck, "TXT");
                     const url = "https://edhpowerlevel.com?d=" + encodeForEDHPowerLevel(file.text);
-                    console.log("file.text", file.text);
                     const iframe = event.target;
                     iframe.src = url;
                 } });
@@ -10192,7 +10584,8 @@ var Views;
                     UI.Generator.Hyperscript("option", { value: "dec" }, "DEC"),
                     UI.Generator.Hyperscript("option", { value: "json" }, "JSON"),
                     UI.Generator.Hyperscript("option", { value: "txt", selected: true }, "TXT"),
-                    UI.Generator.Hyperscript("option", { value: "yaml" }, "YAML")),
+                    UI.Generator.Hyperscript("option", { value: "yaml" }, "YAML"),
+                    UI.Generator.Hyperscript("option", { value: "idec" }, "IDEC")),
                 UI.Generator.Hyperscript("textarea", { class: "text-output", readOnly: true, value: Data.File.TXTFile.create(args.deck) }),
                 UI.Generator.Hyperscript("div", { class: "actions" },
                     UI.Generator.Hyperscript("a", { class: "link-button", onclick: selectAllText, title: "Select all text" },
@@ -10227,7 +10620,8 @@ var Views;
                     UI.Generator.Hyperscript("option", { value: "dec" }, "DEC"),
                     UI.Generator.Hyperscript("option", { value: "json" }, "JSON"),
                     UI.Generator.Hyperscript("option", { value: "txt", selected: true }, "TXT"),
-                    UI.Generator.Hyperscript("option", { value: "yaml" }, "YAML")),
+                    UI.Generator.Hyperscript("option", { value: "yaml" }, "YAML"),
+                    UI.Generator.Hyperscript("option", { value: "idec" }, "IDEC")),
                 UI.Generator.Hyperscript("textarea", { class: "text-input", placeholder: "input text" }),
                 UI.Generator.Hyperscript("button", { class: "ok-button", onclick: okClick }, "OK"),
                 UI.Generator.Hyperscript("button", { class: "cancel-button", onclick: cancelClick }, "Cancel"));
@@ -10351,9 +10745,9 @@ var Views;
         async function markMissingCards(workbench, cards) {
             const missingCards = Object.clone(cards);
             for (const entry of [...workbench.querySelectorAll("my-entry")].reverse()) {
-                const card = entry.card;
+                const name = entry.title;
                 const quantity = entry.quantity;
-                const missingCard = missingCards.first(x => x.name == card.name);
+                const missingCard = missingCards.first(x => x.name == name);
                 if (missingCard) {
                     entry.classList.toggle("is-missing", true);
                     missingCard.quantity -= quantity;
@@ -10386,6 +10780,41 @@ var Views;
                 table.classList.toggle("none", false);
                 textOutput.classList.toggle("none", true);
             }
+        }
+    })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Dialogs;
+    (function (Dialogs) {
+        async function TextEdit(title, text) {
+            const textEditDialog = buildTextEditDialog(text);
+            await UI.Dialog.show(textEditDialog, { title, allowClose: true, icon: "img/icons/import-export-dialog.svg" });
+            const ok = textEditDialog.classList.contains("ok");
+            if (ok) {
+                const textArea = [...textEditDialog.children].first(x => x instanceof HTMLTextAreaElement);
+                return textArea.value;
+            }
+            return text;
+        }
+        Dialogs.TextEdit = TextEdit;
+        function buildTextEditDialog(text) {
+            return UI.Generator.Hyperscript("div", { class: "text-edit" },
+                UI.Generator.Hyperscript("textarea", { class: "text-input", placeholder: "input text" }, text),
+                UI.Generator.Hyperscript("button", { class: "ok-button", onclick: okClick }, "OK"),
+                UI.Generator.Hyperscript("button", { class: "cancel-button", onclick: cancelClick }, "Cancel"));
+        }
+        function okClick(event) {
+            const target = event.currentTarget;
+            const dialog = target.closest(".text-edit");
+            dialog.classList.toggle("ok", true);
+            UI.Dialog.close(dialog);
+        }
+        function cancelClick(event) {
+            const target = event.currentTarget;
+            const dialog = target.closest(".text-edit");
+            dialog.classList.toggle("ok", false);
+            UI.Dialog.close(dialog);
         }
     })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
 })(Views || (Views = {}));
@@ -10649,7 +11078,26 @@ var Views;
                 const result = await UI.Dialog.confirm({ title: "Create new Deck?", text: "Create a new Deck?\nAll unsaved progress will be lost!" });
                 if (!result)
                     return;
-                await workbench.loadData({ name: "New Deck", description: "My new deck", commanders: [], tags: [], sections: [{ title: "main", items: [] }, { title: "side", items: [] }, { title: "maybe", items: [] }] });
+                await workbench.loadData({
+                    name: "New Deck",
+                    description: "My new deck",
+                    commanders: [],
+                    tags: [],
+                    sections: [
+                        {
+                            title: "main",
+                            items: [{ title: "Creatures", items: [] }, { title: "Artifacts & Enchantments", items: [] }, { title: "Sorceries & Instants", items: [] }, { title: "Lands", items: [] }]
+                        },
+                        {
+                            title: "side",
+                            items: []
+                        },
+                        {
+                            title: "maybe",
+                            items: [{ title: "Creatures", items: [] }, { title: "Artifacts & Enchantments", items: [] }, { title: "Sorceries & Instants", items: [] }, { title: "Lands", items: [] }]
+                        }
+                    ]
+                });
                 const unsavedProgress = editor.querySelector(".unsaved-progress");
                 unsavedProgress.classList.toggle("none", true);
             }
@@ -10797,7 +11245,6 @@ var Views;
             if (!selectCardsOption)
                 return;
             const collections = await Views.Dialogs.showCollectionMultiSelect();
-            console.log("collections", collections);
             if (!collections || !collections.length)
                 return;
             let cards;
@@ -10947,7 +11394,7 @@ var Views;
             const editor = target.closest("my-editor");
             const workbench = editor.querySelector("my-workbench");
             for (const element of workbench.querySelectorAll("my-entry")) {
-                const match = (exclusive ? element.card.type.card.length == 1 : true) && element.card.type.card.includes(type);
+                const match = (exclusive ? element.entry.type.card.length == 1 : true) && element.entry.type.card.includes(type);
                 element.selected = match;
             }
         }
@@ -10974,6 +11421,7 @@ var Views;
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-turn-arround.svg" }))),
                     UI.Generator.Hyperscript("span", { class: "card-types" }),
                     UI.Generator.Hyperscript("p", { class: "card-text" }),
+                    UI.Generator.Hyperscript("span", { class: "comment", ondblclick: this.editComment.bind(this) }),
                     UI.Generator.Hyperscript("div", { class: "legalities" }),
                     UI.Generator.Hyperscript("ul", { class: "links" }),
                     UI.Generator.Hyperscript("div", { class: "in-collections" },
@@ -10983,6 +11431,9 @@ var Views;
                 ];
             }
             currentCard;
+            async findCard(card) {
+                this.loadData(await Data.API.getCard(card));
+            }
             loadData(card) {
                 this.currentCard = card;
                 const primaryLink = card?.links.Scryfall;
@@ -10990,6 +11441,17 @@ var Views;
                 cardLink.href = primaryLink;
                 const cardImage = this.querySelector(".card-image");
                 cardImage.classList.toggle("empty", card == null);
+                const commentSpan = this.querySelector(".comment");
+                console.log(card);
+                if (card && "quantity" in card)
+                    // is entry
+                    commentSpan.style.visibility = "visible";
+                else
+                    commentSpan.style.visibility = null;
+                if (card && "comment" in card)
+                    commentSpan.textContent = card.comment;
+                else
+                    commentSpan.textContent = "";
                 this.showCard(card?.isTransform ? card.faces[0] : card);
                 const legalities = this.querySelector(".legalities");
                 legalities.clearChildren();
@@ -11071,6 +11533,13 @@ var Views;
                 const src = target.querySelector("img").src;
                 if (src)
                     UI.Dialog.lightBox({ pages: [{ content: src }] });
+            }
+            async editComment(event) {
+                if (this.currentCard && "quantity" in this.currentCard) {
+                    const entry = this.currentCard;
+                    const text = await Views.Dialogs.TextEdit("Edit Comment", entry.comment);
+                    entry.comment = text?.trim() ?? null;
+                }
             }
         }
         Info.CardInfoElement = CardInfoElement;
@@ -11271,15 +11740,14 @@ var Views;
                 }
                 dragStart(event) {
                     event.stopPropagation();
+                    let dragData;
                     if (this.selected) {
-                        const cards = [];
                         const cardList = this.closest("my-card-list");
-                        for (const cardTile of cardList.querySelectorAll("my-card-tile.selected"))
-                            cards.push(cardTile.card);
-                        event.dataTransfer.setData("text", JSON.stringify(cards));
+                        dragData = Views.serializeElements(...cardList.querySelectorAll("my-card-tile.selected"));
                     }
                     else
-                        event.dataTransfer.setData("text", JSON.stringify(this.card));
+                        dragData = Views.serializeElements(this);
+                    event.dataTransfer.setData("text", JSON.stringify(dragData));
                     event.dataTransfer.effectAllowed = "all";
                 }
             }
@@ -11973,8 +12441,7 @@ var Views;
                 event.stopPropagation();
                 return;
             }
-            let data;
-            data = buildDragData(this);
+            const data = Views.serializeElements(this);
             event.dataTransfer.setData("text", JSON.stringify(data));
             event.dataTransfer.effectAllowed = "all";
         }
@@ -12005,7 +12472,7 @@ var Views;
                 const data = event.dataTransfer.getData("text");
                 if (!data)
                     return;
-                const draggedData = await parseDragData(data);
+                const draggedData = await parseTransferData(data);
                 const newElements = [];
                 if (Array.isArray(draggedData)) {
                     for (const dragItem of draggedData) {
@@ -12058,48 +12525,19 @@ var Views;
             }
         }
         Workbench.dragEnd = dragEnd;
-        function getDragData(element) {
-            if (element instanceof Workbench.EntryElement)
-                return { quantity: element.quantity, name: element.card.name };
-            else if (element instanceof Workbench.SectionElement) {
-                const title = element.title;
-                const children = [...element.querySelector(".list").children];
-                return { title, items: children.map(getDragData) };
-            }
-            else
-                throw new Error("Cannot get dragdata of Element!");
-        }
-        function buildDragData(elements) {
-            if (Array.isArray(elements)) {
-                const children = [...elements];
-                for (let i = 0; i < children.length; ++i) {
-                    const child = children[i];
-                    for (let x = i + 1; x < children.length; ++x) {
-                        if (child.contains(children[x])) {
-                            children.removeAt(x);
-                            --x;
-                        }
-                    }
-                }
-                return children.map(getDragData).filter(x => x != null);
-            }
-            else
-                return getDragData(elements);
-        }
-        Workbench.buildDragData = buildDragData;
-        async function parseDragData(data) {
+        async function parseTransferData(data) {
             const progressDialog = await UI.Dialog.progress({ title: "Gathering card info!", displayType: "Absolute" });
             try {
-                let dragData;
+                let TransferData;
                 if (data.trim().startsWithAny(["[", "{"])) {
-                    dragData = JSON.parse(data);
+                    TransferData = JSON.parse(data);
                 }
                 else if (data.startsWith("https://") || data.startsWith("http://")) {
                     const identifier = await Data.API.getIdentifierFromUrl(data);
-                    dragData = { ...identifier, quantity: 1 };
+                    TransferData = { ...identifier, quantity: 1 };
                 }
                 else {
-                    dragData = [];
+                    TransferData = [];
                     const lines = data.splitLines().map(x => x.trim());
                     for (const line of lines) {
                         if (!line)
@@ -12115,11 +12553,11 @@ var Views;
                         }
                         else
                             name = line;
-                        dragData.push({ quantity: quantity, name: name.trim() });
+                        TransferData.push({ quantity: quantity, name: name.trim() });
                     }
                 }
                 const cards = [];
-                flattenDragData(cards, dragData);
+                flattenTransferData(cards, TransferData);
                 progressDialog.max = cards.length;
                 progressDialog.value = 0;
                 let i = 0;
@@ -12134,25 +12572,25 @@ var Views;
                     ++i;
                     progressDialog.value = i;
                 }
-                return dragData;
+                return TransferData;
             }
             finally {
                 progressDialog.close();
             }
         }
-        function flattenDragData(result, data) {
+        function flattenTransferData(result, data) {
             if (Array.isArray(data)) {
                 for (const item of data)
-                    flattenDragData(result, item);
+                    flattenTransferData(result, item);
             }
             else if ("title" in data) {
                 for (const item of data.items)
-                    flattenDragData(result, item);
+                    flattenTransferData(result, item);
             }
             else if ("name" in data || "id" in data || ("set" in data && "no" in data))
                 result.push(data);
             else
-                throw new DataError("Unknown DragData", { data });
+                throw new DataError("Unknown TransferData", { data });
         }
     })(Workbench = Views.Workbench || (Views.Workbench = {}));
 })(Views || (Views = {}));
@@ -12249,11 +12687,8 @@ var Views;
             constructor(entry) {
                 super();
                 this.classList.add("card-container");
-                const card = JSON.clone(entry);
-                delete card.quantity;
-                this.title = card.name;
-                this.card = card;
-                this.quantity = entry.quantity;
+                this.title = entry.name;
+                this.entry = JSON.clone(entry);
                 this.append(...this.build());
                 this.addEventListener("click", this.clicked.bind(this));
                 this.addEventListener("rightclick", Workbench.showContextMenu.bind(this));
@@ -12268,15 +12703,15 @@ var Views;
             }
             build() {
                 return [
-                    UI.Generator.Hyperscript("input", { class: "quantity", type: "number", value: this.quantity, min: "1", max: "99", step: "1", onchange: this.quantityChange.bind(this), draggable: true, ondragstart: Workbench.preventDrag }),
+                    UI.Generator.Hyperscript("input", { class: "quantity", type: "number", value: this.entry.quantity, min: "1", max: "99", step: "1", onchange: this.quantityChange.bind(this), draggable: true, ondragstart: Workbench.preventDrag }),
                     UI.Generator.Hyperscript("div", { class: "move-actions" },
                         UI.Generator.Hyperscript("a", { class: "up-button", onclick: this.moveUp.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-up.svg" })),
                         UI.Generator.Hyperscript("a", { class: "down-button", onclick: this.moveDown.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/chevron-down.svg" }))),
-                    UI.Generator.Hyperscript("span", { class: "name" }, this.card.name),
-                    UI.Generator.Hyperscript("span", { class: "type" }, this.card.type.card.join(" ")),
-                    UI.Generator.Hyperscript("span", { class: "mana", innerHTML: Views.parseSymbolText(this.card.manaCost) }),
+                    UI.Generator.Hyperscript("span", { class: "name" }, this.entry.name),
+                    UI.Generator.Hyperscript("span", { class: "type" }, this.entry.type.card.join(" ")),
+                    UI.Generator.Hyperscript("span", { class: "mana", innerHTML: Views.parseSymbolText(this.entry.manaCost) }),
                     UI.Generator.Hyperscript("div", { class: "card-actions" },
                         UI.Generator.Hyperscript("a", { class: "commander-button", onclick: this.setAsCommander.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/helmet.svg" })),
@@ -12285,16 +12720,19 @@ var Views;
                         UI.Generator.Hyperscript("a", { class: "move-to-button", onclick: this.moveTo.bind(this) },
                             UI.Generator.Hyperscript("color-icon", { src: "img/icons/arrow-right.svg" }))),
                     UI.Generator.Hyperscript("div", { class: ["image", "card"] },
-                        UI.Generator.Hyperscript("img", { src: "img/card-back.png", "lazy-image": this.card.img })),
+                        UI.Generator.Hyperscript("img", { src: "img/card-back.png", "lazy-image": this.entry.img })),
                 ];
             }
-            card;
-            quantity;
+            entry;
+            get quantity() { return this.entry.quantity; }
+            set quantity(value) { this.entry.quantity = value; }
+            get comment() { return this.entry.comment; }
+            set comment(value) { this.entry.comment = value; }
             get selected() { return this.classList.contains("selected"); }
             set selected(value) {
                 this.classList.toggle("selected", value);
                 if (value) {
-                    const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: this.card } });
+                    const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: this.entry } });
                     this.dispatchEvent(selectedEvent);
                 }
             }
@@ -12364,7 +12802,7 @@ var Views;
                 list.append(this);
             }
             enter(event) {
-                const selectedEvent = new CustomEvent("cardhovered", { bubbles: true, detail: { card: this.card } });
+                const selectedEvent = new CustomEvent("cardhovered", { bubbles: true, detail: { card: this.entry } });
                 this.dispatchEvent(selectedEvent);
             }
             leave(event) {
@@ -12374,6 +12812,47 @@ var Views;
         }
         Workbench.EntryElement = EntryElement;
         customElements.define("my-entry", EntryElement);
+    })(Workbench = Views.Workbench || (Views.Workbench = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Workbench;
+    (function (Workbench) {
+        class LargeEditBoxElement extends HTMLElement {
+            constructor() {
+                super();
+                this.append(UI.Generator.Hyperscript("span", null));
+            }
+            static get observedAttributes() {
+                return ["text", "large"];
+            }
+            attributeChangedCallback(name, oldValue, newValue) {
+                switch (name) {
+                    case "text":
+                        if (this.firstChild instanceof HTMLSpanElement)
+                            this.firstChild.innerHTML = Views.parseSymbolText(newValue);
+                        else if (this.firstChild instanceof HTMLInputElement)
+                            this.firstChild.value = newValue;
+                        break;
+                }
+            }
+            connectedCallback() {
+                this.addEventListener("dblclick", this.doDBLClick, { capture: true });
+            }
+            disconnectedCallback() {
+                this.removeEventListener("dblclick", this.doDBLClick, { capture: true });
+            }
+            get text() { return this.getAttribute("text"); }
+            set text(value) { this.setAttribute("text", value); }
+            doDBLClick = async function (event) {
+                if (!this.classList.contains("disabled")) {
+                    const text = await Views.Dialogs.TextEdit("Edit Text", this.text);
+                    this.text = text?.trim() ?? "";
+                }
+            }.bind(this);
+        }
+        Workbench.LargeEditBoxElement = LargeEditBoxElement;
+        customElements.define("my-large-edit-box", LargeEditBoxElement);
     })(Workbench = Views.Workbench || (Views.Workbench = {}));
 })(Views || (Views = {}));
 var Views;
@@ -12412,9 +12891,11 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
                     UI.Generator.Hyperscript("span", null, "Delete Line")), UI.Generator.Hyperscript("menu-button", { title: "Set as Commander", onclick: this.setAsCommander.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/helmet.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Set as Commander")), UI.Generator.Hyperscript("menu-button", { title: "Scryfall", onclick: () => window.open(this.card.links.Scryfall, '_blank') },
+                    UI.Generator.Hyperscript("span", null, "Set as Commander")), UI.Generator.Hyperscript("menu-button", { title: "Edit Comment", onclick: editComment.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/comment.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Edit Comment")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Scryfall", onclick: () => window.open(this.entry.links.Scryfall, '_blank') },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/scryfall-black.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Scryfall")), this.card.links.EDHREC ? UI.Generator.Hyperscript("menu-button", { title: "EDHREC", onclick: () => window.open(this.card.links.EDHREC, '_blank') },
+                    UI.Generator.Hyperscript("span", null, "Scryfall")), this.entry.links.EDHREC ? UI.Generator.Hyperscript("menu-button", { title: "EDHREC", onclick: () => window.open(this.entry.links.EDHREC, '_blank') },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/edhrec.svg" }),
                     UI.Generator.Hyperscript("span", null, "EDHREC")) : null);
             }
@@ -12426,7 +12907,9 @@ var Views;
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/delete.svg" }),
                         UI.Generator.Hyperscript("span", null, "Clear Section Lines")), UI.Generator.Hyperscript("menu-button", { title: "Add Section", onclick: this.addSection.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Add Section")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
+                        UI.Generator.Hyperscript("span", null, "Add Section")), UI.Generator.Hyperscript("menu-button", { title: "Edit Comment", onclick: editComment.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/comment.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Edit Comment")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                         UI.Generator.Hyperscript("span", null, "Sort Section Lines by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Mana", onclick: sortByMana.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
@@ -12475,7 +12958,9 @@ var Views;
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/add-section.svg" }),
                         UI.Generator.Hyperscript("span", null, "Dissolve Section")), UI.Generator.Hyperscript("menu-button", { title: "Add Section", onclick: this.addSection.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/unlink.svg" }),
-                        UI.Generator.Hyperscript("span", null, "Add Section")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
+                        UI.Generator.Hyperscript("span", null, "Add Section")), UI.Generator.Hyperscript("menu-button", { title: "Edit Comment", onclick: editComment.bind(this) },
+                        UI.Generator.Hyperscript("color-icon", { src: "img/icons/comment.svg" }),
+                        UI.Generator.Hyperscript("span", null, "Edit Comment")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Name", onclick: sortByName.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
                         UI.Generator.Hyperscript("span", null, "Sort Section Lines by Name")), UI.Generator.Hyperscript("menu-button", { title: "Sort Section Lines by Mana", onclick: sortByMana.bind(this) },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/sort.svg" }),
@@ -12573,7 +13058,6 @@ var Views;
                 line.remove();
             const selectedSections = selectedLines.filter(x => x instanceof Workbench.SectionElement);
             const selectedEntries = selectedLines.filter(x => x instanceof Workbench.EntryElement).orderBy(x => x.title);
-            console.log(selectedEntries, selectedSections);
             const list = this.querySelector(".list");
             list.append(...selectedEntries);
             list.append(...selectedSections);
@@ -12588,7 +13072,7 @@ var Views;
             const insertPosition = selectedLines[0].previousElementSibling;
             for (const line of selectedLines)
                 line.remove();
-            const sortedLines = selectedLines.orderBy(x => x.card.manaValue);
+            const sortedLines = selectedLines.orderByThenBy(x => x.entry.manaValue, x => x.title);
             if (insertPosition)
                 insertPosition.after(...sortedLines);
             else
@@ -12600,7 +13084,7 @@ var Views;
             for (const line of selectedLines)
                 line.remove();
             const selectedSections = selectedLines.filter(x => x instanceof Workbench.SectionElement);
-            const selectedEntries = selectedLines.filter(x => x instanceof Workbench.EntryElement).orderBy(x => x.card.manaValue);
+            const selectedEntries = selectedLines.filter(x => x instanceof Workbench.EntryElement).orderByThenBy(x => x.entry.manaValue, x => x.title);
             const list = this.querySelector(".list");
             list.append(...selectedEntries);
             list.append(...selectedSections);
@@ -12615,7 +13099,7 @@ var Views;
             const insertPosition = selectedLines[0].previousElementSibling;
             for (const line of selectedLines)
                 line.remove();
-            const sortedLines = selectedLines.orderBy(x => x.card.colorOrder);
+            const sortedLines = selectedLines.orderByThenBy(x => x.entry.colorOrder, x => x.title);
             if (insertPosition)
                 insertPosition.after(...sortedLines);
             else
@@ -12627,7 +13111,7 @@ var Views;
             for (const line of selectedLines)
                 line.remove();
             const selectedSections = selectedLines.filter(x => x instanceof Workbench.SectionElement);
-            const selectedEntries = selectedLines.filter(x => x instanceof Workbench.EntryElement).orderBy(x => x.card.colorOrder);
+            const selectedEntries = selectedLines.filter(x => x instanceof Workbench.EntryElement).orderByThenBy(x => x.entry.colorOrder, x => x.title);
             const list = this.querySelector(".list");
             list.append(...selectedEntries);
             list.append(...selectedSections);
@@ -12649,9 +13133,13 @@ var Views;
             for (const element of workbench.querySelectorAll("my-entry.selected"))
                 element.selected = false;
             for (const element of section.querySelectorAll("my-entry")) {
-                const match = (exclusive ? element.card.type.card.length == 1 : true) && element.card.type.card.includes(type);
+                const match = (exclusive ? element.entry.type.card.length == 1 : true) && element.entry.type.card.includes(type);
                 element.selected = match;
             }
+        }
+        async function editComment() {
+            const text = await Views.Dialogs.TextEdit("Edit Comment", this.comment);
+            this.comment = text?.trim() ?? null;
         }
     })(Workbench = Views.Workbench || (Views.Workbench = {}));
 })(Views || (Views = {}));
@@ -12666,6 +13154,7 @@ var Views;
                 if (topLevel)
                     this.classList.add("top-level");
                 this.title = section.title;
+                this.comment = section.comment;
                 // order matters
                 this.addEventListener("calccardcount", this.calcCardCount.bind(this));
                 this.append(...this.build(section));
@@ -12718,6 +13207,7 @@ var Views;
                         heading.textContent = super.title;
                 }
             }
+            comment;
             addSection() {
                 const list = this.querySelector(".list");
                 const newSection = new SectionElement({ title: "", items: [] }, false);
@@ -12918,13 +13408,12 @@ var Views;
                 this.removeEventListener("focusout", this.doFocusOut);
             }
             get tags() {
-                return this.getAttribute("tags")?.split(",").map(x => x.trim()) ?? [];
+                return this.getAttribute("tags")?.split(",").map(x => x.trim()).filter(x => x) ?? [];
             }
             set tags(value) {
                 this.setAttribute("tags", value.join(", "));
             }
             doDBLClick = function (event) {
-                console.log("dbclick");
                 if (!this.classList.contains("disabled")) {
                     this.clearChildren();
                     const text = this.tags.join(", ");
@@ -12999,7 +13488,7 @@ var Views;
                         UI.Generator.Hyperscript("label", null, "Name:"),
                         UI.Generator.Hyperscript(Workbench.EditBoxElement, { class: "deck-name" }),
                         UI.Generator.Hyperscript("label", null, "Description:"),
-                        UI.Generator.Hyperscript(Workbench.EditBoxElement, { class: "deck-description" }),
+                        UI.Generator.Hyperscript(Workbench.LargeEditBoxElement, { class: "deck-description" }),
                         UI.Generator.Hyperscript("label", null, "Commanders:"),
                         UI.Generator.Hyperscript(Workbench.CommanderList, null),
                         UI.Generator.Hyperscript("label", null, "Tags:"),
@@ -13026,8 +13515,6 @@ var Views;
             async loadData(deck) {
                 if (deck.sections == null)
                     deck.sections = [];
-                if (deck.tags == null)
-                    deck.tags = [];
                 if (deck.sections.some(s => s.title === "main") == false)
                     deck.sections.push({ title: "main", items: [] });
                 if (deck.sections.some(s => s.title === "side") == false)
@@ -13037,9 +13524,11 @@ var Views;
                 const nameElement = this.querySelector(".deck-name");
                 nameElement.text = deck.name;
                 const descriptionElement = this.querySelector(".deck-description");
-                descriptionElement.text = deck.description;
+                if (deck.description)
+                    descriptionElement.text = deck.description?.trim();
                 const tagListElement = this.querySelector(".deck-tag-list");
-                tagListElement.tags = deck.tags;
+                if (deck.tags)
+                    tagListElement.tags = deck.tags;
                 const listElement = this.querySelector(".list");
                 listElement.clearChildren();
                 for (const section of deck.sections)
@@ -13073,7 +13562,7 @@ var Views;
                 if (!selectedSection)
                     throw new DataError("Cannot find Section: '" + section + "'!", { section });
                 for (const entry of cards) {
-                    const countUpEntryElement = [...selectedSection.querySelectorAll("my-entry")].first(x => x.card.name == entry.name);
+                    const countUpEntryElement = [...selectedSection.querySelectorAll("my-entry")].first(x => x.title == entry.name);
                     if (countUpEntryElement) {
                         const input = countUpEntryElement.querySelector(".quantity");
                         const oldQuantity = parseInt(input.value);
@@ -13164,13 +13653,13 @@ var Views;
                 const title = element.querySelector(".title").text;
                 const list = element.querySelector(".list");
                 const items = [...list.children].map(getDataFromElement).filter(x => x != null);
-                return { title, items };
+                const section = { title, items };
+                if (element.comment)
+                    section.comment = element.comment;
+                return section;
             }
-            else if (element instanceof Workbench.EntryElement) {
-                const entry = JSON.clone(element.card);
-                entry.quantity = element.quantity;
-                return entry;
-            }
+            else if (element instanceof Workbench.EntryElement)
+                return JSON.clone(element.entry);
             throw new DataError("Don't know how to handle this element: " + element.className + "!", { element });
         }
         customElements.define("my-workbench", WorkbenchElement);
