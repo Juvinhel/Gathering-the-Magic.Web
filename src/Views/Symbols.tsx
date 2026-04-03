@@ -4,13 +4,21 @@ namespace Views
     {
         if (!text) return "";
 
-        //TODO: [cardname] link that opens card in info
-        return text.replaceAll(/\{.*?\}/, (value) =>
+        return text.replaceAll(/(\{.*?\})|(\[.*?\])/, (value) =>
         {
-            const code = value.substring(1, value.length - 1).trim().toUpperCase();
-            const symbol = App.symbols.first(x => x.code == code);
+            const type = value[0] == "{" ? "symbol" : "card";
+            const code = value.substring(1, value.length - 1).trim();
 
-            return `<i class="symbol" style="background-image: url('${symbol.icon}')">${value}</i>`;
+            if (type == "symbol")
+            {
+                const symbol = App.symbols.first(x => x.code.equals(code, false));
+
+                return `<i class="symbol" style="background-image: url('${symbol.icon}')">${value}</i>`;
+            }
+            else
+            {
+                return `<a href="#" onclick="this.closest('my-editor').querySelector('my-card-info').findCard({ name: '${code}' })">${code}</a>`;
+            }
         });
     }
 }

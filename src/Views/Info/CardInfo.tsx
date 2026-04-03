@@ -34,6 +34,11 @@ namespace Views.Info
         }
 
         private currentCard: Data.API.Card;
+        public async findCard(card: Data.API.Identifier)
+        {
+            this.loadData(await Data.API.getCard(card));
+        }
+
         public loadData(card: Data.API.Card)
         {
             this.currentCard = card;
