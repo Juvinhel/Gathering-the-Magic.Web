@@ -4,6 +4,7 @@ namespace Views
     {
         if (!text) return "";
 
+        //TODO: [cardname] link that opens card in info
         return text.replaceAll(/\{.*?\}/, (value) =>
         {
             const code = value.substring(1, value.length - 1).trim().toUpperCase();

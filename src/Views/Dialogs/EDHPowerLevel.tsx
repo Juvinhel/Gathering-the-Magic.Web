@@ -7,7 +7,6 @@ namespace Views.Dialogs
             const file = await Data.File.saveDeck(args.deck, "TXT");
             const url = "https://edhpowerlevel.com?d=" + encodeForEDHPowerLevel(file.text);
 
-            console.log("file.text", file.text);
             const iframe = event.target as HTMLIFrameElement;
             iframe.src = url;
         } } />;

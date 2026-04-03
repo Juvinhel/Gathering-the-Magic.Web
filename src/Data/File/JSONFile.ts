@@ -23,7 +23,12 @@ namespace Data.File
         public removeExtendData(deck: Deck): any
         {
             deck = JSON.clone(deck);
-            this.traverse(deck, (entry: Entry) => { return { quantity: entry.quantity, name: entry.name } as Entry; });
+            this.traverse(deck, (entry: Entry) =>
+            {
+                const ret = { quantity: entry.quantity, name: entry.name } as Entry;
+                if (entry.comment) ret.comment = entry.comment;
+                return ret;
+            });
             return deck;
         }
 

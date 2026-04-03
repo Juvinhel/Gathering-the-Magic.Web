@@ -3,7 +3,7 @@ namespace Views.Dialogs
     export async function showCollectionMultiSelect(args?: { collections?: { [name: string]: Data.Collection; } | Data.Collection[]; }): Promise<Data.Collection[]>
     {
         const collections: Data.Collection[] = args?.collections == null ? Object.values(App.collections) : (Array.isArray(args.collections) ? args.collections : Object.values(args.collections));
-        console.log("collections", collections);
+
         const element = <div class="collections-multi-select">
             <div class="list">
                 {

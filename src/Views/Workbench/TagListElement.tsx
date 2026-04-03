@@ -56,7 +56,6 @@ namespace Views.Workbench
 
         private doDBLClick = function (this: TagListElement, event: Event)
         {
-            console.log("dbclick");
             if (!this.classList.contains("disabled"))
             {
                 this.clearChildren();

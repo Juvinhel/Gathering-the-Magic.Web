@@ -36,7 +36,6 @@ namespace Data
         {
             const filePath = await Bridge.ShowOpenDeck();
             if (!filePath) return null;
-            console.log("open", filePath);
 
             const { name, extension } = this.splitFilePath(filePath);
             const format = File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));

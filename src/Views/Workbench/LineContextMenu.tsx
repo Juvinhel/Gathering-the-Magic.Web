@@ -168,7 +168,6 @@ namespace Views.Workbench
 
         const selectedSections = selectedLines.filter(x => x instanceof SectionElement);
         const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderBy(x => x.title);
-        console.log(selectedEntries, selectedSections);
 
         const list = this.querySelector(".list");
         list.append(...selectedEntries);

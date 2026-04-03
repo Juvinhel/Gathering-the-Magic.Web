@@ -207,7 +207,7 @@ namespace Views.Workbench
     }
 
     function getDataFromElement(element: HTMLElement): any
-    {
+    {   // contains extended card data not like serializer
         if (element instanceof WorkbenchElement)
         {
             const commanders = [...element.querySelectorAll(".commander-list > li")].map(x => x.textContent);

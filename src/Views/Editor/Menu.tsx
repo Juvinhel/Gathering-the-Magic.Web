@@ -302,7 +302,6 @@ namespace Views.Editor
         if (!selectCardsOption) return;
 
         const collections = await Dialogs.showCollectionMultiSelect();
-        console.log("collections", collections);
         if (!collections || !collections.length) return;
 
         let cards: Data.Deck | Data.Section;
