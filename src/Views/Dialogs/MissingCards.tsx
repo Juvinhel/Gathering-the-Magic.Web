@@ -61,10 +61,10 @@ namespace Views.Dialogs
 
         for (const entry of [...(workbench.querySelectorAll("my-entry") as NodeListOf<Workbench.EntryElement>)].reverse())
         {
-            const card = entry.card;
+            const name = entry.title;
             const quantity = entry.quantity;
 
-            const missingCard = missingCards.first(x => x.name == card.name);
+            const missingCard = missingCards.first(x => x.name == name);
             if (missingCard)
             {
                 entry.classList.toggle("is-missing", true);

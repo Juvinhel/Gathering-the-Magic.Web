@@ -15,15 +15,14 @@ namespace Views
     {
         if (element instanceof Workbench.EntryElement)
         {
-            const ret: TransferCard = { quantity: element.quantity, name: element.card.name };
+            const ret: TransferCard = { quantity: element.quantity, name: element.title };
             if (element.comment) ret.comment = element.comment;
             return ret;
         }
         else if (element instanceof Workbench.SectionElement)
         {
-            const title = element.title;
             const children = [...element.querySelector(".list").children];
-            const ret: TransferSection = { title, items: children.map(getTransferData) };
+            const ret: TransferSection = { title: element.title, items: children.map(getTransferData) };
             if (element.comment) ret.comment = element.comment;
             return ret;
         }

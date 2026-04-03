@@ -520,7 +520,7 @@ namespace Views.Editor
 
         for (const element of workbench.querySelectorAll("my-entry") as NodeListOf<Workbench.EntryElement>)
         {
-            const match = (exclusive ? element.card.type.card.length == 1 : true) && element.card.type.card.includes(type);
+            const match = (exclusive ? element.entry.type.card.length == 1 : true) && element.entry.type.card.includes(type);
             element.selected = match;
         }
     }

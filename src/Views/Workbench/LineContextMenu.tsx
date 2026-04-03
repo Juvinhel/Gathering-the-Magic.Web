@@ -30,8 +30,8 @@ namespace Views.Workbench
                 <menu-button title="Set as Commander" onclick={ this.setAsCommander.bind(this) }><color-icon src="img/icons/helmet.svg" /><span>Set as Commander</span></menu-button>,
                 <menu-button title="Edit Comment" onclick={ editComment.bind(this) }><color-icon src="img/icons/comment.svg" /><span>Edit Comment</span></menu-button>,
                 <hr />,
-                <menu-button title="Scryfall" onclick={ () => window.open(this.card.links.Scryfall, '_blank') }><color-icon src="img/icons/scryfall-black.svg" /><span>Scryfall</span></menu-button>,
-                this.card.links.EDHREC ? <menu-button title="EDHREC" onclick={ () => window.open(this.card.links.EDHREC, '_blank') }><color-icon src="img/icons/edhrec.svg" /><span>EDHREC</span></menu-button> : null,
+                <menu-button title="Scryfall" onclick={ () => window.open(this.entry.links.Scryfall, '_blank') }><color-icon src="img/icons/scryfall-black.svg" /><span>Scryfall</span></menu-button>,
+                this.entry.links.EDHREC ? <menu-button title="EDHREC" onclick={ () => window.open(this.entry.links.EDHREC, '_blank') }><color-icon src="img/icons/edhrec.svg" /><span>EDHREC</span></menu-button> : null,
             );
         }
         else if (this instanceof SectionElement)
@@ -191,7 +191,7 @@ namespace Views.Workbench
         for (const line of selectedLines)
             line.remove();
 
-        const sortedLines = selectedLines.orderByThenBy(x => x.card.manaValue, x => x.title);
+        const sortedLines = selectedLines.orderByThenBy(x => x.entry.manaValue, x => x.title);
         if (insertPosition) insertPosition.after(...sortedLines);
         else parentElement.prepend(...sortedLines);
     }
@@ -203,7 +203,7 @@ namespace Views.Workbench
             line.remove();
 
         const selectedSections = selectedLines.filter(x => x instanceof SectionElement);
-        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderByThenBy(x => x.card.manaValue, x => x.title);
+        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderByThenBy(x => x.entry.manaValue, x => x.title);
 
         const list = this.querySelector(".list");
         list.append(...selectedEntries);
@@ -223,7 +223,7 @@ namespace Views.Workbench
         for (const line of selectedLines)
             line.remove();
 
-        const sortedLines = selectedLines.orderByThenBy(x => x.card.colorOrder, x => x.title);
+        const sortedLines = selectedLines.orderByThenBy(x => x.entry.colorOrder, x => x.title);
         if (insertPosition) insertPosition.after(...sortedLines);
         else parentElement.prepend(...sortedLines);
     }
@@ -235,7 +235,7 @@ namespace Views.Workbench
             line.remove();
 
         const selectedSections = selectedLines.filter(x => x instanceof SectionElement);
-        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderByThenBy(x => x.card.colorOrder, x => x.title);
+        const selectedEntries = selectedLines.filter(x => x instanceof EntryElement).orderByThenBy(x => x.entry.colorOrder, x => x.title);
 
         const list = this.querySelector(".list");
         list.append(...selectedEntries);
@@ -264,7 +264,7 @@ namespace Views.Workbench
 
         for (const element of section.querySelectorAll("my-entry") as NodeListOf<Workbench.EntryElement>)
         {
-            const match = (exclusive ? element.card.type.card.length == 1 : true) && element.card.type.card.includes(type);
+            const match = (exclusive ? element.entry.type.card.length == 1 : true) && element.entry.type.card.includes(type);
             element.selected = match;
         }
     }

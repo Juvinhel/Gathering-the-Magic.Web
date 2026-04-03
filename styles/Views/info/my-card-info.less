@@ -169,4 +169,37 @@ my-card-info
             padding-left: 2.25em;
         }
     }
+
+    > .comment
+    {
+        visibility: collapse;
+        color: lightgrey;
+        font-style: italic;
+        white-space: pre;
+        cursor: pointer;
+
+        &::before
+        {
+            display: block;
+            content: "Comment:";
+        }
+
+        &:hover
+        {
+            color: var(--highlight-color);
+
+            &::after
+            {
+                display: block;
+                position: absolute;
+                top: 0;
+                right: 0;
+                aspect-ratio: 1;
+                height: 1em;
+                background: center / contain url("img/icons/edit.svg");
+                content: "";
+                filter: brightness(0) invert(1);
+            }
+        }
+    }
 }

@@ -107,7 +107,7 @@ namespace Views.Workbench
 
             for (const entry of cards as Data.Entry[])
             {
-                const countUpEntryElement = [...selectedSection.querySelectorAll("my-entry") as NodeListOf<EntryElement>].first(x => x.card.name == entry.name);
+                const countUpEntryElement = [...selectedSection.querySelectorAll("my-entry") as NodeListOf<EntryElement>].first(x => x.title == entry.name);
                 if (countUpEntryElement)
                 {
                     const input = countUpEntryElement.querySelector(".quantity") as HTMLInputElement;
@@ -228,12 +228,7 @@ namespace Views.Workbench
             return section;
         }
         else if (element instanceof EntryElement)
-        {
-            const entry = JSON.clone(element.card) as Data.Entry;
-            entry.quantity = element.quantity;
-            if (element.comment) entry.comment = element.comment;
-            return entry;
-        }
+            return JSON.clone(element.entry) as Data.Entry;
 
         throw new DataError("Don't know how to handle this element: " + element.className + "!", { element });
     }

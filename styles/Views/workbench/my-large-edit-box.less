@@ -1,5 +1,7 @@
 my-large-edit-box:not(.disabled)
 {
+    cursor: pointer;
+
     > span
     {
         display: -webkit-box;
@@ -17,14 +19,14 @@ my-large-edit-box:not(.disabled)
 
     &:hover
     {
-        color: var(--accent-color);
+        color: var(--highlight-color);
 
         &::after
         {
             display: block;
             position: absolute;
             top: 0;
-            left: -1em;
+            right: 0;
             aspect-ratio: 1;
             height: 1em;
             background: center / contain url("img/icons/edit.svg");

@@ -8,14 +8,8 @@ namespace Views.Workbench
 
             this.classList.add("card-container");
 
-            const card = JSON.clone(entry);
-            delete card.quantity;
-            delete card.comment;
-
-            this.title = card.name;
-            this.card = card;
-            this.quantity = entry.quantity;
-            this.comment = entry.comment;
+            this.title = entry.name;
+            this.entry = JSON.clone(entry);
 
             this.append(...this.build());
 
@@ -35,26 +29,30 @@ namespace Views.Workbench
         private build()
         {
             return [
-                <input class="quantity" type="number" value={ this.quantity } min="1" max="99" step="1" onchange={ this.quantityChange.bind(this) } draggable={ true } ondragstart={ preventDrag } />,
+                <input class="quantity" type="number" value={ this.entry.quantity } min="1" max="99" step="1" onchange={ this.quantityChange.bind(this) } draggable={ true } ondragstart={ preventDrag } />,
                 <div class="move-actions">
                     <a class="up-button" onclick={ this.moveUp.bind(this) }><color-icon src="img/icons/chevron-up.svg" /></a>
                     <a class="down-button" onclick={ this.moveDown.bind(this) }><color-icon src="img/icons/chevron-down.svg" /></a>
                 </div>,
-                <span class="name">{ this.card.name }</span>,
-                <span class="type">{ this.card.type.card.join(" ") }</span>,
-                <span class="mana" innerHTML={ parseSymbolText(this.card.manaCost) } />,
+                <span class="name">{ this.entry.name }</span>,
+                <span class="type">{ this.entry.type.card.join(" ") }</span>,
+                <span class="mana" innerHTML={ parseSymbolText(this.entry.manaCost) } />,
                 <div class="card-actions">
                     <a class="commander-button" onclick={ this.setAsCommander.bind(this) }><color-icon src="img/icons/helmet.svg" /></a>
                     <a class="delete-button" onclick={ this.delete.bind(this) }><color-icon src="img/icons/delete.svg" /></a>
                     <a class="move-to-button" onclick={ this.moveTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /></a>
                 </div>,
-                <div class={ ["image", "card"] }><img src="img/card-back.png" lazy-image={ this.card.img } /></div>,
+                <div class={ ["image", "card"] }><img src="img/card-back.png" lazy-image={ this.entry.img } /></div>,
             ];
         }
 
-        public card: Data.API.Card;
-        public quantity: number;
-        public comment: string;
+        public entry: Data.Entry;
+
+        public get quantity(): number { return this.entry.quantity; }
+        public set quantity(value: number) { this.entry.quantity = value; }
+
+        public get comment(): string { return this.entry.comment; }
+        public set comment(value: string) { this.entry.comment = value; }
 
         public get selected() { return this.classList.contains("selected"); }
         public set selected(value: boolean)
@@ -63,7 +61,7 @@ namespace Views.Workbench
 
             if (value)
             {
-                const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: this.card } });
+                const selectedEvent = new CustomEvent("cardselected", { bubbles: true, detail: { card: this.entry } });
                 this.dispatchEvent(selectedEvent);
             }
         }
@@ -156,7 +154,7 @@ namespace Views.Workbench
 
         private enter(event: MouseEvent)
         {
-            const selectedEvent = new CustomEvent("cardhovered", { bubbles: true, detail: { card: this.card } });
+            const selectedEvent = new CustomEvent("cardhovered", { bubbles: true, detail: { card: this.entry } });
             this.dispatchEvent(selectedEvent);
         }
 

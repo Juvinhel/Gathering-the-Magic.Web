@@ -24,6 +24,7 @@ namespace Views.Info
                 </div>,
                 <span class="card-types" />,
                 <p class="card-text" />,
+                <span class="comment" ondblclick={ this.editComment.bind(this) } />,
                 <div class="legalities" />,
                 <ul class="links" />,
                 <div class="in-collections" >
@@ -48,6 +49,19 @@ namespace Views.Info
             cardLink.href = primaryLink;
             const cardImage = this.querySelector(".card-image") as HTMLAnchorElement;
             cardImage.classList.toggle("empty", card == null);
+
+            const commentSpan = this.querySelector(".comment") as HTMLSpanElement;
+            console.log(card);
+            if (card && "quantity" in card)
+                // is entry
+                commentSpan.style.visibility = "visible";
+            else
+                commentSpan.style.visibility = null;
+
+            if (card && "comment" in card)
+                commentSpan.textContent = card.comment as string;
+            else
+                commentSpan.textContent = "";
 
             this.showCard(card?.isTransform ? card.faces[0] : card);
 
@@ -148,6 +162,16 @@ namespace Views.Info
             const target = event.currentTarget as HTMLElement;
             const src = target.querySelector("img").src;
             if (src) UI.Dialog.lightBox({ pages: [{ content: src }] });
+        }
+
+        private async editComment(event: Event)
+        {
+            if (this.currentCard && "quantity" in this.currentCard)
+            {
+                const entry = this.currentCard as Data.Entry;
+                const text = await Dialogs.TextEdit("Edit Comment", entry.comment);
+                entry.comment = text?.trim() ?? null;
+            }
         }
     }
 
