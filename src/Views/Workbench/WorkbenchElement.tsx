@@ -23,7 +23,7 @@ namespace Views.Workbench
         {
             return [<div class="header">
                 <label>Name:</label><EditBoxElement class="deck-name" />
-                <label>Description:</label><EditBoxElement class="deck-description" />
+                <label>Description:</label><LargeEditBoxElement class="deck-description" />
                 <label>Commanders:</label><CommanderList />
                 <label>Tags:</label><TagListElement class="deck-tag-list" />
                 <label>Cards:</label><span class="deck-card-count" />

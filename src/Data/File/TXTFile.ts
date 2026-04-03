@@ -41,7 +41,7 @@ namespace Data.File
             let text = "";
             for (const entry of main.sortBy(x => x.name))
                 text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
-            if (side)
+            if (side && side.length > 0)
             {
                 text += "\r\n";
                 text += "Sideboard\r\n";

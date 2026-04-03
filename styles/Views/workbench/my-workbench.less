@@ -19,9 +19,9 @@ my-workbench
     {
         z-index: 100000;
         position: sticky;
+        anchor-name: --section-stick-top;
         top: 0;
         grid-area: header;
-        anchor-name: --section-stick-top;
     }
 
     > .list
@@ -39,6 +39,10 @@ my-workbench
         display: grid;
         z-index: 100000;
         position: fixed;
+        position-anchor: --section-stick-top;
+        top: anchor(bottom);
+        right: anchor(right);
+        left: anchor(left);
         grid-template-columns: 1fr;
         grid-auto-rows: max-content;
         grid-auto-flow: row;
@@ -48,10 +52,6 @@ my-workbench
         gap: 0.25em;
         border-radius: var(--corner-radius);
         background-color: var(--page-background-color);
-        position-anchor: --section-stick-top;
-        top: anchor(bottom);
-        right: anchor(right);
-        left: anchor(left);
 
         > *:nth-child(2)
         {
@@ -85,7 +85,7 @@ my-workbench > .header
     display: grid;
     grid-template-columns: max-content 1fr;
     grid-auto-rows: auto;
-    align-items: center;
+    align-items: baseline;
     justify-items: start;
     gap: 0.5em;
     background-color: var(--page-background-color);

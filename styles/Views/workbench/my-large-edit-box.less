@@ -1,0 +1,35 @@
+my-large-edit-box:not(.disabled)
+{
+    > span
+    {
+        display: -webkit-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: pre;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+    }
+
+    > input
+    {
+        width: 100%;
+    }
+
+    &:hover
+    {
+        color: var(--accent-color);
+
+        &::after
+        {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: -1em;
+            aspect-ratio: 1;
+            height: 1em;
+            background: center / contain url("img/icons/edit.svg");
+            content: "";
+            filter: brightness(0) invert(1);
+        }
+    }
+}

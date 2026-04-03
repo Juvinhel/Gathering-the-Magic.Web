@@ -28,6 +28,7 @@ namespace Views.Workbench
                 <menu-button title="Move Line to ..." onclick={ this.moveTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Move Line to ...</span></menu-button>,
                 <menu-button title="Delete Line" onclick={ this.delete.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Delete Line</span></menu-button>,
                 <menu-button title="Set as Commander" onclick={ this.setAsCommander.bind(this) }><color-icon src="img/icons/helmet.svg" /><span>Set as Commander</span></menu-button>,
+                <menu-button title="Edit Comment" onclick={ editComment.bind(this) }><color-icon src="img/icons/helmet.svg" /><span>Edit Comment</span></menu-button>,
                 <menu-button title="Scryfall" onclick={ () => window.open(this.card.links.Scryfall, '_blank') }><color-icon src="img/icons/scryfall-black.svg" /><span>Scryfall</span></menu-button>,
                 this.card.links.EDHREC ? <menu-button title="EDHREC" onclick={ () => window.open(this.card.links.EDHREC, '_blank') }><color-icon src="img/icons/edhrec.svg" /><span>EDHREC</span></menu-button> : null,
             );
@@ -39,6 +40,7 @@ namespace Views.Workbench
                     <menu-button title="Move Section Lines to ..." onclick={ this.moveTo.bind(this) }><color-icon src="img/icons/arrow-right.svg" /><span>Move Section Lines to ...</span></menu-button>,
                     <menu-button title="Clear Section Lines" onclick={ this.clear.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Clear Section Lines</span></menu-button>,
                     <menu-button title="Add Section" onclick={ this.addSection.bind(this) }><color-icon src="img/icons/unlink.svg" /><span>Add Section</span></menu-button>,
+                    <menu-button title="Edit Comment" onclick={ editComment.bind(this) }><color-icon src="img/icons/helmet.svg" /><span>Edit Comment</span></menu-button>,
                     <hr />,
                     <menu-button title="Sort Section Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Name</span></menu-button>,
                     <menu-button title="Sort Section Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Mana</span></menu-button>,
@@ -68,6 +70,7 @@ namespace Views.Workbench
                     <menu-button title="Clear Section Lines" onclick={ this.clear.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Clear Section</span></menu-button>,
                     <menu-button title="Dissolve Section and move Lines to Parent Section" onclick={ this.dissolve.bind(this) }><color-icon src="img/icons/add-section.svg" /><span>Dissolve Section</span></menu-button>,
                     <menu-button title="Add Section" onclick={ this.addSection.bind(this) }><color-icon src="img/icons/unlink.svg" /><span>Add Section</span></menu-button>,
+                    <menu-button title="Edit Comment" onclick={ editComment.bind(this) }><color-icon src="img/icons/helmet.svg" /><span>Edit Comment</span></menu-button>,
                     <hr />,
                     <menu-button title="Sort Section Lines by Name" onclick={ sortByName.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Name</span></menu-button>,
                     <menu-button title="Sort Section Lines by Mana" onclick={ sortByMana.bind(this) }><color-icon src="img/icons/sort.svg" /><span>Sort Section Lines by Mana</span></menu-button>,
@@ -263,5 +266,11 @@ namespace Views.Workbench
             const match = (exclusive ? element.card.type.card.length == 1 : true) && element.card.type.card.includes(type);
             element.selected = match;
         }
+    }
+
+    async function editComment(this: SectionElement | EntryElement)
+    {
+        const text = await Dialogs.TextEdit("Edit Comment", this.comment);
+        this.comment = text?.trim() ?? null;
     }
 }
