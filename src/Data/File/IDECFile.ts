@@ -11,7 +11,12 @@ namespace Data.File
             let ret = "";
             ret += "name: " + deck.name + "\r\n";
             if (deck.description)
-                ret += "description: " + deck.description + "\r\n";
+            {
+                const lines = deck.description.splitLines();
+                ret += "description: " + lines[0] + "\r\n";
+                for (const line of lines.skip(1))
+                    ret += "# " + line + "\r\n";
+            }
             if (deck.commanders && deck.commanders.length > 0)
             {
                 ret += "commanders: " + "\r\n";
@@ -66,7 +71,12 @@ namespace Data.File
             ret.name = nameField.value;
 
             const descriptionField = getProperty(result, "description");
-            if (descriptionField && descriptionField.value) ret.description = descriptionField.value;
+            if (descriptionField && descriptionField.value)
+            {
+                ret.description = descriptionField.value;
+                for (const comment of result.tokens.filter(t => t.type == "comment"))
+                    ret.description += "\r\n" + comment.text;
+            }
 
             const commandersField = getProperty(result, "commanders");
             if (commandersField && commandersField.tokens.filter(x => x.type == "item").length) ret.commanders = commandersField.tokens.filter(x => x.type == "item").map(x => x.text);
