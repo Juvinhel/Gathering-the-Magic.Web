@@ -14,7 +14,7 @@ namespace Data.File
         return { format: file.name, text: await file.save(deck) };
     }
 
-    export async function loadDeck(text: string, format: string | File<Deck> = "YAML"): Promise<Deck>
+    export async function loadDeck(text: string, format: string | File<Deck> = "YAML", full: boolean = true): Promise<Deck>
     {
         text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
 
@@ -25,6 +25,7 @@ namespace Data.File
             file = format;
 
         const deck = await file.load(text);
+        if (full) await populateEntriesFromIdentifiers(deck);
 
         return deck;
     }

@@ -95,8 +95,6 @@ namespace Data.File
                 }
             }
 
-            await populateEntriesFromIdentifiers(deck);
-
             return deck;
         }
 

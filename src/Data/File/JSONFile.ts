@@ -16,7 +16,6 @@ namespace Data.File
         {
             text = text.replaceAll(/(?:\r\n|\r|\n)/, "");
             const deck = JSON.parse(text);
-            await populateEntriesFromIdentifiers(deck);
             return deck;
         }
 

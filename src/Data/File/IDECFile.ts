@@ -96,8 +96,6 @@ namespace Data.File
             if (maybeField) ret.sections.push(this.loadSection(maybeField) as any);
             else ret.sections.push({ title: "maybe", items: [] });
 
-            await populateEntriesFromIdentifiers(ret);
-
             return ret as Deck;
         }
 

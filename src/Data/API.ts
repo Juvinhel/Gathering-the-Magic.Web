@@ -187,6 +187,7 @@ namespace Data.API
             no: scryfallCard.collector_number,
 
             img: getImageURI(scryfallCard.image_uris),
+            imgCrop: scryfallCard.image_uris?.art_crop,
             manaCost: scryfallCard.mana_cost,
             manaValue: scryfallCard.cmc,
 
@@ -323,6 +324,7 @@ namespace Data.API
         no: string;
 
         img: string;
+        imgCrop?: string;
         manaCost: string;
         manaValue: number;
         typeLine: string;

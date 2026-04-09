@@ -1,21 +1,11 @@
 class App
 {
-    public static async Start(args?: {
-        library?: boolean,
-        workbench?: boolean;
-    })
+    public static async StartEditor(args?: { library?: boolean, workbench?: boolean; })
     {
+        await this.init();
+
         const useLibrary = args?.library ?? true;
         const useWorkbench = args?.workbench ?? true;
-
-        [this.config, , this.symbols, this.types, this.sets, this.keywords] = await Promise.all([
-            Data.loadConfig(),
-            Data.API.init(),
-            Data.API.symbology(),
-            Data.API.typology(),
-            Data.API.sets(),
-            Data.API.keywords(),
-        ]);
 
         this.collections = JSON.parse(localStorage.getItem("collections"), (key: string, value: any) =>
         {
@@ -33,10 +23,6 @@ class App
 
         document.body.style.setProperty("--card-size", App.config.cardSize == "Large" ? "14em" : "8em");
 
-        initChartJS();
-        UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
-        UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
-        UI.LazyLoad.Start();
         Views.initGlobalDrag();
 
         window.addEventListener("mousemove", (event: MouseEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
@@ -63,6 +49,31 @@ class App
             const unsavedProgress = document.body.querySelector(".unsaved-progress") as HTMLElement;
             unsavedProgress.classList.toggle("none", true);
         }
+    }
+
+    public static async StartShelve()
+    {
+        await this.init();
+
+        const shelve = new Views.Shelve.ShelveElement();
+        document.querySelector("main").append(shelve);
+    }
+
+    private static async init()
+    {
+        [this.config, , this.symbols, this.types, this.sets, this.keywords] = await Promise.all([
+            Data.loadConfig(),
+            Data.API.init(),
+            Data.API.symbology(),
+            Data.API.typology(),
+            Data.API.sets(),
+            Data.API.keywords(),
+        ]);
+
+        initChartJS();
+        UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
+        UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
+        UI.LazyLoad.Start();
     }
 
     private static visibilityChange = function (this: typeof App, event: Event)

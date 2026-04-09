@@ -134,8 +134,6 @@ namespace Data.File
                 for (const tagElement of tagsElement.getElementsByTagName("tag"))
                     deck.tags.push(tagElement.textContent);
 
-            await populateEntriesFromIdentifiers(deck);
-
             return deck;
         }
     }();
