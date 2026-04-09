@@ -462,6 +462,96 @@ DOMTokenList.prototype.any = function (func) {
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+class DirectoryListing {
+    constructor(url) {
+        this.root = url;
+    }
+    root;
+    urls;
+    done;
+    async *scan() {
+        this.urls = new LinkedStack();
+        this.urls.unshift(this.root);
+        this.done = new LinkedStack();
+        while (this.urls.length) {
+            const current = this.urls.shift();
+            this.done.unshift(current);
+            try {
+                const { folders, files } = await this.scanFolder(current);
+                this.urls.unshift(...folders);
+                for (const folder of folders)
+                    yield folder + "/";
+                for (const file of files)
+                    yield file;
+            }
+            catch { }
+        }
+    }
+    async scanFolder(url) {
+        const folders = [];
+        const files = [];
+        try {
+            const response = await fetch(url + "/"); // folders end with /
+            const text = await response.text();
+            const parser = new DOMParser();
+            const html = parser.parseFromString(text, "text/html");
+            const links = html.querySelectorAll("a");
+            for (const link of links) {
+                const href = new URL(link.getAttribute("href"), url).toString().trimRight("/"); // make rooted based on url
+                if (!href.startsWith(this.root))
+                    continue;
+                if (this.done.includes(href))
+                    continue;
+                if (link.getAttribute("href").endsWith("/")) // check untrimmed url
+                 { // IIS
+                    folders.push(href);
+                    continue;
+                }
+                if (link.classList.values().some(c => c.includes("directory"))) { // Live Server
+                    folders.push(href);
+                    continue;
+                }
+                files.push(href);
+            }
+        }
+        catch (exception) {
+            console.log(exception);
+        }
+        return { folders, files };
+    }
+}
+class LinkedStack {
+    constructor() { }
+    firstNode;
+    length = 0;
+    unshift(...items) {
+        for (let i = items.length - 1; i >= 0; --i)
+            this.singleUnshift(items[i]);
+    }
+    singleUnshift(item) {
+        this.firstNode = { value: item, next: this.firstNode };
+        ++this.length;
+    }
+    shift() {
+        const item = this.firstNode.value;
+        this.firstNode = this.firstNode.next;
+        --this.length;
+        return item;
+    }
+    includes(item) {
+        for (const i of this)
+            if (i == item)
+                return true;
+        return false;
+    }
+    *[Symbol.iterator]() {
+        let current = this.firstNode;
+        while (current?.value) {
+            yield current.value;
+            current = current.next;
+        }
+    }
+}
 class DownloadHelper {
     static downloadData(fileName, data, mimetype) {
         if (data instanceof String)
@@ -8418,17 +8508,10 @@ var UI;
 })(UI || (UI = {}));
 ;
 class App {
-    static async Start(args) {
+    static async StartEditor(args) {
+        await this.init();
         const useLibrary = args?.library ?? true;
         const useWorkbench = args?.workbench ?? true;
-        [this.config, , this.symbols, this.types, this.sets, this.keywords] = await Promise.all([
-            Data.loadConfig(),
-            Data.API.init(),
-            Data.API.symbology(),
-            Data.API.typology(),
-            Data.API.sets(),
-            Data.API.keywords(),
-        ]);
         this.collections = JSON.parse(localStorage.getItem("collections"), (key, value) => {
             if (key == "importDate")
                 return new Date(value);
@@ -8441,10 +8524,6 @@ class App {
                     this.collections[collection.name] = collection;
         }
         document.body.style.setProperty("--card-size", App.config.cardSize == "Large" ? "14em" : "8em");
-        initChartJS();
-        UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
-        UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
-        UI.LazyLoad.Start();
         Views.initGlobalDrag();
         window.addEventListener("mousemove", (event) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
         window.addEventListener("keydown", (event) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
@@ -8463,6 +8542,25 @@ class App {
             const unsavedProgress = document.body.querySelector(".unsaved-progress");
             unsavedProgress.classList.toggle("none", true);
         }
+    }
+    static async StartShelve() {
+        await this.init();
+        const shelve = new Views.Shelve.ShelveElement();
+        document.querySelector("main").append(shelve);
+    }
+    static async init() {
+        [this.config, , this.symbols, this.types, this.sets, this.keywords] = await Promise.all([
+            Data.loadConfig(),
+            Data.API.init(),
+            Data.API.symbology(),
+            Data.API.typology(),
+            Data.API.sets(),
+            Data.API.keywords(),
+        ]);
+        initChartJS();
+        UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
+        UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
+        UI.LazyLoad.Start();
     }
     static visibilityChange = function (event) {
         if (document.visibilityState == "hidden") {
@@ -8706,6 +8804,7 @@ var Data;
                 set: scryfallCard.set,
                 no: scryfallCard.collector_number,
                 img: getImageURI(scryfallCard.image_uris),
+                imgCrop: scryfallCard.image_uris?.art_crop,
                 manaCost: scryfallCard.mana_cost,
                 manaValue: scryfallCard.cmc,
                 typeLine: scryfallCard.type_line,
@@ -9132,7 +9231,7 @@ var Data;
             return { format: file.name, text: await file.save(deck) };
         }
         File.saveDeck = saveDeck;
-        async function loadDeck(text, format = "YAML") {
+        async function loadDeck(text, format = "YAML", full = true) {
             text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
             let file;
             if (typeof format == "string")
@@ -9140,6 +9239,8 @@ var Data;
             else
                 file = format;
             const deck = await file.load(text);
+            if (full)
+                await populateEntriesFromIdentifiers(deck);
             return deck;
         }
         File.loadDeck = loadDeck;
@@ -9265,7 +9366,6 @@ var Data;
                 if (tagsElement)
                     for (const tagElement of tagsElement.getElementsByTagName("tag"))
                         deck.tags.push(tagElement.textContent);
-                await File.populateEntriesFromIdentifiers(deck);
                 return deck;
             }
         }();
@@ -9426,7 +9526,6 @@ var Data;
                         }
                     }
                 }
-                await File.populateEntriesFromIdentifiers(deck);
                 return deck;
             }
         }();
@@ -9520,7 +9619,6 @@ var Data;
                     ret.sections.push(this.loadSection(maybeField));
                 else
                     ret.sections.push({ title: "maybe", items: [] });
-                await File.populateEntriesFromIdentifiers(ret);
                 return ret;
             }
             sectionRegex = /^\s*(?<title>[^:]+)\s*:\s*$/;
@@ -9624,7 +9722,6 @@ var Data;
             async load(text) {
                 text = text.replaceAll(/(?:\r\n|\r|\n)/, "");
                 const deck = JSON.parse(text);
-                await File.populateEntriesFromIdentifiers(deck);
                 return deck;
             }
             removeExtendData(deck) {
@@ -9735,7 +9832,6 @@ var Data;
                             sideSection.items.push(entry);
                     }
                 }
-                await File.populateEntriesFromIdentifiers(deck);
                 return deck;
             }
             lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^#]+)\s*$/;
@@ -9822,7 +9918,6 @@ var Data;
                     if (maybe)
                         deck.sections.first(x => x.title == "maybe").items = maybe.map(this.createItem);
                 }
-                await File.populateEntriesFromIdentifiers(deck);
                 return deck;
             }
             createItem = function (item) {
@@ -9842,6 +9937,237 @@ var Data;
         }();
         File.deckFileFormats.push(File.YAMLFile);
     })(File = Data.File || (Data.File = {}));
+})(Data || (Data = {}));
+var Data;
+(function (Data) {
+    var Repository;
+    (function (Repository) {
+        async function loadRepository(url) {
+            const builder = new Builder(url);
+            return await builder.run();
+        }
+        Repository.loadRepository = loadRepository;
+        class Builder {
+            constructor(url) {
+                this.url = url ?? "repository";
+                if (!(this.url.startsWith("http://") || this.url.startsWith("https://")))
+                    this.url = new URL(this.url, location.toString()).toString();
+            }
+            url;
+            allowedExtensions = Data.File.deckFileFormats.mapMany(x => x.extensions);
+            repository;
+            progressDialog;
+            async run() {
+                this.repository = { parent: null, name: "", url: this.url, folders: [], files: [] };
+                this.progressDialog = await UI.Dialog.progress({ title: "Loading Repository", displayType: "Absolute", max: 0, value: 0 });
+                try {
+                    const response = await fetch(this.url + "/repository.json");
+                    if (response.ok) {
+                        const text = await this.loadFileWithProgress(response);
+                        await this.loadFromJSON(text);
+                    }
+                    else {
+                        const response = await fetch(this.url + "/listing.txt");
+                        let list;
+                        if (response.ok) {
+                            const text = await this.loadFileWithProgress(response);
+                            list = text.replaceAll(/(?:\r\n|\r|\n)/, "\n").split("\n").filter(p => p && p.trimChar("/").includes("/"));
+                        }
+                        else
+                            list = await this.getFileList();
+                        await this.loadFromFileList(list);
+                    }
+                }
+                catch (error) {
+                    console.error(error);
+                }
+                this.progressDialog.close();
+                return this.repository;
+            }
+            async loadFileWithProgress(response) {
+                this.progressDialog.title = "Downloading Repository File";
+                this.progressDialog.value = 0;
+                this.progressDialog.max = parseInt(response.headers.get("content-length"), 10) || 0;
+                let received = 0;
+                const reader = response.body.getReader();
+                const chunks = [];
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done)
+                        break;
+                    chunks.push(value);
+                    received += value.length;
+                    this.progressDialog.value = received;
+                }
+                // combine chunks
+                let chunksAll = new Uint8Array(received);
+                let position = 0;
+                for (let chunk of chunks) {
+                    chunksAll.set(chunk, position);
+                    position += chunk.length;
+                }
+                await delay(0); //allow ui update
+                let text = new TextDecoder("utf-8").decode(chunksAll);
+                return text;
+            }
+            async loadFromJSON(text) {
+                this.progressDialog.title = "Parsing Repository File";
+                this.progressDialog.value = 0;
+                this.progressDialog.max = 0;
+                const start = Date.now();
+                const folders = JSON.parse(text);
+                const end = Date.now();
+                const elapsed = end - start;
+                console.log("parsed: ", elapsed / 1000);
+                for (const folder of folders)
+                    this.setParents(folder);
+                const end2 = Date.now();
+                const elapsed2 = end2 - end;
+                console.log("setParents: ", elapsed2 / 1000);
+                this.repository.folders.push(...folders);
+            }
+            setParents(folder) {
+                folder.files ??= [];
+                for (const file of folder.files)
+                    file.parent = folder;
+                folder.folders ??= [];
+                for (const subFolder of folder.folders) {
+                    subFolder.parent = folder;
+                    this.setParents(subFolder);
+                }
+            }
+            async getFileList() {
+                let list = [];
+                const directoryListing = new DirectoryListing(this.url);
+                for await (const file of directoryListing.scan()) {
+                    if (file.endsWith("/"))
+                        continue; // is folder
+                    list.push(file);
+                    this.progressDialog.max = list.length;
+                }
+                return list;
+            }
+            async loadFromFileList(list) {
+                this.progressDialog.title = "Building Repository";
+                this.progressDialog.max = list.length;
+                list = list.map(p => new URL(p, this.url).toString());
+                let i = 0;
+                const updateInterval = Repository.calculateUpdateInterval(list.length);
+                for (const file of list) {
+                    this.insertFile(file);
+                    ++i;
+                    if (i % updateInterval == 0) {
+                        this.progressDialog.value = i;
+                        await delay(0); // allow ui upates
+                    }
+                }
+                this.progressDialog.value = i;
+            }
+            insertFile(url) {
+                const filePath = decodeURI(url.substring(this.url.length).trimChar("/"));
+                if (!filePath.includes("/"))
+                    return; // Files in root folder are ignored.
+                let [path, fileName] = filePath.splitLast("/");
+                const [name, extension] = fileName.splitLast(".");
+                if (!extension || !this.allowedExtensions.includes(extension))
+                    return;
+                const file = { parent: null, name, extension, url, };
+                const folder = this.getOrCreateFolder(this.repository, path, 1);
+                folder.files.push(file);
+                file.parent = folder;
+            }
+            getOrCreateFolder(parent, path, depth) {
+                let current;
+                let remaining;
+                [current, remaining] = path.splitFirst("/");
+                let folder = parent.folders.first(x => String.localeCompare(x.name, current) == 0);
+                if (!folder) {
+                    folder = { name: current, folders: [], files: [], parent, url: parent.url + "/" + current };
+                    parent.folders.push(folder);
+                }
+                if (remaining)
+                    return this.getOrCreateFolder(folder, remaining, depth + 1);
+                return folder;
+            }
+        }
+        Repository.Builder = Builder;
+    })(Repository = Data.Repository || (Data.Repository = {}));
+})(Data || (Data = {}));
+var Data;
+(function (Data) {
+    var Repository;
+    (function (Repository) {
+        function calculateUpdateInterval(itemCount) {
+            let zeroes = itemCount.toFixed(0).length - 3;
+            if (zeroes < 0)
+                zeroes = 0;
+            return parseInt("1" + "0".repeat(zeroes));
+        }
+        Repository.calculateUpdateInterval = calculateUpdateInterval;
+    })(Repository = Data.Repository || (Data.Repository = {}));
+})(Data || (Data = {}));
+var Data;
+(function (Data) {
+    var Repository;
+    (function (Repository) {
+        class LinkedStack {
+            constructor() {
+            }
+            firstNode;
+            length = 0;
+            unshift(...items) {
+                for (let i = items.length - 1; i >= 0; --i)
+                    this.singleUnshift(items[i]);
+            }
+            singleUnshift(item) {
+                this.firstNode = { value: item, next: this.firstNode };
+                ++this.length;
+            }
+            shift() {
+                const item = this.firstNode.value;
+                this.firstNode = this.firstNode.next;
+                --this.length;
+                return item;
+            }
+            includes(item) {
+                for (const i of this)
+                    if (i == item)
+                        return true;
+                return false;
+            }
+            *[Symbol.iterator]() {
+                let current = this.firstNode;
+                while (current?.value) {
+                    yield current.value;
+                    current = current.next;
+                }
+            }
+        }
+        Repository.LinkedStack = LinkedStack;
+    })(Repository = Data.Repository || (Data.Repository = {}));
+})(Data || (Data = {}));
+var Data;
+(function (Data) {
+    var Repository;
+    (function (Repository) {
+        function* findFiles(folder) {
+            for (const file of folder.files) {
+                file.parent = folder;
+                yield file;
+            }
+            for (const subfolder of folder.folders)
+                for (const file of findFiles(subfolder))
+                    yield file;
+        }
+        Repository.findFiles = findFiles;
+        function findRoot(folderOrFile) {
+            let current = "folders" in folderOrFile ? folderOrFile : folderOrFile.parent;
+            while (current.parent)
+                current = current.parent;
+            return current;
+        }
+        Repository.findRoot = findRoot;
+    })(Repository = Data.Repository || (Data.Repository = {}));
 })(Data || (Data = {}));
 var Data;
 (function (Data) {
@@ -12403,6 +12729,92 @@ var Views;
             customElements.define("my-type-input", TypeInputElement);
         })(Search = Library.Search || (Library.Search = {}));
     })(Library = Views.Library || (Views.Library = {}));
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Shelve;
+    (function (Shelve) {
+        class ShelveElement extends HTMLElement {
+            constructor() {
+                super();
+                this.append(...this.build());
+            }
+            folderListElement;
+            deckListElement;
+            build() {
+                return [
+                    UI.Generator.Hyperscript("h1", null, "Shelve"),
+                    UI.Generator.Hyperscript("div", null,
+                        this.folderListElement = UI.Generator.Hyperscript("div", { class: "folder-list" }),
+                        this.deckListElement = UI.Generator.Hyperscript("div", { class: "deck-list" }))
+                ];
+            }
+            rootFolder;
+            async connectedCallback() {
+                this.rootFolder = await Data.Repository.loadRepository("/repository");
+                this.loadFolder(this.rootFolder.folders.first(x => x.name.equals("decks", false)) ?? this.rootFolder);
+            }
+            async loadFolder(folder) {
+                this.folderListElement.clearChildren();
+                this.deckListElement.clearChildren();
+                if (folder != this.rootFolder)
+                    this.folderListElement.append(this.buildFolder("...", this.rootFolder));
+                if (folder.parent)
+                    this.folderListElement.append(this.buildFolder("..", folder.parent));
+                for (const subFolder of folder.folders)
+                    this.folderListElement.append(this.buildFolder(subFolder.name, subFolder));
+                for (const file of folder.files) {
+                    const response = await fetch(file.url);
+                    const text = await response.text();
+                    const deck = await Data.File.loadDeck(text, file.extension, false);
+                    const tile = this.buildDeck(file, deck);
+                    this.deckListElement.append(tile);
+                }
+                await this.lazyLoad([...this.querySelectorAll("a.deck")]);
+            }
+            async lazyLoad(tiles) {
+                if (!tiles || tiles.length == 0)
+                    return;
+                const cards = await Data.API.getCards(tiles.map(t => {
+                    let deck = t["deck"];
+                    let card = deck.commanders?.first();
+                    if (!card)
+                        card = Data.collapse(deck)?.[0]?.name;
+                    if (!card)
+                        card = "Plains";
+                    return { name: card };
+                }));
+                for (let i = 0; i < tiles.length; ++i) {
+                    const tile = tiles[i];
+                    const card = cards[i];
+                    const img = tile.querySelector("img");
+                    img.src = card.imgCrop;
+                }
+            }
+            buildFolder(title, folder) {
+                return UI.Generator.Hyperscript("a", { class: "folder", title: folder.name, onclick: () => this.loadFolder(folder) },
+                    UI.Generator.Hyperscript("img", { src: "img/icons/folder.svg" }),
+                    UI.Generator.Hyperscript("span", null, title));
+            }
+            buildDeck(file, deck) {
+                return UI.Generator.Hyperscript("a", { class: "deck", deck: deck, file: file, title: deck.name, onrightclick: this.showContextMenu.bind(this) },
+                    UI.Generator.Hyperscript("img", null),
+                    UI.Generator.Hyperscript("span", null, deck.name));
+            }
+            showContextMenu(event) {
+                const sender = event.currentTarget;
+                const deck = sender["deck"];
+                UI.ContextMenu.show(event, UI.Generator.Hyperscript("menu-button", { title: "Copy TXT", onclick: async () => {
+                        const file = await Data.File.saveDeck(deck, Data.File.TXTFile);
+                        navigator.clipboard.writeText(file.text);
+                    } },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/clipboard.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Copy TXT")));
+            }
+        }
+        Shelve.ShelveElement = ShelveElement;
+        customElements.define("my-shelve", ShelveElement);
+    })(Shelve = Views.Shelve || (Views.Shelve = {}));
 })(Views || (Views = {}));
 var Views;
 (function (Views) {
