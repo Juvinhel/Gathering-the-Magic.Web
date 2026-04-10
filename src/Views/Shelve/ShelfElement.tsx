@@ -1,6 +1,6 @@
-namespace Views.Shelve
+namespace Views.Shelf
 {
-    export class ShelveElement extends HTMLElement
+    export class ShelfElement extends HTMLElement
     {
         constructor ()
         {
@@ -17,7 +17,7 @@ namespace Views.Shelve
         private build()
         {
             return [
-                <h1>Shelve</h1>,
+                <h1>Shelf</h1>,
                 <div>
                     { this.folderListElement = <div class="folder-list" /> as HTMLDivElement }
                     { this.fileListElement = <div class="file-list" /> as HTMLDivElement }
@@ -186,5 +186,5 @@ namespace Views.Shelve
         }
     }
 
-    customElements.define("my-shelve", ShelveElement);
+    customElements.define("my-shelf", ShelfElement);
 }

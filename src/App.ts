@@ -51,12 +51,12 @@ class App
         }
     }
 
-    public static async StartShelve()
+    public static async StartShelf()
     {
         await this.init();
 
-        const shelve = new Views.Shelve.ShelveElement();
-        document.querySelector("main").append(shelve);
+        const shelf = new Views.Shelf.ShelfElement();
+        document.querySelector("main").append(shelf);
     }
 
     private static async init()
