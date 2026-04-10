@@ -6,6 +6,8 @@ namespace Views.Shelve
         {
             super();
 
+            this.root = new URL("/repository", location.toString()).toString();
+
             this.append(...this.build());
         }
 
@@ -23,36 +25,59 @@ namespace Views.Shelve
             ];
         }
 
-        public rootFolder: Data.Repository.Folder;
+        public root: string;
         async connectedCallback()
         {
-            this.rootFolder = await Data.Repository.loadRepository("/repository");
-
-            this.loadFolder(this.rootFolder.folders.first(x => x.name.equals("decks", false)) ?? this.rootFolder);
+            this.loadFolder(this.root);
         }
 
-        private async loadFolder(folder: Data.Repository.Folder)
+        private deckExtensions: string[] = Data.File.deckFileFormats.mapMany(x => x.extensions);
+        private collectionsExtensions: string[] = Data.File.collectionFileFormats.mapMany(x => x.extensions);
+
+        private async loadFolder(url: string)
         {
+            url = new URL(url, location.toString()).toString();
             this.folderListElement.clearChildren();
             this.deckListElement.clearChildren();
+            const currentDepth = url.split("/").length - 1;
 
-            if (folder != this.rootFolder)
-                this.folderListElement.append(this.buildFolder("...", this.rootFolder));
-
-            if (folder.parent)
-                this.folderListElement.append(this.buildFolder("..", folder.parent));
-
-            for (const subFolder of folder.folders)
-                this.folderListElement.append(this.buildFolder(subFolder.name, subFolder));
-
-            for (const file of folder.files)
+            for (let href of (await DirectoryListing.scan(url)).orderBy(x => x))
             {
-                const response = await fetch(file.url);
-                const text = await response.text();
-                const deck = await Data.File.loadDeck(text, file.extension, false);
-                const tile = this.buildDeck(file, deck) as HTMLAnchorElement;
-                this.deckListElement.append(tile);
+                if (href.endsWith("/"))
+                {   // is folder
+                    href = href.trimRight("/");
+                    const depth = href.split("/").length - 1;
+                    const name = decodeURIComponent(href.splitLast("/")[1]);
+                    if (depth < currentDepth)
+                        // one level up
+                        this.folderListElement.prepend(this.buildFolder("...", href));
+                    else
+                        this.folderListElement.append(this.buildFolder(name, href));
+                }
+                else
+                {
+                    const response = await fetch(href);
+                    const text = await response.text();
+                    const fileName = href.splitLast("/")[1];
+                    const extension = fileName.splitLast(".")[1];
+
+                    if (this.deckExtensions.includes(extension.toLowerCase()))
+                        try
+                        {
+                            const deck = await Data.File.loadDeck(text, extension, false);
+                            const tile = this.buildDeck(href, deck) as HTMLAnchorElement;
+                            this.deckListElement.append(tile);
+                        } catch { /* file might be malformed */ }
+                    else if (this.collectionsExtensions.includes(extension.toLowerCase()))
+                        try
+                        {
+
+                        } catch { /* file might be malformed */ }
+                }
             }
+
+            if (url != this.root)
+                this.folderListElement.prepend(this.buildFolder("~", this.root));
 
             await this.lazyLoad([...this.querySelectorAll("a.deck") as NodeListOf<HTMLAnchorElement>]);
         }
@@ -79,17 +104,17 @@ namespace Views.Shelve
             }
         }
 
-        private buildFolder(title: string, folder: Data.Repository.Folder)
+        private buildFolder(title: string, url: string)
         {
-            return <a class="folder" title={ folder.name } onclick={ () => this.loadFolder(folder) }>
+            return <a class="folder" title={ title } onclick={ () => this.loadFolder(url) }>
                 <img src="img/icons/folder.svg" />
                 <span>{ title }</span>
             </a>;
         }
 
-        private buildDeck(file: Data.Repository.File, deck: Data.Deck)
+        private buildDeck(url: string, deck: Data.Deck)
         {
-            return <a class="deck" deck={ deck } file={ file } title={ deck.name } onrightclick={ this.showContextMenu.bind(this) }>
+            return <a class="deck" deck={ deck } url={ url } title={ deck.name } onrightclick={ this.showContextMenu.bind(this) }>
                 <img />
                 <span>{ deck.name }</span>
             </a>;
