@@ -29,18 +29,20 @@ my-shelve
         {
             display: flex;
             flex-wrap: wrap;
+            align-items: center;
             width: 100%;
             height: max-content;
-            gap: 0.25em;
+            gap: 0.5em;
         }
 
-        > .deck-list
+        > .file-list
         {
             display: flex;
             flex-wrap: wrap;
+            align-items: center;
             width: 100%;
             height: max-content;
-            gap: 1em;
+            gap: 0.5em;
         }
     }
 
@@ -59,6 +61,7 @@ my-shelve
             grid-row: 1;
             grid-column: 1;
             height: 100%;
+            padding: 0.125em;
             overflow: hidden;
         }
 
@@ -73,6 +76,7 @@ my-shelve
             text-overflow: ellipsis;
             white-space: nowrap;
             -webkit-box-orient: vertical;
+            max-width: 100%;
             text-align: center;
         }
 
@@ -92,6 +96,7 @@ my-shelve
         display: grid;
         grid-template-rows: 1fr max-content;
         grid-template-columns: 1fr;
+        width: 12em;
         border-radius: 0.5em;
         background-color: var(--footer-color);
 
@@ -101,7 +106,7 @@ my-shelve
             grid-row: 1;
             grid-column: 1;
             aspect-ratio: 10 / 7;
-            width: 24em;
+            width: 100%;
             object-fit: cover;
             object-position: top center;
             border-top-right-radius: 0.5em;
@@ -128,8 +133,54 @@ my-shelve
             text-overflow: ellipsis;
             white-space: nowrap;
             -webkit-box-orient: vertical;
+            max-width: 100%;
             font-size: 1.5em;
             text-align: center;
+        }
+    }
+
+    .collection
+    {
+        display: grid;
+        grid-template-rows: 1fr max-content;
+        grid-template-columns: 1fr;
+        justify-items: center;
+        aspect-ratio: 1;
+        width: 12em;
+        border-radius: var(--corner-radius);
+
+        > img
+        {
+            grid-row: 1;
+            grid-column: 1;
+            height: 100%;
+            padding: 0.125em;
+            overflow: hidden;
+        }
+
+        > span
+        {
+            display: -webkit-box;
+            grid-row: 2;
+            grid-column: 1;
+            line-clamp: 1;
+            -webkit-line-clamp: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            -webkit-box-orient: vertical;
+            max-width: 100%;
+            text-align: center;
+        }
+
+        &:hover
+        {
+            background-color: var(--highlight-color);
+
+            > span
+            {
+                color: var(--inverted-foreground-color);
+            }
         }
     }
 }

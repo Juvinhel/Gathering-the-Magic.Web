@@ -12,7 +12,7 @@ namespace Views.Shelve
         }
 
         private folderListElement: HTMLDivElement;
-        private deckListElement: HTMLDivElement;
+        private fileListElement: HTMLDivElement;
 
         private build()
         {
@@ -20,7 +20,7 @@ namespace Views.Shelve
                 <h1>Shelve</h1>,
                 <div>
                     { this.folderListElement = <div class="folder-list" /> as HTMLDivElement }
-                    { this.deckListElement = <div class="deck-list" /> as HTMLDivElement }
+                    { this.fileListElement = <div class="file-list" /> as HTMLDivElement }
                 </div>
             ];
         }
@@ -38,7 +38,7 @@ namespace Views.Shelve
         {
             url = new URL(url, location.toString()).toString();
             this.folderListElement.clearChildren();
-            this.deckListElement.clearChildren();
+            this.fileListElement.clearChildren();
             const currentDepth = url.split("/").length - 1;
 
             for (let href of (await DirectoryListing.scan(url)).orderBy(x => x))
@@ -66,12 +66,12 @@ namespace Views.Shelve
                         {
                             const deck = await Data.File.loadDeck(text, extension, false);
                             const tile = this.buildDeck(href, deck) as HTMLAnchorElement;
-                            this.deckListElement.append(tile);
+                            this.fileListElement.append(tile);
                         } catch { /* file might be malformed */ }
                     else if (this.collectionsExtensions.includes(extension.toLowerCase()))
                         try
                         {
-
+                            this.fileListElement.append(this.buildCollection(href));
                         } catch { /* file might be malformed */ }
                 }
             }
@@ -106,7 +106,7 @@ namespace Views.Shelve
 
         private buildFolder(title: string, url: string)
         {
-            return <a class="folder" title={ title } onclick={ () => this.loadFolder(url) }>
+            return <a class="folder" title={ title } ondblclick={ () => this.loadFolder(url) }>
                 <img src="img/icons/folder.svg" />
                 <span>{ title }</span>
             </a>;
@@ -114,9 +114,61 @@ namespace Views.Shelve
 
         private buildDeck(url: string, deck: Data.Deck)
         {
-            return <a class="deck" deck={ deck } url={ url } title={ deck.name } onrightclick={ this.showContextMenu.bind(this) }>
+            const fileName = url.splitLast("/")[1];
+            const name = decodeURIComponent(fileName.splitLast(".")[0]);
+
+            return <a class="deck" deck={ deck } url={ url } title={ deck.name ?? name }
+                onrightclick={ this.showContextMenu.bind(this) }
+                ondblclick={ async () =>
+                {
+                    const response = await fetch(url);
+                    const text = await response.text();
+                    const fileName = url.splitLast("/")[1];
+                    const extension = fileName.splitLast(".")[1];
+                    const deck = await Data.File.loadDeck(text, extension);
+
+                    const editor = new Editor.EditorElement(false, true);
+                    // show over top bar and border
+                    editor.style.margin = "-4em -2em -2em -2em";
+                    editor.style.height = "calc(100% + 2em)";
+
+                    const workbench = editor.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
+                    await workbench.loadData(deck);
+
+                    const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
+                    unsavedProgress.classList.toggle("none", true);
+
+                    UI.Dialog.show(editor, { title: "", mode: "fill", allowClose: true });
+                } }>
                 <img />
-                <span>{ deck.name }</span>
+                <span>{ deck.name ?? name }</span>
+            </a>;
+        }
+
+        private buildCollection(url: string)
+        {
+            const fileName = url.splitLast("/")[1];
+            const name = decodeURIComponent(fileName.splitLast(".")[0]);
+            return <a class="collection" url={ url } title={ name }
+                ondblclick={ async () =>
+                {
+                    for (const key in App.collections) delete App.collections[key];
+
+                    const response = await fetch(url);
+                    const text = await response.text();
+                    const collection = await Data.File.CSVFile.load(text);
+                    collection.name = name;
+                    App.collections[name] = collection;
+
+                    const editor = new Editor.EditorElement(true, false);
+                    // show over top bar and border
+                    editor.style.margin = "-4em -2em -2em -2em";
+                    editor.style.height = "calc(100% + 2em)";
+
+                    UI.Dialog.show(editor, { title: "", mode: "fill", allowClose: true });
+                } }>
+                <img src="img/icons/binder.svg" />
+                <span>{ name }</span>
             </a>;
         }
 

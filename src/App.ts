@@ -30,10 +30,10 @@ class App
         window.addEventListener("keyup", (event: KeyboardEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
 
         //! weird bug
-        window.addEventListener("keyup", (event: KeyboardEvent) => (document.querySelector("my-workbench") as Views.Workbench.WorkbenchElement).keyup(event));
+        window.addEventListener("keyup", (event: KeyboardEvent) => (document.querySelector("my-workbench") as Views.Workbench.WorkbenchElement)?.keyup(event));
         window.addEventListener("keyup", this.globalShortcuts.bind(this));
 
-        document.addEventListener('visibilitychange', App.visibilityChange);
+        document.addEventListener("visibilitychange", App.visibilityChange);
 
         // START
         const editor = new Views.Editor.EditorElement(useLibrary, useWorkbench);
@@ -46,7 +46,7 @@ class App
             const workbench = editor.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
             await workbench.loadData(await Data.File.loadDeck(JSON.stringify(lastDeck), "JSON"));
 
-            const unsavedProgress = document.body.querySelector(".unsaved-progress") as HTMLElement;
+            const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
             unsavedProgress.classList.toggle("none", true);
         }
     }
