@@ -2,7 +2,7 @@ namespace Data
 {
     export declare const Bridge: Bridge;
 
-    export interface Bridge
+    export interface Bridge extends FileSystem
     {
         ShowSaveDeck(): Promise<string>;
         ShowOpenDeck(): Promise<string>;
@@ -33,6 +33,17 @@ namespace Data
     {
         get LastModified(): Promise<string>;
         Load(): Promise<string>;
+    }
+
+    export interface FileSystem
+    {
+        GetFolders(path: string): Promise<string[]>;
+        GetFiles(path: string): Promise<string[]>;
+        ReadFile(path: string): Promise<number[]>;
+        WriteFile(path: string, data: number[]): Promise<void>;
+        DeleteFile(path: string): Promise<void>;
+        CreateFolder(path: string): Promise<void>;
+        DeleteFolder(path: string): Promise<void>;
     }
 }
 
