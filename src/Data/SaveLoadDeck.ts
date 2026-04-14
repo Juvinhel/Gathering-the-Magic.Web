@@ -88,14 +88,14 @@ namespace Data
 
         private splitFilePath(filePath: string): { path: string, name: string, extension: string; }
         {
-            let [path, fileName] = filePath.splitLast("/");
+            let [path, fileName] = filePath.trimChar("/").splitLast("/");
             if (!fileName)
             {
                 fileName = path;
                 path = "";
             }
 
-            const [name, extension] = filePath.splitLast(".");
+            const [name, extension] = fileName.splitLast(".");
             return { path, name, extension };
         }
     }
