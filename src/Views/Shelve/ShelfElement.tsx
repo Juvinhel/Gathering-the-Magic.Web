@@ -169,6 +169,8 @@ namespace Views.Shelf
                     const text = await response.text();
                     const collection = await Data.File.CSVFile.load(text);
                     collection.name = name;
+                    for (const key in App.collections)
+                        delete App.collections[key];
                     App.collections[name] = collection;
 
                     const editor = new Editor.EditorElement(true, false);

@@ -21,13 +21,7 @@ class App
                     this.collections[collection.name] = collection;
         }
 
-        document.body.style.setProperty("--card-size", App.config.cardSize == "Large" ? "14em" : "8em");
-
         Views.initGlobalDrag();
-
-        window.addEventListener("mousemove", (event: MouseEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
-        window.addEventListener("keydown", (event: KeyboardEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
-        window.addEventListener("keyup", (event: KeyboardEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
 
         //! weird bug
         window.addEventListener("keyup", (event: KeyboardEvent) => (document.querySelector("my-workbench") as Views.Workbench.WorkbenchElement)?.keyup(event));
@@ -74,6 +68,12 @@ class App
         UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
         UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
         UI.LazyLoad.Start();
+
+        document.body.style.setProperty("--card-size", App.config.cardSize == "Large" ? "14em" : "8em");
+
+        window.addEventListener("mousemove", (event: MouseEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
+        window.addEventListener("keydown", (event: KeyboardEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
+        window.addEventListener("keyup", (event: KeyboardEvent) => this.pressCTRL(event.ctrlKey), { capture: true, passive: true });
     }
 
     private static visibilityChange = function (this: typeof App, event: Event)

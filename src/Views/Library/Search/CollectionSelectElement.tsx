@@ -38,11 +38,11 @@ namespace Views.Library.Search
                 }
             }
 
-            while (select.children.length > options.length - 2)
+            while (select.children.length > options.length + 2)
                 select.children[select.children.length - 1].remove();
 
             const allCollectionsOption = select.children[1] as HTMLOptionElement;
-            allCollectionsOption["collection"] = Data.combineCollections("All Collection", Object.values(App.collections));
+            allCollectionsOption["collection"] = null; // reset the combined collection
 
             for (let i = 2; i < options.length; ++i)
             {
@@ -54,7 +54,10 @@ namespace Views.Library.Search
         public get collection(): Data.Collection
         {
             const select = this.querySelector("select");
-            return select.selectedOptions[0]?.["collection"] as Data.Collection;
+            const option = select.selectedOptions[0];
+            if (option?.value == "All Collections" && option?.["collection"] == null)
+                return option["collection"] = Data.combineCollections("All Collection", Object.values(App.collections));
+            return option?.["collection"] as Data.Collection;
         }
     }
 
