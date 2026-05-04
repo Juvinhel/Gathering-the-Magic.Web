@@ -19,11 +19,12 @@ namespace Views
             if (element.comment) ret.comment = element.comment;
             return ret;
         }
-        else if (element instanceof Workbench.SectionElement)
+        else if (element instanceof Workbench.SectionElement || element instanceof Workbench.SectionHeaderElement)
         {
-            const children = [...element.querySelector(".list").children];
-            const ret: TransferSection = { title: element.title, items: children.map(getTransferData) };
-            if (element.comment) ret.comment = element.comment;
+            const e = (element instanceof Workbench.SectionHeaderElement ? element.parentElement : element) as Workbench.SectionElement;
+            const children = [...e.querySelector(".list").children];
+            const ret: TransferSection = { title: e.title, items: children.map(getTransferData) };
+            if (e.comment) ret.comment = e.comment;
             return ret;
         }
         else if (element instanceof Library.List.CardTileElement)
@@ -31,7 +32,8 @@ namespace Views
             const ret: TransferCard = { name: element.card.name };
             return ret;
         }
-        else throw new Error("Cannot get tranferData of Element!");
+        else
+            throw new Error("Cannot get tranferData of Element!", { cause: { element } });
     }
 
     export type TransferCard = Data.API.Identifier & { quantity?: number; comment?: string; };

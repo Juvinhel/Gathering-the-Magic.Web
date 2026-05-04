@@ -51,7 +51,6 @@ namespace Views.Info
             cardImage.classList.toggle("empty", card == null);
 
             const commentSpan = this.querySelector(".comment") as HTMLSpanElement;
-            console.log(card);
             if (card && "quantity" in card)
                 // is entry
                 commentSpan.style.visibility = "visible";

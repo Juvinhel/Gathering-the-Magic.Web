@@ -31,13 +31,9 @@ namespace Views.Shelf
             this.loadFolder(this.root);
 
             const folders = await Data.Bridge.GetFolders("");
-            console.log("Bridge.GetFolders", folders);
 
             const file = await Data.Bridge.ReadFile("/Decks/Multicolor Lands.idec") as number[];
             const buff = new Uint8Array(file);
-
-            console.log("file", file);
-            console.log("text", new TextDecoder().decode(buff));
 
             await Data.Bridge.WriteFile("", Array.from(buff));
         }

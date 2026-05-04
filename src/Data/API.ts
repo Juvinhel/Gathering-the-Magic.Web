@@ -164,7 +164,7 @@ namespace Data.API
     {
         const scryfallIdentifiers = identifiers.map(i =>
         {
-            if ("no" in i) return { set: i.set, collector_number: i.no };
+            if ("no" in i && "set" in i) return { set: i.set, collector_number: i.no };
             if ("name" in i) return { name: i.name };
             if ("id" in i) return { id: i.id };
             throw new DataError("Unknown Identifier", { identifier: i });

@@ -109,15 +109,13 @@ namespace Views.Workbench
         for (const element of workbench.querySelectorAll(".card-container.selected"))
             element.classList.remove("selected");
 
+        const dragItem = this instanceof SectionHeaderElement ? this.parentElement : this;
         if (event.dataTransfer.dropEffect === "move")
         {
-            if (this.classList.contains("top-level"))
-            {
-                const list = this.querySelector(".list");
-                list.clearChildren();
-            }
+            if (dragItem.classList.contains("top-level"))
+                dragItem.querySelector(".list").clearChildren();
             else
-                this.remove();
+                dragItem.remove();
         }
     }
 
