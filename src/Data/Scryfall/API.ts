@@ -93,9 +93,6 @@ namespace Data.Scryfall
                     ++x;
                 }
             }
-
-            //TODO: DEBUG REMOVE
-            break;
         }
     }
 
