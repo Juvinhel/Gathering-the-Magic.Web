@@ -7,6 +7,8 @@ namespace Views.Dialogs
             this.deck = attr.deck;
             this.simple = attr.simple ?? true;
             this.entries = Data.getEntries(this.deck.sections.first(s => s.title == "main"));
+
+            this.colorIdentity = Data.getColoridentity(this.deck);
         }
 
         private deck: Data.Deck;
@@ -28,12 +30,14 @@ namespace Views.Dialogs
         private root: HTMLElement;
         private chartsContainer: HTMLElement;
         private simpleSwap: HTMLElement;
+        private colorIdentity: string[];
 
         private * charts()
         {
             yield this.cardTypesChart();
             yield this.manaProductionChart();
             yield this.manaConsumptionChart();
+            yield this.landProductionChart();
         }
 
         private cardTypesChart()
@@ -129,12 +133,12 @@ namespace Views.Dialogs
                     if (entry.producedMana.includes("C")) c += fraction;
                 }
 
-            if (b > 0) typeGroups.push({ title: "Black", count: b });
-            if (g > 0) typeGroups.push({ title: "Green", count: g });
-            if (r > 0) typeGroups.push({ title: "Red", count: r });
-            if (u > 0) typeGroups.push({ title: "Blue", count: u });
-            if (w > 0) typeGroups.push({ title: "White", count: w });
-            if (c > 0 && !this.simple) typeGroups.push({ title: "Colorless", count: c });
+            if (this.colorIdentity.includes("B") && b > 0) typeGroups.push({ title: "Black", count: b });
+            if (this.colorIdentity.includes("G") && g > 0) typeGroups.push({ title: "Green", count: g });
+            if (this.colorIdentity.includes("R") && r > 0) typeGroups.push({ title: "Red", count: r });
+            if (this.colorIdentity.includes("U") && u > 0) typeGroups.push({ title: "Blue", count: u });
+            if (this.colorIdentity.includes("W") && w > 0) typeGroups.push({ title: "White", count: w });
+            if (c > 0) typeGroups.push({ title: "Colorless", count: c });
 
             const manaLands = {
                 labels: typeGroups.map(g => g.title),
@@ -163,6 +167,69 @@ namespace Views.Dialogs
                                     },
                                     display: true,
                                     text: "Mana Production"
+                                }
+                            }
+                        }
+                    });
+                }, 0);
+            } } />;
+        }
+
+        private landProductionChart()
+        {
+            let typeGroups: { title: string, count: number; }[] = [];
+            let b = 0;
+            let g = 0;
+            let r = 0;
+            let u = 0;
+            let w = 0;
+            let c = 0;
+
+            for (const entry of this.entries)
+                if (entry.producedMana && entry.producedMana.length > 0 && entry.type.card.some(x => x.toLowerCase() == "land"))
+                {
+                    if (entry.producedMana.includes("B")) b += 1;
+                    if (entry.producedMana.includes("G")) g += 1;
+                    if (entry.producedMana.includes("R")) r += 1;
+                    if (entry.producedMana.includes("U")) u += 1;
+                    if (entry.producedMana.includes("W")) w += 1;
+                    if (entry.producedMana.includes("C")) c += 1;
+                }
+
+            if (this.colorIdentity.includes("B") && b > 0) typeGroups.push({ title: "Black", count: b });
+            if (this.colorIdentity.includes("G") && g > 0) typeGroups.push({ title: "Green", count: g });
+            if (this.colorIdentity.includes("R") && r > 0) typeGroups.push({ title: "Red", count: r });
+            if (this.colorIdentity.includes("U") && u > 0) typeGroups.push({ title: "Blue", count: u });
+            if (this.colorIdentity.includes("W") && w > 0) typeGroups.push({ title: "White", count: w });
+            if (c > 0) typeGroups.push({ title: "Colorless", count: c });
+
+            const manaLands = {
+                labels: typeGroups.map(g => g.title),
+                datasets: [{
+                    label: "Mana",
+                    data: typeGroups.map(g => g.count),
+                    backgroundColor: typeGroups.map(x => this.colors[x.title]),
+                    hoverOffset: 4
+                }]
+            };
+            return <canvas class="mana-production" oninserted={ (event: Event) =>
+            {
+                const target = event.currentTarget as HTMLElement;
+                setTimeout(() =>
+                {
+                    //@ts-ignore
+                    new Chart(target, {
+                        type: "pie",
+                        data: manaLands,
+                        options: {
+                            plugins: {
+                                title: {
+                                    font: {
+                                        size: 16,
+                                        bold: true
+                                    },
+                                    display: true,
+                                    text: "Mana Production in Lands"
                                 }
                             }
                         }
@@ -206,11 +273,11 @@ namespace Views.Dialogs
                     }
                 }
 
-            if (b > 0) typeGroups.push({ title: "Black", count: b });
-            if (g > 0) typeGroups.push({ title: "Green", count: g });
-            if (r > 0) typeGroups.push({ title: "Red", count: r });
-            if (u > 0) typeGroups.push({ title: "Blue", count: u });
-            if (w > 0) typeGroups.push({ title: "White", count: w });
+            if (this.colorIdentity.includes("B") && b > 0) typeGroups.push({ title: "Black", count: b });
+            if (this.colorIdentity.includes("G") && g > 0) typeGroups.push({ title: "Green", count: g });
+            if (this.colorIdentity.includes("R") && r > 0) typeGroups.push({ title: "Red", count: r });
+            if (this.colorIdentity.includes("U") && u > 0) typeGroups.push({ title: "Blue", count: u });
+            if (this.colorIdentity.includes("W") && w > 0) typeGroups.push({ title: "White", count: w });
 
             const manaLands = {
                 labels: typeGroups.map(g => g.title),

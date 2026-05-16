@@ -36,6 +36,14 @@ namespace Data
         return "title" in entryOrSection;
     }
 
+    export function getColoridentity(deck: Deck): string[]
+    {
+        if (!deck.commanders) return ["B", "G", "R", "U", "W"];
+
+        const entries: Entry[] = getEntries(deck).filter(x => deck.commanders.includes(x.name));
+        return entries.mapMany(x => x.colorIdentity).distinct().orderBy(x => x);
+    }
+
     function flattenItems(items: (Section | Entry)[]): Entry[]
     {
         const ret: Entry[] = [];
