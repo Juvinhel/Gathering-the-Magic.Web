@@ -16,17 +16,15 @@ namespace Views.Dialogs
                 cards.push(card);
             }
         }
-        const currentCards = [...cards.shuffle()];
-        const firstDraw = currentCards.splice(0, 7).shuffle();
-        const drawState: DrawState = {
-            cards,
-            currentCards,
-            lastDraw: 7
-        };
 
-        return <div class="draw-test" drawState={ drawState }>
-            <div class="list">{ firstDraw.map(c => cardTile(c)) }</div>
+        const length = 7;
+        const drawnCards = draw(cards, length, true);
+
+        return <div class="draw-test" cards={ cards }>
+            <div class="list">{ drawnCards.map(c => cardTile(c)) }</div>
             <div class="actions">
+                <label>Only 3-5 lands start hands</label>
+                <input class="minimum-lands-enabled" type="checkbox" checked />
                 <a class="link-button" onclick={ redraw } title="Redraw"><color-icon src="img/icons/7.svg" /><span>Redraw</span></a>
                 <a class="link-button" onclick={ mulligan } title="Mulligan"><color-icon src="img/icons/m.svg" /><span>Mulligan</span></a>
                 <a class="link-button" onclick={ drawOne } title="Draw one"><color-icon src="img/icons/1.svg" /><span>Draw one</span></a>
@@ -49,58 +47,90 @@ namespace Views.Dialogs
     function redraw(event: Event)
     {
         const target = event.currentTarget as HTMLElement;
-        const drawTest = target.closest(".draw-test") as DrawTest;
+        const drawTest = target.closest(".draw-test") as HTMLDivElement;
         const list = drawTest.querySelector(".list") as HTMLElement;
+        const minimumLands = (drawTest.querySelector(".minimum-lands-enabled") as HTMLInputElement).checked;
 
         list.clearChildren();
 
-        const drawState = drawTest.drawState;
-        drawState.currentCards.length = 0;
-        drawState.currentCards.push(...drawState.cards.shuffle());
-        drawState.lastDraw = 7;
-        const draw = drawState.currentCards.splice(0, 7);
+        const length = 7;
+        const cards = drawTest["cards"] as Data.API.Card[];
 
-        list.append(...draw.map(c => cardTile(c)));
+        try
+        {
+            const drawnCards = draw(cards, length, minimumLands);
+            list.append(...drawnCards.map(c => cardTile(c)));
+        }
+        catch (error)
+        {
+            UI.Dialog.error(error);
+        }
     }
 
     function mulligan(event: Event)
     {
         const target = event.currentTarget as HTMLElement;
-        const drawTest = target.closest(".draw-test") as DrawTest;
+        const drawTest = target.closest(".draw-test") as HTMLDivElement;
         const list = drawTest.querySelector(".list") as HTMLElement;
+        const minimumLands = (drawTest.querySelector(".minimum-lands-enabled") as HTMLInputElement).checked;
+        const oldLength = list.querySelectorAll(".card").length;
 
-        const drawState = drawTest.drawState;
-        if (drawState.lastDraw <= 0) return;
         list.clearChildren();
 
-        --drawState.lastDraw;
-        drawState.currentCards.length = 0;
-        drawState.currentCards.push(...drawState.cards.shuffle());
-        const draw = drawState.currentCards.splice(0, drawState.lastDraw);
+        const length = oldLength <= 1 ? 0 : oldLength - 1;
+        const cards = drawTest["cards"] as Data.API.Card[];
 
-        list.append(...draw.map(c => cardTile(c)));
+        try
+        {
+            const drawnCards = draw(cards, length, minimumLands);
+            list.append(...drawnCards.map(c => cardTile(c)));
+        }
+        catch (error)
+        {
+            UI.Dialog.error(error);
+        }
     }
 
     function drawOne(event: Event)
     {
         const target = event.currentTarget as HTMLElement;
-        const drawTest = target.closest(".draw-test") as DrawTest;
+        const drawTest = target.closest(".draw-test") as HTMLDivElement;
         const list = drawTest.querySelector(".list") as HTMLElement;
 
-        const drawState = drawTest.drawState;
-        const draw = drawState.currentCards.splice(0, 1);
+        const length = 1;
+        const cards = [...drawTest["cards"]] as Data.API.Card[];
+        // remove already drawn cards
+        for (const cardTile of list.querySelectorAll(".card"))
+        {
+            const card = cardTile["card"] as Data.API.Card;
+            cards.remove(card);
+        }
 
-        list.append(...draw.map(c => cardTile(c)));
+        try
+        {
+            const drawnCards = draw(cards, length, false);
+            list.append(...drawnCards.map(c => cardTile(c)));
+        }
+        catch (error)
+        {
+            UI.Dialog.error(error);
+        }
     }
 
-    interface DrawTest extends HTMLDivElement
+    function draw(cards: Data.API.Card[], count: number, minimumLands: boolean = true): Data.API.Card[]
     {
-        drawState: DrawState;
-    }
+        if (cards.length < count) throw new Error("Deck does not contain enough cards!");
+        if (minimumLands && cards.filter(x => x.type.card.includes("Land")).length < 3) throw new Error("Deck does not contain enough land cards!");
 
-    type DrawState = {
-        cards: Data.API.Card[];
-        currentCards: Data.API.Card[];
-        lastDraw: number;
-    };
+        let draw: Data.API.Card[];
+        let landCount: number;
+        do
+        {
+            draw = cards.shuffle().slice(0, count);
+            landCount = draw.filter(x => x.type.card.includes("Land")).length;
+            console.log("draw", landCount, draw);
+        } while ((minimumLands && count >= 3) && (landCount < 3 || landCount > 5));
+
+        return draw;
+    }
 }
