@@ -120,14 +120,14 @@ namespace Views.Dialogs
     function draw(cards: Data.API.Card[], count: number, minimumLands: boolean = true): Data.API.Card[]
     {
         if (cards.length < count) throw new Error("Deck does not contain enough cards!");
-        if (minimumLands && cards.filter(x => x.type.card.includes("Land")).length < 3) throw new Error("Deck does not contain enough land cards!");
+        if (minimumLands && cards.filter(x => x.type.card.Land).length < 3) throw new Error("Deck does not contain enough land cards!");
 
         let draw: Data.API.Card[];
         let landCount: number;
         do
         {
             draw = cards.shuffle().slice(0, count);
-            landCount = draw.filter(x => x.type.card.includes("Land")).length;
+            landCount = draw.filter(x => x.type.card.Land).length;
             console.log("draw", landCount, draw);
         } while ((minimumLands && count >= 3) && (landCount < 3 || landCount > 5));
 

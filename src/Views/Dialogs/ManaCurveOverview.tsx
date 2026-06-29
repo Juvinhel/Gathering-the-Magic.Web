@@ -12,7 +12,7 @@ namespace Views.Dialogs
                 this.curve[i] = [];
 
             for (const entry of this.entries)
-                if (!entry.type.card.includes("Land"))
+                if (!entry.type.card.Land)
                     this.curve[entry.manaValue].push(entry);
         }
 

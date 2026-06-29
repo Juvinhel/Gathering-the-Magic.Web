@@ -54,11 +54,11 @@ namespace Views.Dialogs
 
                 for (const entry of this.entries)
                 {
-                    if (entry.type.card.includes("Land"))
+                    if (entry.type.card.Land)
                         typeGroups.first(x => x.title == "Land").count += entry.quantity;
-                    else if (entry.type.card.includes("Creature"))
+                    else if (entry.type.card.Creature)
                         typeGroups.first(x => x.title == "Creature").count += entry.quantity;
-                    else if (entry.type.card.includes("Enchantment") || entry.type.card.includes("Artifact"))
+                    else if (entry.type.card.Enchantment || entry.type.card.Artifact)
                         typeGroups.first(x => x.title == "Artifact & Enchantment").count += entry.quantity;
                     else
                         typeGroups.first(x => x.title == "Spell").count += entry.quantity;
@@ -70,7 +70,7 @@ namespace Views.Dialogs
                 typeGroups = [];
                 for (const cardType of cardTypes)
                 {
-                    const count = this.entries.filter(x => x.type.card.includes(cardType)).sum(i => i.quantity);
+                    const count = this.entries.filter(x => x.type.card.values.includes(cardType)).sum(i => i.quantity);
                     if (count > 0) typeGroups.push({ title: cardType, count });
                 }
             }
@@ -186,7 +186,7 @@ namespace Views.Dialogs
             let c = 0;
 
             for (const entry of this.entries)
-                if (entry.producedMana && entry.producedMana.length > 0 && entry.type.card.some(x => x.toLowerCase() == "land"))
+                if (entry.producedMana && entry.producedMana.length > 0 && entry.type.card.Land)
                 {
                     if (entry.producedMana.includes("B")) b += 1;
                     if (entry.producedMana.includes("G")) g += 1;

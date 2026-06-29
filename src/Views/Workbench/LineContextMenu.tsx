@@ -264,7 +264,7 @@ namespace Views.Workbench
 
         for (const element of section.querySelectorAll("my-entry") as NodeListOf<Workbench.EntryElement>)
         {
-            const match = (exclusive ? element.entry.type.card.length == 1 : true) && element.entry.type.card.includes(type);
+            const match = (exclusive ? element.entry.type.card.values.length == 1 : true) && element.entry.type.card.values.includes(type);
             element.selected = match;
         }
     }

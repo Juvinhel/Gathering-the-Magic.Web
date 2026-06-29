@@ -274,7 +274,7 @@ namespace Data.API
 
         const [main, sub] = line.splitFirst("—");
         const mainTypes = main.trim().split(/\s+/);
-        const subTypes = sub?.trim()?.split(/\s+/) ?? [];
+        const subTypes = Array.from(sub?.trim().matchAll(/(Time Lord)|(\w+)/g).map(x => x[0]) ?? []);
 
         const superTypes: string[] = [];
         const cardTypes: string[] = [];
@@ -287,8 +287,25 @@ namespace Data.API
                 cardTypes.push(mainType);
         }
 
-        ret.super = superTypes;
-        ret.card = cardTypes;
+        ret.super = {
+            values: superTypes,
+            "Basic": superTypes.includes("Basic"),
+            "Legendary": superTypes.includes("Legendary"),
+            "Snow": superTypes.includes("Snow"),
+            "Token": superTypes.includes("Token"),
+        };
+        ret.card = {
+            values: cardTypes,
+            "Artifact": cardTypes.includes("Artifact"),
+            "Battle": cardTypes.includes("Battle"),
+            "Creature": cardTypes.includes("Creature"),
+            "Enchantment": cardTypes.includes("Enchantment"),
+            "Instant": cardTypes.includes("Instant"),
+            "Kindred": cardTypes.includes("Kindred"),
+            "Land": cardTypes.includes("Land"),
+            "Planeswalker": cardTypes.includes("Planeswalker"),
+            "Sorcery": cardTypes.includes("Sorcery"),
+        };
         ret.sub = subTypes;
         return ret;
     }
@@ -381,12 +398,6 @@ namespace Data.API
 
     export type Typology = { [category: string]: string[]; };
 
-    export type Type = {
-        super: string[];
-        card: string[];
-        sub: string[];
-    };
-
     export type Set = {
         code: string;
         name: string;
@@ -394,5 +405,32 @@ namespace Data.API
         released?: Date;
         parent?: Set;
         subSets?: Set[];
+    };
+
+    export type Type = {
+        super: SuperType;
+        card: CardType;
+        sub: string[];
+    };
+
+    export type SuperType = {
+        values: string[];
+        "Basic": boolean;
+        "Legendary": boolean;
+        "Snow": boolean;
+        "Token": boolean;
+    };
+
+    export type CardType = {
+        values: string[];
+        "Artifact": boolean;
+        "Battle": boolean;
+        "Creature": boolean;
+        "Enchantment": boolean;
+        "Kindred": boolean;
+        "Planeswalker": boolean;
+        "Instant": boolean;
+        "Land": boolean;
+        "Sorcery": boolean;
     };
 }
