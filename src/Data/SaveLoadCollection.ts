@@ -2,13 +2,13 @@ namespace Data
 {
     export interface SaveLoadCollection
     {
-        load(): Promise<Collection[]>;
-        default?(): Promise<Collection[]>;
+        load(): Promise<API.Collection[]>;
+        default?(): Promise<API.Collection[]>;
     }
 
     class SaveLoadCollectionLocal implements SaveLoadCollection
     {
-        public async load(): Promise<Collection[]>
+        public async load(): Promise<API.Collection[]>
         {
             let files: { name: string; extension: string; text: string; lastModified?: Date; }[];
             const fileResults = await Bridge.LoadCollections();
@@ -17,10 +17,10 @@ namespace Data
             for (const fileResult of fileResults)
                 files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
 
-            const collections: Collection[] = [];
+            const collections: API.Collection[] = [];
             for (const file of files)
             {
-                const collection = await File.CSVFile.load(file.text);
+                const collection = await API.File.CSVFile.load(file.text);
                 collection.name = file.name;
                 if (file.lastModified) collection.importDate = file.lastModified;
                 collections.push(collection);
@@ -28,7 +28,7 @@ namespace Data
             return collections;
         }
 
-        public async default(): Promise<Collection[]>
+        public async default(): Promise<API.Collection[]>
         {
             let files: { name: string; extension: string; text: string; lastModified?: Date; }[];
             const fileResults = await Bridge.LoadDefaultCollections();
@@ -37,10 +37,10 @@ namespace Data
             for (const fileResult of fileResults)
                 files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
 
-            const collections: Collection[] = [];
+            const collections: API.Collection[] = [];
             for (const file of files)
             {
-                const collection = await File.CSVFile.load(file.text);
+                const collection = await API.File.CSVFile.load(file.text);
                 collection.name = file.name;
                 if (file.lastModified) collection.importDate = file.lastModified;
                 collections.push(collection);
@@ -51,7 +51,7 @@ namespace Data
 
     class SaveLoadCollectionWeb implements SaveLoadCollection
     {
-        public async load(): Promise<Collection[]>
+        public async load(): Promise<API.Collection[]>
         {
             let files: { name: string; extension: string; text: string; lastModified?: Date; }[];
             const uploadedFiles = await UI.Dialog.upload({ title: "Upload Collection Files", accept: ".csv", multiple: true });
@@ -69,10 +69,10 @@ namespace Data
                 });
             }
 
-            const collections: Collection[] = [];
+            const collections: API.Collection[] = [];
             for (const file of files)
             {
-                const collection = await File.CSVFile.load(file.text);
+                const collection = await API.File.CSVFile.load(file.text);
                 collection.name = file.name;
                 if (file.lastModified) collection.importDate = file.lastModified;
                 collections.push(collection);

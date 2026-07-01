@@ -1,6 +1,6 @@
 /// <reference path="File.ts" />
 
-namespace Data.File
+namespace API.File
 {
     export const DECFile = new class DECFile implements File<Deck>
     {
@@ -16,7 +16,7 @@ namespace Data.File
             ret += "\n";
             ret += "//Main\n";
             const mainSection = deck.sections.first(x => x.title == "main");
-            const addLine = (entry: Data.Entry, sideboard?: boolean) =>
+            const addLine = (entry: API.Entry, sideboard?: boolean) =>
             {
                 if (sideboard) ret += "SB:";
                 ret += entry.quantity + " " + entry.name;

@@ -1,8 +1,8 @@
 namespace Views.Dialogs
 {
-    export async function showCollectionMultiSelect(args?: { collections?: { [name: string]: Data.Collection; } | Data.Collection[]; }): Promise<Data.Collection[]>
+    export async function showCollectionMultiSelect(args?: { collections?: { [name: string]: API.Collection; } | API.Collection[]; }): Promise<API.Collection[]>
     {
-        const collections: Data.Collection[] = args?.collections == null ? Object.values(App.collections) : (Array.isArray(args.collections) ? args.collections : Object.values(args.collections));
+        const collections: API.Collection[] = args?.collections == null ? Object.values(App.collections) : (Array.isArray(args.collections) ? args.collections : Object.values(args.collections));
 
         const element = <div class="collections-multi-select">
             <div class="list">
@@ -22,6 +22,6 @@ namespace Views.Dialogs
         await UI.Dialog.show(element, { title: "Select Collections", allowClose: true });
         if (!result) return [];
 
-        return [...element.querySelectorAll("input[type=checkbox]:checked")].map(x => x["collection"] as Data.Collection);
+        return [...element.querySelectorAll("input[type=checkbox]:checked")].map(x => x["collection"] as API.Collection);
     }
 }

@@ -25,7 +25,7 @@ namespace Views.Library.Search
             return input.value.split(/\s+/).filter(x => x.length > 0);
         }
 
-        private * setList(sets: Data.API.Set[], padding: number = 0)
+        private * setList(sets: API.Set[], padding: number = 0)
         {
             for (const set of sets)
             {

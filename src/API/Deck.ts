@@ -1,4 +1,4 @@
-namespace Data
+namespace API
 {
     export type Deck = {
         name: string;
@@ -77,8 +77,8 @@ namespace Data
 
     export function collapse(deck: Deck | Section | Entry[]): Entry[]
     {   // collapsed multiple entries of the same card down to one entry with summed up quantity
-        const entries = Array.isArray(deck) ? deck : Data.getEntries(deck);
-        let collapsedEntries: Data.Entry[] = [];
+        const entries = Array.isArray(deck) ? deck : getEntries(deck);
+        let collapsedEntries: Entry[] = [];
         for (const entry of entries)
         {
             const collapsedEntry = collapsedEntries.first(x => x.name == entry.name);

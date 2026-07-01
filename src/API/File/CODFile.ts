@@ -1,6 +1,6 @@
 /// <reference path="File.ts" />
 
-namespace Data.File
+namespace API.File
 {
     export const CODFile = new class CODFile implements File<Deck>
     {

@@ -61,23 +61,23 @@ namespace Views.Workbench
                 {
                     if ("name" in dragItem)
                     {
-                        const newEntry = new EntryElement(dragItem as Data.Entry);
+                        const newEntry = new EntryElement(dragItem as API.Entry);
                         newElements.push(newEntry);
                     }
                     else
                     {
-                        const newSection = new SectionElement(dragItem as Data.Section, false);
+                        const newSection = new SectionElement(dragItem as API.Section, false);
                         newElements.push(newSection);
                     }
                 }
             }
             else if ("name" in draggedData)
             {
-                const newEntry = new EntryElement(draggedData as Data.Entry);
+                const newEntry = new EntryElement(draggedData as API.Entry);
                 newElements.push(newEntry);
             } else
             {
-                const newSection = new SectionElement(draggedData as Data.Section, false);
+                const newSection = new SectionElement(draggedData as API.Section, false);
                 newElements.push(newSection);
             }
 
@@ -131,7 +131,7 @@ namespace Views.Workbench
             }
             else if (data.startsWith("https://") || data.startsWith("http://"))
             {
-                const identifier = await Data.API.getIdentifierFromUrl(data);
+                const identifier = await API.getIdentifierFromUrl(data);
                 TransferData = { ...identifier, quantity: 1 };
             }
             else
@@ -164,7 +164,7 @@ namespace Views.Workbench
             progressDialog.max = cards.length;
             progressDialog.value = 0;
             let i = 0;
-            for await (const apiCard of Data.API.getCards(cards))
+            for await (const apiCard of API.getCards(cards))
             {
                 const card = cards[i];
                 for (const key of Object.keys(card))

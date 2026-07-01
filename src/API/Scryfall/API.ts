@@ -1,4 +1,4 @@
-namespace Data.Scryfall
+namespace API.Scryfall
 {
     const baseUrl = "https://api.scryfall.com";
 

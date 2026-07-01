@@ -2,17 +2,17 @@ namespace Views.Dialogs
 {
     export class DeckStatistics
     {
-        constructor (attr: { deck: Data.Deck, simple?: boolean; })
+        constructor (attr: { deck: API.Deck, simple?: boolean; })
         {
             this.deck = attr.deck;
             this.simple = attr.simple ?? true;
-            this.entries = Data.getEntries(this.deck.sections.first(s => s.title == "main"));
+            this.entries = API.getEntries(this.deck.sections.first(s => s.title == "main"));
 
-            this.colorIdentity = Data.getColoridentity(this.deck);
+            this.colorIdentity = API.getColoridentity(this.deck);
         }
 
-        private deck: Data.Deck;
-        private entries: Data.Entry[];
+        private deck: API.Deck;
+        private entries: API.Entry[];
         private simple: boolean;
 
         public render(): Node

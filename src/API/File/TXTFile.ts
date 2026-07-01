@@ -1,4 +1,4 @@
-namespace Data.File
+namespace API.File
 {
     export const TXTFile = new class TXTFile implements File<Deck>
     {
@@ -11,17 +11,17 @@ namespace Data.File
             return this.create(deck);
         }
 
-        public create(deck: Data.Deck | Data.Section | Data.Entry[]): string
+        public create(deck: API.Deck | API.Section | API.Entry[]): string
         {
             const commanders: string[] = ("commanders" in deck) ? deck.commanders : [];
             let main: Entry[];
             let side: Entry[];
             if ("sections" in deck)
             {
-                main = Data.collapse(deck.sections.first(s => s.title == "main"));
-                side = Data.collapse(deck.sections.first(s => s.title == "side"));
+                main = API.collapse(deck.sections.first(s => s.title == "main"));
+                side = API.collapse(deck.sections.first(s => s.title == "side"));
             }
-            else if ("title" in deck) main = Data.collapse(deck);
+            else if ("title" in deck) main = API.collapse(deck);
             else main = deck;
 
             let textCommanders = "";

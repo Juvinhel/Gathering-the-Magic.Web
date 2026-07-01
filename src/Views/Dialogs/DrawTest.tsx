@@ -1,11 +1,11 @@
 namespace Views.Dialogs
 {
-    export function DrawTest(args: { deck: Data.Deck; })
+    export function DrawTest(args: { deck: API.Deck; })
     {
         const deck = args.deck;
-        const entries = Data.getEntries(deck.sections.first(s => s.title == "main"));
+        const entries = API.getEntries(deck.sections.first(s => s.title == "main"));
 
-        const cards: Data.API.Card[] = [];
+        const cards: API.Card[] = [];
         for (const entry of entries)
         {
             if (deck.commanders && deck.commanders.includes(entry.name)) continue;
@@ -32,7 +32,7 @@ namespace Views.Dialogs
         </div>;
     }
 
-    function cardTile(card: Data.API.Card)
+    function cardTile(card: API.Card)
     {
         return <div class={ ["card-tile", "card"] } card={ card } onclick={ () => showImageDialog(card.img) }>
             <img src="img/card-back.png" lazy-image={ card.img } />
@@ -54,7 +54,7 @@ namespace Views.Dialogs
         list.clearChildren();
 
         const length = 7;
-        const cards = drawTest["cards"] as Data.API.Card[];
+        const cards = drawTest["cards"] as API.Card[];
 
         try
         {
@@ -78,7 +78,7 @@ namespace Views.Dialogs
         list.clearChildren();
 
         const length = oldLength <= 1 ? 0 : oldLength - 1;
-        const cards = drawTest["cards"] as Data.API.Card[];
+        const cards = drawTest["cards"] as API.Card[];
 
         try
         {
@@ -98,11 +98,11 @@ namespace Views.Dialogs
         const list = drawTest.querySelector(".list") as HTMLElement;
 
         const length = 1;
-        const cards = [...drawTest["cards"]] as Data.API.Card[];
+        const cards = [...drawTest["cards"]] as API.Card[];
         // remove already drawn cards
         for (const cardTile of list.querySelectorAll(".card"))
         {
-            const card = cardTile["card"] as Data.API.Card;
+            const card = cardTile["card"] as API.Card;
             cards.remove(card);
         }
 
@@ -117,12 +117,12 @@ namespace Views.Dialogs
         }
     }
 
-    function draw(cards: Data.API.Card[], count: number, minimumLands: boolean = true): Data.API.Card[]
+    function draw(cards: API.Card[], count: number, minimumLands: boolean = true): API.Card[]
     {
         if (cards.length < count) throw new Error("Deck does not contain enough cards!");
         if (minimumLands && cards.filter(x => x.type.card.Land).length < 3) throw new Error("Deck does not contain enough land cards!");
 
-        let draw: Data.API.Card[];
+        let draw: API.Card[];
         let landCount: number;
         do
         {

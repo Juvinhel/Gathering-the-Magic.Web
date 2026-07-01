@@ -9,9 +9,9 @@ namespace Views.Library.List
 
         public currentPage: number = 1;
         public pageSize: number = 50;
-        public items: Data.API.Card[] = [];
+        public items: API.Card[] = [];
 
-        public initializePaging(cards: Data.API.Card[])
+        public initializePaging(cards: API.Card[])
         {
             this.currentPage = 1;
             this.pageSize = 50;
@@ -37,7 +37,7 @@ namespace Views.Library.List
 
         public createPageLinks()
         {
-            const items: Data.API.Card[] = this.items;
+            const items: API.Card[] = this.items;
             const pageSize: number = this.pageSize;
             const pages = Math.ceil(items.length / pageSize);
             const currentPage: number = this.currentPage;

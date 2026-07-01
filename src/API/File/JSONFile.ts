@@ -1,4 +1,4 @@
-namespace Data.File
+namespace API.File
 {
     export const JSONFile = new class JSONFile implements File<Deck>
     {

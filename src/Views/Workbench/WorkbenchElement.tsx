@@ -54,7 +54,7 @@ namespace Views.Workbench
             }
         }
 
-        public async loadData(deck: Data.Deck)
+        public async loadData(deck: API.Deck)
         {
             if (deck.sections == null) deck.sections = [] as any;
             if (deck.sections.some(s => s.title === "main") == false) deck.sections.push({ title: "main", items: [] });
@@ -79,18 +79,18 @@ namespace Views.Workbench
                 commanderList.append(...deck.commanders.map(x => <li ondblclick={ (event: Event) => (event.currentTarget as HTMLElement).remove() }>{ x }</li>));
         }
 
-        public getData(): Data.Deck
+        public getData(): API.Deck
         {
             return getDataFromElement(this);
         }
 
-        public async addCards(cards: Data.API.Card | Data.Entry | Data.API.Identifier | (Data.API.Card | Data.Entry | Data.API.Identifier)[], section: string = "main")
+        public async addCards(cards: API.Card | API.Entry | API.Identifier | (API.Card | API.Entry | API.Identifier)[], section: string = "main")
         {
             if (!Array.isArray(cards)) cards = [cards];
-            const onlyIdentifiers: Data.API.Identifier[] = cards.filter(Data.API.isIdentifierOnly);
+            const onlyIdentifiers: API.Identifier[] = cards.filter(API.isIdentifierOnly);
             if (onlyIdentifiers.length > 0)
             {
-                const retrievedCards = await Data.API.getCards(onlyIdentifiers);
+                const retrievedCards = await API.getCards(onlyIdentifiers);
                 for (let i = 0; i < retrievedCards.length; ++i)
                     Object.assign(cards[i], retrievedCards[i]);
             }
@@ -105,7 +105,7 @@ namespace Views.Workbench
                 }
             if (!selectedSection) throw new DataError("Cannot find Section: '" + section + "'!", { section });
 
-            for (const entry of cards as Data.Entry[])
+            for (const entry of cards as API.Entry[])
             {
                 const countUpEntryElement = [...selectedSection.querySelectorAll("my-entry") as NodeListOf<EntryElement>].first(x => x.title == entry.name);
                 if (countUpEntryElement)
@@ -216,19 +216,19 @@ namespace Views.Workbench
             const tags = (element.querySelector(".deck-tag-list") as TagListElement).tags;
             const list = element.querySelector(".list");
             const sections = [...list.children].map(getDataFromElement).filter(x => x != null);
-            return { name, description, commanders, tags, sections } as Data.Deck;
+            return { name, description, commanders, tags, sections } as API.Deck;
         }
         else if (element instanceof SectionElement)
         {
             const title = (element.querySelector(".title") as EditBoxElement).text;
             const list = element.querySelector(".list");
             const items = [...list.children].map(getDataFromElement).filter(x => x != null);
-            const section = { title, items } as Data.Section;
+            const section = { title, items } as API.Section;
             if (element.comment) section.comment = element.comment;
             return section;
         }
         else if (element instanceof EntryElement)
-            return JSON.clone(element.entry) as Data.Entry;
+            return JSON.clone(element.entry) as API.Entry;
 
         throw new DataError("Don't know how to handle this element: " + element.className + "!", { element });
     }

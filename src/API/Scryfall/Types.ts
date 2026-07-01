@@ -1,4 +1,4 @@
-namespace Data.Scryfall
+namespace API.Scryfall
 {
     export type Identifier = NameIdentifier | IDIdentifier | SetIdentifier;
     export type NameIdentifier = { name: string; };

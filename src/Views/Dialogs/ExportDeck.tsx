@@ -1,6 +1,6 @@
 namespace Views.Dialogs
 {
-    export function ExportDeck(args: { deck: Data.Deck; })
+    export function ExportDeck(args: { deck: API.Deck; })
     {
         return <div class="export-deck">
             <select class="format-select" onchange={ (event: Event) => selectFormat(event, args.deck) } >
@@ -11,20 +11,20 @@ namespace Views.Dialogs
                 <option value="yaml">YAML</option>
                 <option value="idec">IDEC</option>
             </select>
-            <textarea class="text-output" readOnly={ true } value={ Data.File.TXTFile.create(args.deck) } />
+            <textarea class="text-output" readOnly={ true } value={ API.File.TXTFile.create(args.deck) } />
             <div class="actions">
                 <a class="link-button" onclick={ selectAllText } title="Select all text"><color-icon src="img/icons/select.svg" /><span>Select</span></a>
             </div>
         </div>;
     }
 
-    async function selectFormat(event: Event, deck: Data.Deck)
+    async function selectFormat(event: Event, deck: API.Deck)
     {
         const target = event.currentTarget as HTMLSelectElement;
         const exportDeck = target.closest(".export-deck") as HTMLElement;
 
         const format = target.value;
-        const file = await Data.File.saveDeck(deck, format);
+        const file = await API.File.saveDeck(deck, format);
 
         const textOutput = exportDeck.querySelector("textarea");
         textOutput.value = file.text;

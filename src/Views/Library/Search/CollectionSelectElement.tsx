@@ -51,13 +51,13 @@ namespace Views.Library.Search
             }
         }
 
-        public get collection(): Data.Collection
+        public get collection(): API.Collection
         {
             const select = this.querySelector("select");
             const option = select.selectedOptions[0];
             if (option?.value == "All Collections" && option?.["collection"] == null)
-                return option["collection"] = Data.combineCollections("All Collection", Object.values(App.collections));
-            return option?.["collection"] as Data.Collection;
+                return option["collection"] = API.combineCollections("All Collection", Object.values(App.collections));
+            return option?.["collection"] as API.Collection;
         }
     }
 

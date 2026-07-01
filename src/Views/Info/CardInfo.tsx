@@ -34,13 +34,13 @@ namespace Views.Info
             ];
         }
 
-        private currentCard: Data.API.Card;
-        public async findCard(card: Data.API.Identifier)
+        private currentCard: API.Card;
+        public async findCard(card: API.Identifier)
         {
-            this.loadData(await Data.API.getCard(card));
+            this.loadData(await API.getCard(card));
         }
 
-        public loadData(card: Data.API.Card)
+        public loadData(card: API.Card)
         {
             this.currentCard = card;
 
@@ -167,7 +167,7 @@ namespace Views.Info
         {
             if (this.currentCard && "quantity" in this.currentCard)
             {
-                const entry = this.currentCard as Data.Entry;
+                const entry = this.currentCard as API.Entry;
                 const text = await Dialogs.TextEdit("Edit Comment", entry.comment);
                 entry.comment = text?.trim() ?? null;
             }

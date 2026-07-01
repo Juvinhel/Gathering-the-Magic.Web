@@ -36,7 +36,7 @@ namespace Views
             throw new Error("Cannot get tranferData of Element!", { cause: { element } });
     }
 
-    export type TransferCard = Data.API.Identifier & { quantity?: number; comment?: string; };
+    export type TransferCard = API.Identifier & { quantity?: number; comment?: string; };
     export type TransferSection = { title: string, items: (TransferCard | TransferSection)[]; comment?: string; };
     export type TransferData = TransferCard | TransferSection | (TransferCard | TransferSection)[];
 }

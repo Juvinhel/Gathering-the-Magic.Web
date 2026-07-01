@@ -33,8 +33,8 @@ namespace Views.Editor
             ].filter(x => x);
         }
 
-        private selectedCard: Data.API.Card;
-        private hoveredCard: Data.API.Card;
+        private selectedCard: API.Card;
+        private hoveredCard: API.Card;
 
         private layout: "Panes" | "Swipe" = null;
         private sizeChanged(event: UI.Events.SizeChangedEvent)
@@ -71,7 +71,7 @@ namespace Views.Editor
 
         private async cardHovered(event: CustomEvent) 
         {
-            this.hoveredCard = event.detail.card as Data.API.Card;
+            this.hoveredCard = event.detail.card as API.Card;
 
             const cardInfo = this.querySelector("my-card-info") as Info.CardInfoElement;
             cardInfo.loadData(this.hoveredCard ?? this.selectedCard);
@@ -79,7 +79,7 @@ namespace Views.Editor
 
         private async cardSelected(event: CustomEvent) 
         {
-            this.selectedCard = event.detail.card as Data.API.Card;
+            this.selectedCard = event.detail.card as API.Card;
 
             const cardInfo = this.querySelector("my-card-info") as Info.CardInfoElement;
             cardInfo.loadData(this.hoveredCard ?? this.selectedCard);

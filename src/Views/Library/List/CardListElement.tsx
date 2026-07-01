@@ -20,9 +20,9 @@ namespace Views.Library.List
             ];
         }
 
-        private items: AsyncIterablePromise<Data.API.Card>;
+        private items: AsyncIterablePromise<API.Card>;
 
-        public async showItems(items: AsyncIterablePromise<Data.API.Card>)
+        public async showItems(items: AsyncIterablePromise<API.Card>)
         {
             const itemsContainer = this.querySelector(".items") as HTMLElement;
             const pagingContainer = this.querySelector("my-paging") as PagingElement;
@@ -39,7 +39,7 @@ namespace Views.Library.List
 
             try
             {
-                const cards: Data.API.Card[] = [];
+                const cards: API.Card[] = [];
                 pagingContainer.initializePaging(cards);
                 for await (const card of this.items)
                 {
@@ -67,7 +67,7 @@ namespace Views.Library.List
             const editor = this.closest("my-editor") as Editor.EditorElement;
             const workbench = editor.querySelector("my-workbench") as Workbench.WorkbenchElement;
             const deck = workbench.getData();
-            const entries = Data.getEntries(deck);
+            const entries = API.getEntries(deck);
 
             for (const child of event.addedNodes)
                 if (child instanceof CardTileElement)

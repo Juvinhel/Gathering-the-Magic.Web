@@ -1,10 +1,10 @@
 namespace Views.Dialogs
 {
-    export function EDHPowerLevel(args: { deck: Data.Deck; })
+    export function EDHPowerLevel(args: { deck: API.Deck; })
     {
         return <iframe class="edhpowerlevel-dialog" oninserted={ async (event: Event) =>
         {
-            const file = await Data.File.saveDeck(args.deck, "TXT");
+            const file = await API.File.saveDeck(args.deck, "TXT");
             const url = "https://edhpowerlevel.com?d=" + encodeForEDHPowerLevel(file.text);
 
             const iframe = event.target as HTMLIFrameElement;

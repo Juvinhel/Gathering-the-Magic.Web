@@ -1,4 +1,4 @@
-namespace Data.API
+namespace API
 {
     export async function init()
     {

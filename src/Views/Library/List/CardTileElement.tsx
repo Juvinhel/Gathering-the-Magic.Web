@@ -2,7 +2,7 @@ namespace Views.Library.List
 {
     export class CardTileElement extends HTMLElement
     {
-        constructor (card: Data.API.Card)
+        constructor (card: API.Card)
         {
             super();
 
@@ -31,7 +31,7 @@ namespace Views.Library.List
             ];
         }
 
-        public card: Data.API.Card;
+        public card: API.Card;
         public get selected() { return this.classList.contains("selected"); }
         public set selected(value: boolean)
         {

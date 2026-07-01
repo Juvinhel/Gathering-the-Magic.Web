@@ -139,15 +139,15 @@ namespace Views.Library.Search
                 if (sets && sets.length) query += " (" + sets.map(x => "set:" + x).join(" OR ") + ")";
                 if (allowedModes && allowedModes.length > 0) query += " " + allowedModes.map(m => "legal:" + m).join(" ");
 
-                let cards: AsyncIterablePromise<Data.API.Card>;
+                let cards: AsyncIterablePromise<API.Card>;
                 if (query)
                 {
-                    cards = Data.API.search(query);
+                    cards = API.search(query);
                     if (collection)
                         cards = new AsyncIterablePromise(this.filterByCollection(cards, collection));
                 }
                 else if (collection)
-                    cards = Data.API.getCards(Object.keys(collection.cards).map(c => { return { name: c }; }));
+                    cards = API.getCards(Object.keys(collection.cards).map(c => { return { name: c }; }));
 
                 list.showItems(cards);
             }
@@ -158,7 +158,7 @@ namespace Views.Library.Search
             }
         }
 
-        private async * filterByCollection(cards: AsyncIterablePromise<Data.API.Card>, collection: Data.Collection)
+        private async * filterByCollection(cards: AsyncIterablePromise<API.Card>, collection: API.Collection)
         {
             for await (const card of cards)
                 if (Object.keys(collection.cards).includes(card.name))

@@ -1,9 +1,9 @@
 namespace Views.Dialogs
 {
-    export function MissingCards(args: { collection: Data.Collection, deck: Data.Deck | Data.Section, workbench?: Workbench.WorkbenchElement; })
+    export function MissingCards(args: { collection: API.Collection, deck: API.Deck | API.Section, workbench?: Workbench.WorkbenchElement; })
     {
         const collection = args.collection;
-        const collapsedEntries = Data.collapse(args.deck);
+        const collapsedEntries = API.collapse(args.deck);
         for (const entry of collapsedEntries)
             entry.quantity -= collection.cards[entry.name] ?? 0;
         const cards = collapsedEntries.filter(x => x.quantity > 0);
@@ -46,7 +46,7 @@ namespace Views.Dialogs
         </div>;
     }
 
-    async function downloadMissingCards(cards: Data.Entry[])
+    async function downloadMissingCards(cards: API.Entry[])
     {
         let file = "";
         for (const entry of cards)
@@ -55,7 +55,7 @@ namespace Views.Dialogs
         DownloadHelper.downloadData("missing cards.txt", file, "text/plain");
     }
 
-    async function markMissingCards(workbench: Workbench.WorkbenchElement, cards: Data.Entry[])
+    async function markMissingCards(workbench: Workbench.WorkbenchElement, cards: API.Entry[])
     {
         const missingCards = Object.clone(cards);
 

@@ -1,4 +1,4 @@
-namespace Data.File
+namespace API.File
 {
     export const IDECFile = new class IDECFile implements File<Deck>
     {

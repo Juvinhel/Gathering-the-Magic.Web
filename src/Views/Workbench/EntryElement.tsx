@@ -2,7 +2,7 @@ namespace Views.Workbench
 {
     export class EntryElement extends HTMLElement
     {
-        constructor (entry: Data.Entry)
+        constructor (entry: API.Entry)
         {
             super();
 
@@ -46,7 +46,7 @@ namespace Views.Workbench
             ];
         }
 
-        public entry: Data.Entry;
+        public entry: API.Entry;
 
         public get quantity(): number { return this.entry.quantity; }
         public set quantity(value: number) { this.entry.quantity = value; }

@@ -1,8 +1,8 @@
 namespace Views.Dialogs
 {
-    export function CollectionsOverview(args: { collections: { [name: string]: Data.Collection; }; allowDelete?: boolean; })
+    export function CollectionsOverview(args: { collections: { [name: string]: API.Collection; }; allowDelete?: boolean; })
     {
-        const collections: { [name: string]: Data.Collection; } = args.collections;
+        const collections: { [name: string]: API.Collection; } = args.collections;
         const allowDelete = args.allowDelete ?? true;
         return <div class="collections-overview">
             <div>

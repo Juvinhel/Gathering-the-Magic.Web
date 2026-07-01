@@ -38,8 +38,8 @@ namespace Views.Shelf
             await Data.Bridge.WriteFile("", Array.from(buff));
         }
 
-        private deckExtensions: string[] = Data.File.deckFileFormats.mapMany(x => x.extensions);
-        private collectionsExtensions: string[] = Data.File.collectionFileFormats.mapMany(x => x.extensions);
+        private deckExtensions: string[] = API.File.deckFileFormats.mapMany(x => x.extensions);
+        private collectionsExtensions: string[] = API.File.collectionFileFormats.mapMany(x => x.extensions);
 
         private async loadFolder(url: string)
         {
@@ -71,7 +71,7 @@ namespace Views.Shelf
                     if (this.deckExtensions.includes(extension.toLowerCase()))
                         try
                         {
-                            const deck = await Data.File.loadDeck(text, extension, false);
+                            const deck = await API.File.loadDeck(text, extension, false);
                             const tile = this.buildDeck(href, deck) as HTMLAnchorElement;
                             this.fileListElement.append(tile);
                         } catch { /* file might be malformed */ }
@@ -93,11 +93,11 @@ namespace Views.Shelf
         {
             if (!tiles || tiles.length == 0) return;
 
-            const cards = await Data.API.getCards(tiles.map(t =>
+            const cards = await API.getCards(tiles.map(t =>
             {
                 let deck = t["deck"];
                 let card = deck.commanders?.first();
-                if (!card) card = Data.collapse(deck)?.[0]?.name;
+                if (!card) card = API.collapse(deck)?.[0]?.name;
                 if (!card) card = "Plains";
                 return { name: card };
             }));
@@ -119,7 +119,7 @@ namespace Views.Shelf
             </a>;
         }
 
-        private buildDeck(url: string, deck: Data.Deck)
+        private buildDeck(url: string, deck: API.Deck)
         {
             const fileName = url.splitLast("/")[1];
             const name = decodeURIComponent(fileName.splitLast(".")[0]);
@@ -132,7 +132,7 @@ namespace Views.Shelf
                     const text = await response.text();
                     const fileName = url.splitLast("/")[1];
                     const extension = fileName.splitLast(".")[1];
-                    const deck = await Data.File.loadDeck(text, extension);
+                    const deck = await API.File.loadDeck(text, extension);
 
                     const editor = new Editor.EditorElement(false, true);
                     // show over top bar and border
@@ -163,7 +163,7 @@ namespace Views.Shelf
 
                     const response = await fetch(url);
                     const text = await response.text();
-                    const collection = await Data.File.CSVFile.load(text);
+                    const collection = await API.File.CSVFile.load(text);
                     collection.name = name;
                     for (const key in App.collections)
                         delete App.collections[key];
@@ -184,11 +184,11 @@ namespace Views.Shelf
         private showContextMenu(event: PointerEvent)
         {
             const sender = event.currentTarget as HTMLAnchorElement;
-            const deck = sender["deck"] as Data.Deck;
+            const deck = sender["deck"] as API.Deck;
             UI.ContextMenu.show(event,
                 <menu-button title="Copy TXT" onclick={ async () =>
                 {
-                    const file = await Data.File.saveDeck(deck, Data.File.TXTFile);
+                    const file = await API.File.saveDeck(deck, API.File.TXTFile);
                     navigator.clipboard.writeText(file.text);
                 } }><color-icon src="img/icons/clipboard.svg" /><span>Copy TXT</span></menu-button>
             );

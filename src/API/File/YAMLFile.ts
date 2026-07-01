@@ -1,4 +1,4 @@
-namespace Data.File
+namespace API.File
 {
     export const YAMLFile = new class YAMLFile implements File<Deck>
     {
@@ -13,7 +13,7 @@ namespace Data.File
             if (deck.commanders && deck.commanders.length > 0) data.commanders = deck.commanders;
             if (deck.tags && deck.tags.length > 0) data.tags = deck.tags;
 
-            const addSection = (obj: any, section: Data.Section) =>
+            const addSection = (obj: any, section: API.Section) =>
             {
                 obj[section.title] = [];
                 for (const item of section.items)

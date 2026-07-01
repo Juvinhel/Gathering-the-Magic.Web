@@ -1,6 +1,6 @@
 /// <reference path="File.ts" />
 
-namespace Data.File
+namespace API.File
 {
     export const CSVFile = new class CSVFile implements File<Collection>
     {

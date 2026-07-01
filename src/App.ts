@@ -35,10 +35,10 @@ class App
 
         if (useWorkbench)
         {
-            const lastDeck: Data.Deck = (localStorage.get("last-deck") ?? App.sampleDeck) as Data.Deck;
+            const lastDeck: API.Deck = (localStorage.get("last-deck") ?? App.sampleDeck) as API.Deck;
 
             const workbench = editor.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
-            await workbench.loadData(await Data.File.loadDeck(JSON.stringify(lastDeck), "JSON"));
+            await workbench.loadData(await API.File.loadDeck(JSON.stringify(lastDeck), "JSON"));
 
             const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
             unsavedProgress.classList.toggle("none", true);
@@ -57,11 +57,11 @@ class App
     {
         [this.config, , this.symbols, this.types, this.sets, this.keywords] = await Promise.all([
             Data.loadConfig(),
-            Data.API.init(),
-            Data.API.symbology(),
-            Data.API.typology(),
-            Data.API.sets(),
-            Data.API.keywords(),
+            API.init(),
+            API.symbology(),
+            API.typology(),
+            API.sets(),
+            API.keywords(),
         ]);
 
         initChartJS();
@@ -86,18 +86,18 @@ class App
 
             const editor = document.querySelector("my-editor") as Views.Editor.EditorElement;
             const workbench = editor.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
-            const deck: Data.Deck = workbench.getData();
+            const deck: API.Deck = workbench.getData();
 
-            localStorage.set("last-deck", Data.File.JSONFile.removeExtendData(deck));
+            localStorage.set("last-deck", API.File.JSONFile.removeExtendData(deck));
         }
     }.bind(this);
 
-    public static symbols: Data.API.Symbol[];
-    public static types: Data.API.Typology;
-    public static sets: Data.API.Set[];
+    public static symbols: API.Symbol[];
+    public static types: API.Typology;
+    public static sets: API.Set[];
     public static keywords: string[];
 
-    public static collections: { [name: string]: Data.Collection; } = {};
+    public static collections: { [name: string]: API.Collection; } = {};
     public static config: Data.Config;
 
     private static ctrl: boolean = false;

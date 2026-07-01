@@ -1,4 +1,4 @@
-namespace Data.File
+namespace API.File
 {
     export const deckFileFormats: File<Deck>[] = [];
     export const collectionFileFormats: File<Collection>[] = [];

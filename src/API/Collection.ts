@@ -1,4 +1,4 @@
-namespace Data
+namespace API
 {
     export type Collection = {
         name: string;
@@ -8,7 +8,7 @@ namespace Data
 
     export function combineCollections(name: string, collections: Collection[]): Collection
     {
-        const ret = { name, importDate: null, cards: {} } as Data.Collection;
+        const ret = { name, importDate: null, cards: {} } as Collection;
         for (const collection of collections)
         {
             if (ret.importDate == null || collection.importDate > ret.importDate) ret.importDate = collection.importDate;

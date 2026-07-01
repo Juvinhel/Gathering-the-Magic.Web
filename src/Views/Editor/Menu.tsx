@@ -207,7 +207,7 @@ namespace Views.Editor
                 const format = (deckImport.querySelector(".format-select") as HTMLSelectElement).value;
                 const text = (deckImport.querySelector(".text-input") as HTMLTextAreaElement).value;
 
-                const deck = await Data.File.loadDeck(text, format);
+                const deck = await API.File.loadDeck(text, format);
 
                 await workbench.loadData(deck);
 
@@ -270,26 +270,26 @@ namespace Views.Editor
 
         const deck = workbench.getData();
 
-        let selector: (e: Data.Entry) => any;
+        let selector: (e: API.Entry) => any;
         let compare: (a: any, b: any) => number;
         switch (option)
         {
             case "Name":
-                selector = (e: Data.Entry) => e.name;
+                selector = (e: API.Entry) => e.name;
                 compare = String.localeCompare;
                 break;
             case "Mana Value":
-                selector = (e: Data.Entry) => e.manaValue;
+                selector = (e: API.Entry) => e.manaValue;
                 break;
             case "Color Identity":
-                selector = (e: Data.Entry) => e.colorOrder;
+                selector = (e: API.Entry) => e.colorOrder;
                 break;
         }
 
-        for (const section of Data.getSections(deck))
+        for (const section of API.getSections(deck))
         {
-            const entries = section.items.filter(item => Data.isEntry(item));
-            const sections = section.items.filter(item => Data.isSection(item));
+            const entries = section.items.filter(item => API.isEntry(item));
+            const sections = section.items.filter(item => API.isSection(item));
             section.items.length = 0;
 
             section.items.push(...entries.orderBy(selector, compare));
@@ -311,10 +311,10 @@ namespace Views.Editor
 
         const deck = workbench.getData();
         const selectCardsOptions: UI.OptionsSelectOption<string>[] = [];
-        selectCardsOptions.push({ title: "All " + Data.collapse(deck).sum(x => x.quantity) + " Cards", value: "*" });
-        selectCardsOptions.push({ title: "Main " + Data.collapse(deck.sections.first(s => s.title == "main")).sum(x => x.quantity) + " Cards", value: "main" });
-        selectCardsOptions.push({ title: "Side " + Data.collapse(deck.sections.first(s => s.title == "side")).sum(x => x.quantity) + " Cards", value: "side" });
-        selectCardsOptions.push({ title: "Maybe " + Data.collapse(deck.sections.first(s => s.title == "maybe")).sum(x => x.quantity) + " Cards", value: "maybe" });
+        selectCardsOptions.push({ title: "All " + API.collapse(deck).sum(x => x.quantity) + " Cards", value: "*" });
+        selectCardsOptions.push({ title: "Main " + API.collapse(deck.sections.first(s => s.title == "main")).sum(x => x.quantity) + " Cards", value: "main" });
+        selectCardsOptions.push({ title: "Side " + API.collapse(deck.sections.first(s => s.title == "side")).sum(x => x.quantity) + " Cards", value: "side" });
+        selectCardsOptions.push({ title: "Maybe " + API.collapse(deck.sections.first(s => s.title == "maybe")).sum(x => x.quantity) + " Cards", value: "maybe" });
 
         const selectCardsOption = await UI.Dialog.options({ title: "Select Cards for Comparison", options: selectCardsOptions, allowEmpty: true });
         if (!selectCardsOption) return;
@@ -322,7 +322,7 @@ namespace Views.Editor
         const collections = await Dialogs.showCollectionMultiSelect();
         if (!collections || !collections.length) return;
 
-        let cards: Data.Deck | Data.Section;
+        let cards: API.Deck | API.Section;
         switch (selectCardsOption)
         {
             case "*": cards = deck; break;
@@ -331,7 +331,7 @@ namespace Views.Editor
             case "maybe": cards = deck.sections.first(s => s.title == "maybe"); break;
         }
 
-        const collection = collections.length == 1 ? collections[0] : Data.combineCollections("Collections", collections);
+        const collection = collections.length == 1 ? collections[0] : API.combineCollections("Collections", collections);
         await UI.Dialog.show(<Views.Dialogs.MissingCards collection={ collection } deck={ cards } workbench={ workbench } />, { allowClose: true, title: "Missing Cards List" });
     }
 

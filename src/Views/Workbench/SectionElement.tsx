@@ -2,7 +2,7 @@ namespace Views.Workbench
 {
     export class SectionElement extends HTMLElement
     {
-        constructor (section: Data.Section, topLevel: boolean = false)
+        constructor (section: API.Section, topLevel: boolean = false)
         {
             super();
 
@@ -19,7 +19,7 @@ namespace Views.Workbench
             this.addEventListener("rendered", this.calcCardCount.bind(this));
         }
 
-        private build(section: Data.Section)
+        private build(section: API.Section)
         {
             return [
                 new SectionHeaderElement(this),

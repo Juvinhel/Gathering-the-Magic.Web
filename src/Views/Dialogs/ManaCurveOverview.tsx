@@ -2,10 +2,10 @@ namespace Views.Dialogs
 {
     export class ManaCurveOverview
     {
-        constructor (attr: { deck: Data.Deck; })
+        constructor (attr: { deck: API.Deck; })
         {
             this.deck = attr.deck;
-            this.entries = Data.getEntries(this.deck.sections.first(s => s.title == "main"));
+            this.entries = API.getEntries(this.deck.sections.first(s => s.title == "main"));
 
             const highestManaValue = this.entries.max(x => x.manaValue);
             for (let i = 0; i <= highestManaValue; ++i)
@@ -16,9 +16,9 @@ namespace Views.Dialogs
                     this.curve[entry.manaValue].push(entry);
         }
 
-        private deck: Data.Deck;
-        private entries: Data.Entry[];
-        private curve: { [cost: number]: Data.Entry[]; } = {};
+        private deck: API.Deck;
+        private entries: API.Entry[];
+        private curve: { [cost: number]: API.Entry[]; } = {};
 
         public render(): Node
         {
@@ -37,7 +37,7 @@ namespace Views.Dialogs
                 </div>;
         }
 
-        private * buildColumn(entries: Data.Entry[])
+        private * buildColumn(entries: API.Entry[])
         {
             for (const entry of entries.orderBy(x => x.colorOrder))
                 for (let i = 0; i < entry.quantity; ++i)
