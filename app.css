@@ -74,11 +74,11 @@ html {
   width: 100vw;
   height: 100vh;
   height: calc(var(--vh, 1vh) * 100);
-  padding: 0;
   margin: 0;
+  padding: 0;
   overflow: hidden;
-  color: var(--foreground-color);
   background-color: var(--page-background-color);
+  color: var(--foreground-color);
 }
 .colour-white {
   filter: brightness(0) invert(100%);
@@ -166,6 +166,15 @@ dialog {
 hr {
   width: 100%;
   width: -webkit-fill-available;
+}
+body {
+  user-select: none;
+}
+input {
+  user-select: all;
+}
+textarea {
+  user-select: all;
 }
 :root {
   --page-background-color: #1A1A1A;
@@ -929,11 +938,11 @@ drop-down {
   width: max-content;
   min-width: anchor-size(width);
   height: max-content;
+  max-height: 100vh;
   margin: auto;
   margin-top: 0;
   padding: 0.25em;
   overflow: hidden;
-  overflow-y: auto;
   border: none;
   border-radius: var(--corner-radius);
   background: var(--background-color);
@@ -942,7 +951,6 @@ drop-down {
 drop-down:not([open]) {
   display: none !important;
   height: 0 !important;
-  overflow: hidden !important;
 }
 drop-down[placement="above"] {
   bottom: anchor(top);
@@ -1497,9 +1505,9 @@ container-dialog:not([state]) {
   display: grid;
 }
 #container-dialog-root > #container-dialog-container {
-  anchor-name: --dialog-back;
   display: grid;
   position: absolute;
+  anchor-name: --dialog-back;
   grid-template-rows: 2em 1fr;
   grid-template-columns: 2em 1fr 2em;
   grid-template-areas: "icon title close" "content content content";
@@ -1522,6 +1530,7 @@ container-dialog:not([state]) {
 }
 #container-dialog-root > #container-dialog-container > #container-dialog-title {
   grid-area: title;
+  width: fit-content;
   padding: 0.125em 0;
   font-weight: bold;
   font-size: 1.5em;
@@ -1598,10 +1607,10 @@ container-dialog:not([state]) {
   cursor: not-allowed !important;
 }
 #container-dialog-root > #container-dialog-backdrop {
-  position-anchor: --dialog-back;
-  position-area: center;
   z-index: -1;
   position: absolute;
+  position-anchor: --dialog-back;
+  position-area: center;
   width: 100%;
   height: 100%;
   border-radius: var(--corner-radius);
@@ -1625,6 +1634,15 @@ container-dialog:not([state]) {
   height: 100%;
   max-height: 100%;
   inset: 0;
+}
+#container-dialog-root.full > #container-dialog-container > #container-dialog-icon {
+  display: none;
+}
+#container-dialog-root.full > #container-dialog-container > #container-dialog-title {
+  display: none;
+}
+#container-dialog-root.full > #container-dialog-container > #container-dialog-close-button {
+  display: none;
 }
 @keyframes dialog-fade-out {
   from {
@@ -3002,6 +3020,7 @@ multi-select {
   display: grid;
   grid-template-rows: min-content max-content;
   grid-template-columns: minmax(100%, max-content);
+  max-height: calc(100vh - 0.5em);
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -5527,11 +5546,13 @@ aside {
 }
 .symbol {
   display: inline-block;
-  width: 1em;
-  height: 1em;
+  width: 1.5em;
+  height: 1.5em;
   padding: 0 0.075em;
   background-repeat: no-repeat;
   color: transparent !important;
+  font-size: 0.75em;
+  vertical-align: middle;
 }
 .collections-multi-select {
   display: grid;
@@ -5971,6 +5992,8 @@ my-editor {
   grid-template-areas: "menu" "container" "footer";
   width: 100%;
   height: 100%;
+  overflow: hidden;
+  background: var(--page-background-color);
 }
 my-editor > .menu {
   grid-area: menu;
@@ -6034,6 +6057,7 @@ my-card-info > .top > .card-link {
   align-items: center;
   padding: 0 0.25em;
   overflow: hidden;
+  user-select: text;
 }
 my-card-info > .top > .card-link > .card-name {
   overflow: hidden;
@@ -6097,9 +6121,6 @@ my-card-info > .card-text {
   white-space: pre-line;
   user-select: text;
 }
-my-card-info > .card-text * {
-  user-select: text;
-}
 my-card-info > .links {
   list-style: none;
 }
@@ -6139,6 +6160,7 @@ my-card-info > .comment {
   font-style: italic;
   white-space: pre;
   cursor: pointer;
+  user-select: text;
 }
 my-card-info > .comment::before {
   display: block;
@@ -6176,18 +6198,18 @@ my-library > my-search {
 my-library > my-card-list {
   grid-area: list;
 }
-my-shelve {
+my-shelf {
   display: grid;
   grid-template-rows: auto 1fr;
   grid-template-columns: 1fr;
   height: 100%;
   gap: 0.25em;
 }
-my-shelve > h1 {
+my-shelf > h1 {
   font-size: 1.5em;
   text-align: center;
 }
-my-shelve > div {
+my-shelf > div {
   display: grid;
   grid-template-rows: max-content max-content;
   grid-template-columns: 1fr;
@@ -6199,21 +6221,23 @@ my-shelve > div {
   overflow-y: auto;
   gap: 0.25em;
 }
-my-shelve > div > .folder-list {
+my-shelf > div > .folder-list {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   width: 100%;
   height: max-content;
-  gap: 0.25em;
+  gap: 0.5em;
 }
-my-shelve > div > .deck-list {
+my-shelf > div > .file-list {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   width: 100%;
   height: max-content;
-  gap: 1em;
+  gap: 0.5em;
 }
-my-shelve .folder {
+my-shelf .folder {
   display: grid;
   grid-template-rows: 1fr max-content;
   grid-template-columns: 1fr;
@@ -6222,13 +6246,14 @@ my-shelve .folder {
   width: 12em;
   border-radius: var(--corner-radius);
 }
-my-shelve .folder > img {
+my-shelf .folder > img {
   grid-row: 1;
   grid-column: 1;
   height: 100%;
+  padding: 0.125em;
   overflow: hidden;
 }
-my-shelve .folder > span {
+my-shelf .folder > span {
   display: -webkit-box;
   grid-row: 2;
   grid-column: 1;
@@ -6238,37 +6263,39 @@ my-shelve .folder > span {
   text-overflow: ellipsis;
   white-space: nowrap;
   -webkit-box-orient: vertical;
+  max-width: 100%;
   text-align: center;
 }
-my-shelve .folder:hover {
+my-shelf .folder:hover {
   background-color: var(--highlight-color);
 }
-my-shelve .folder:hover > span {
+my-shelf .folder:hover > span {
   color: var(--inverted-foreground-color);
 }
-my-shelve .deck {
+my-shelf .deck {
   display: grid;
   grid-template-rows: 1fr max-content;
   grid-template-columns: 1fr;
+  width: 12em;
   border-radius: 0.5em;
   background-color: var(--footer-color);
 }
-my-shelve .deck > img {
+my-shelf .deck > img {
   display: block;
   grid-row: 1;
   grid-column: 1;
   aspect-ratio: 10 / 7;
-  width: 24em;
+  width: 100%;
   object-fit: cover;
   object-position: top center;
   border-top-right-radius: 0.5em;
   border-top-left-radius: 0.5em;
   mask-image: linear-gradient(to bottom, #000000, #000000 65%, rgba(0, 0, 0, 0));
 }
-my-shelve .deck > img:not([src]) {
+my-shelf .deck > img:not([src]) {
   visibility: hidden;
 }
-my-shelve .deck > span {
+my-shelf .deck > span {
   display: -webkit-box;
   grid-row: 2;
   grid-column: 1;
@@ -6278,8 +6305,44 @@ my-shelve .deck > span {
   text-overflow: ellipsis;
   white-space: nowrap;
   -webkit-box-orient: vertical;
+  max-width: 100%;
   font-size: 1.5em;
   text-align: center;
+}
+my-shelf .collection {
+  display: grid;
+  grid-template-rows: 1fr max-content;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  aspect-ratio: 1;
+  width: 12em;
+  border-radius: var(--corner-radius);
+}
+my-shelf .collection > img {
+  grid-row: 1;
+  grid-column: 1;
+  height: 100%;
+  padding: 0.125em;
+  overflow: hidden;
+}
+my-shelf .collection > span {
+  display: -webkit-box;
+  grid-row: 2;
+  grid-column: 1;
+  line-clamp: 1;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  max-width: 100%;
+  text-align: center;
+}
+my-shelf .collection:hover {
+  background-color: var(--highlight-color);
+}
+my-shelf .collection:hover > span {
+  color: var(--inverted-foreground-color);
 }
 my-workbench .counter {
   display: grid;
@@ -6296,9 +6359,6 @@ my-workbench a[class*="button"] > color-icon {
 }
 my-workbench .card-count {
   color: lightgray;
-}
-my-workbench *:not(input) {
-  user-select: none;
 }
 my-workbench h1,
 my-workbench h2,
@@ -6387,7 +6447,7 @@ my-large-edit-box:not(.disabled) > span {
   display: -webkit-box;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: pre;
+  white-space: pre-line;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
