@@ -38,7 +38,7 @@ namespace API
 
     export function getColoridentity(deck: Deck): string[]
     {
-        if (!deck.commanders) return ["B", "G", "R", "U", "W"];
+        if (!deck.commanders || !deck.commanders.length) return ["B", "G", "R", "U", "W"];
 
         const entries: Entry[] = getEntries(deck).filter(x => deck.commanders.includes(x.name));
         return entries.mapMany(x => x.colorIdentity).distinct().orderBy(x => x);

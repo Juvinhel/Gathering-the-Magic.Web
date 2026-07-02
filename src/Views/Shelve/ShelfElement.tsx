@@ -29,13 +29,6 @@ namespace Views.Shelf
         async connectedCallback()
         {
             this.loadFolder(this.root);
-
-            const folders = await Data.Bridge.GetFolders("");
-
-            const file = await Data.Bridge.ReadFile("/Decks/Multicolor Lands.idec") as number[];
-            const buff = new Uint8Array(file);
-
-            await Data.Bridge.WriteFile("", Array.from(buff));
         }
 
         private deckExtensions: string[] = API.File.deckFileFormats.mapMany(x => x.extensions);
