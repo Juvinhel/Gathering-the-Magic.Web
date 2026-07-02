@@ -35,10 +35,15 @@ class App
 
         if (useWorkbench)
         {
-            const lastDeck: API.Deck = (localStorage.get("last-deck") ?? App.sampleDeck) as API.Deck;
-
             const workbench = editor.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
-            await workbench.loadData(await API.File.loadDeck(JSON.stringify(lastDeck), "JSON"));
+            let deck: API.Deck = await this.openFileFromParameters();
+            if (!deck)
+            {
+                const lastDeck: API.Deck = (localStorage.get("last-deck") ?? App.sampleDeck) as API.Deck;
+                deck = await API.File.loadDeck(JSON.stringify(lastDeck), "JSON");
+            }
+
+            await workbench.loadData(deck);
 
             const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
             unsavedProgress.classList.toggle("none", true);
@@ -126,6 +131,26 @@ class App
             for (const element of document.querySelectorAll("my-entry.selected, my-card-tile.selected") as NodeListOf<Views.Workbench.EntryElement | Views.Library.List.CardTileElement>)
                 element.selected = false;
         }
+    }
+
+    private static async openFileFromParameters(): Promise<API.Deck>
+    {
+        const params = new URLSearchParams(window.location.search);
+        const file = params.get("file");
+        const format = params.get("format");
+        if (!file) return null;
+
+        return await this.openFile(file, format);
+    }
+
+    private static async openFile(url: string, format?: string): Promise<API.Deck>
+    {
+        if (!url) return null;
+
+        const text = await (await fetch(url)).text();
+        const fileType = url.splitLast(".")[1]?.toLowerCase();
+
+        return await API.File.loadDeck(text, format ?? fileType);
     }
 
     public static sampleDeck = {

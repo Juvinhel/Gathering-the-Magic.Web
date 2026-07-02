@@ -11,8 +11,8 @@ namespace Data
     const defaultConfig: Config = {
         showMana: false,
         showType: false,
-        cardSize: "Small",
-        listMode: "Lines",
+        cardSize: "Large",
+        listMode: "Grid",
     };
 
     export async function loadConfig(): Promise<Config>
