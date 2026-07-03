@@ -19,12 +19,17 @@ namespace API.File
             return deck;
         }
 
-        public removeExtendData(deck: Deck): any
+        public removeExtendData(deck: Deck, removeSet?: boolean): any
         {
             deck = JSON.clone(deck);
             this.traverse(deck, (entry: Entry) =>
             {
-                const ret = { quantity: entry.quantity, name: entry.name, set: entry.set, no: entry.no } as Entry;
+                const ret = { quantity: entry.quantity, name: entry.name } as Entry;
+                if (!removeSet && entry.set)
+                {
+                    ret.set = entry.set;
+                    ret.no = entry.no;
+                }
                 if (entry.comment) ret.comment = entry.comment;
                 return ret;
             });

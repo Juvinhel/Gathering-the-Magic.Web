@@ -8,6 +8,7 @@ namespace Views.Dialogs
                 <option value="dec">DEC</option>
                 <option value="json">JSON</option>
                 <option value="txt" selected={ true }>TXT</option>
+                <option value="txtnoprint">TXT without print</option>
                 <option value="yaml">YAML</option>
                 <option value="idec">IDEC</option>
             </select>
@@ -24,7 +25,11 @@ namespace Views.Dialogs
         const exportDeck = target.closest(".export-deck") as HTMLElement;
 
         const format = target.value;
-        const file = await API.File.saveDeck(deck, format);
+        let file: { format: string, text: string; };
+        if (format == "txtnoprint")
+            file = await API.File.saveDeck(API.File.JSONFile.removeExtendData(deck, true), "txt");
+        else
+            file = await API.File.saveDeck(deck, format);
 
         const textOutput = exportDeck.querySelector("textarea");
         textOutput.value = file.text;

@@ -27,7 +27,7 @@ namespace API.File
             let text = "";
             if (commanders.length > 0)
             {
-                text += "// Commander";
+                text += "// Commander" + "\r\n";
                 for (const commander of commanders)
                 {
                     const entry = main.first(x => x.name == commander);
@@ -39,7 +39,7 @@ namespace API.File
                 // text += "\r\n"; breaks tabletop simulator
             }
 
-            if (text) text += "// Mainboard";
+            if (text) text += "// Mainboard" + "\r\n";
             for (const entry of main.sortBy(x => x.name))
                 text += this.writeLine(entry.quantity, entry);
 
@@ -58,7 +58,7 @@ namespace API.File
         {
             let ret = "";
             ret += quantity.toFixed() + " " + card.name;
-            ret += " (" + card.set + ") " + card.no;
+            if (card.set) ret += " (" + card.set + ") " + card.no;
             ret += "\r\n";
             return ret;
         }

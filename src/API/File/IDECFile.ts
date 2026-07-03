@@ -55,7 +55,7 @@ namespace API.File
         {
             let ret = "";
             ret += "  ".repeat(indention) + "- " + entry.quantity + " " + entry.name;
-            ret += " (" + entry.set + ") " + entry.no;
+            if (entry.set) ret += " (" + entry.set + ") " + entry.no;
             ret += "\r\n";
             if (entry.comment)
                 for (const commentLine of entry.comment.splitLines())
