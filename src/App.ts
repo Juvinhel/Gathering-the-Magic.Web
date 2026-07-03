@@ -39,8 +39,8 @@ class App
             let deck: API.Deck = await this.openFileFromParameters();
             if (!deck)
             {
-                const lastDeck: API.Deck = (localStorage.get("last-deck") ?? App.sampleDeck) as API.Deck;
-                deck = await API.File.loadDeck(JSON.stringify(lastDeck), "JSON");
+                deck = localStorage.get("last-deck") ?? JSON.clone(App.sampleDeck) as API.Deck;;
+                await API.File.populateEntriesFromIdentifiers(deck);
             }
 
             await workbench.loadData(deck);

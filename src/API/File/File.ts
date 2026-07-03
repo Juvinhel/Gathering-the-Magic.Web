@@ -40,7 +40,7 @@ namespace API.File
             progressDialog.value = 0;
 
             let i = 0;
-            for await (const card of API.getCards(entries.map(entry => { return { name: entry.name }; })))
+            for await (const card of API.getCards(entries.map(e => e.set ? { set: e.set, no: e.no } : { name: e.name })))
             {
                 const entry = entries[i];
                 Object.assign(entry, card);

@@ -24,7 +24,7 @@ namespace API.File
             deck = JSON.clone(deck);
             this.traverse(deck, (entry: Entry) =>
             {
-                const ret = { quantity: entry.quantity, name: entry.name } as Entry;
+                const ret = { quantity: entry.quantity, name: entry.name, set: entry.set, no: entry.no } as Entry;
                 if (entry.comment) ret.comment = entry.comment;
                 return ret;
             });

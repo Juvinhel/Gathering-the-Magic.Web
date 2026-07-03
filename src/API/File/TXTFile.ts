@@ -24,32 +24,43 @@ namespace API.File
             else if ("title" in deck) main = API.collapse(deck);
             else main = deck;
 
-            let textCommanders = "";
+            let text = "";
             if (commanders.length > 0)
             {
+                text += "// Commander";
                 for (const commander of commanders)
                 {
-                    textCommanders += "1 " + commander + "\r\n";
-
                     const entry = main.first(x => x.name == commander);
+                    text += this.writeLine(1, entry);
+
                     entry.quantity -= 1;
                     if (entry.quantity == 0) main.remove(entry);
                 }
-                textCommanders += "\r\n";
+                // text += "\r\n"; breaks tabletop simulator
             }
 
-            let text = "";
+            if (text) text += "// Mainboard";
             for (const entry of main.sortBy(x => x.name))
-                text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
+                text += this.writeLine(entry.quantity, entry);
+
             if (side && side.length > 0)
             {
                 text += "\r\n";
                 text += "Sideboard\r\n";
                 for (const entry of side.sortBy(x => x.name))
-                    text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
+                    text += this.writeLine(entry.quantity, entry);
             }
 
-            return textCommanders + text;
+            return text;
+        }
+
+        private writeLine(quantity: number, card: API.Card): string
+        {
+            let ret = "";
+            ret += quantity.toFixed() + " " + card.name;
+            ret += " (" + card.set + ") " + card.no;
+            ret += "\r\n";
+            return ret;
         }
 
         public async load(text: string): Promise<Deck>

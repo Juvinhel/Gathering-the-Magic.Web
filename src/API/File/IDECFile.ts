@@ -54,7 +54,9 @@ namespace API.File
         private writeEntry(indention: number, entry: Entry): string
         {
             let ret = "";
-            ret += "  ".repeat(indention) + "- " + entry.quantity + " " + entry.name + "\r\n";
+            ret += "  ".repeat(indention) + "- " + entry.quantity + " " + entry.name;
+            ret += " (" + entry.set + ") " + entry.no;
+            ret += "\r\n";
             if (entry.comment)
                 for (const commentLine of entry.comment.splitLines())
                     ret += "  ".repeat(indention + 1) + "# " + commentLine + "\r\n";
@@ -125,6 +127,11 @@ namespace API.File
                         const comment = this.getComment(token);
 
                         const entry = { quantity, name } as Entry;
+                        if (set && setNo)
+                        {
+                            entry.set = set;
+                            entry.no = setNo;
+                        }
                         if (comment) entry.comment = comment;
                         ret.items.push(entry);
                         break;
