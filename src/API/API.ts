@@ -214,6 +214,7 @@ namespace API
 
         if (scryfallCard.card_faces && scryfallCard.card_faces.length > 0)
         {
+            card.imgCrop ??= scryfallCard.card_faces[0].image_uris?.art_crop;
             for (const cardFace of scryfallCard.card_faces)
             {
                 card.faces.push({
