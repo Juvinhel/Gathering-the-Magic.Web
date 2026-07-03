@@ -8576,8 +8576,9 @@ class App {
             const workbench = editor.querySelector("my-workbench");
             let deck = await this.openFileFromParameters();
             if (!deck) {
-                const lastDeck = (localStorage.get("last-deck") ?? App.sampleDeck);
-                deck = await API.File.loadDeck(JSON.stringify(lastDeck), "JSON");
+                deck = localStorage.get("last-deck") ?? JSON.clone(App.sampleDeck);
+                ;
+                await API.File.populateEntriesFromIdentifiers(deck);
             }
             await workbench.loadData(deck);
             const unsavedProgress = editor.querySelector(".unsaved-progress");
@@ -9129,7 +9130,7 @@ var API;
                 progressDialog.max = entries.length;
                 progressDialog.value = 0;
                 let i = 0;
-                for await (const card of API.getCards(entries.map(entry => { return { name: entry.name }; }))) {
+                for await (const card of API.getCards(entries.map(e => e.set ? { set: e.set, no: e.no } : { name: e.name }))) {
                     const entry = entries[i];
                     Object.assign(entry, card);
                     ++progressDialog.value;
@@ -9457,7 +9458,9 @@ var API;
             }
             writeEntry(indention, entry) {
                 let ret = "";
-                ret += "  ".repeat(indention) + "- " + entry.quantity + " " + entry.name + "\r\n";
+                ret += "  ".repeat(indention) + "- " + entry.quantity + " " + entry.name;
+                ret += " (" + entry.set + ") " + entry.no;
+                ret += "\r\n";
                 if (entry.comment)
                     for (const commentLine of entry.comment.splitLines())
                         ret += "  ".repeat(indention + 1) + "# " + commentLine + "\r\n";
@@ -9521,6 +9524,10 @@ var API;
                             const setNo = line.groups.setno; // not needed yet
                             const comment = this.getComment(token);
                             const entry = { quantity, name };
+                            if (set && setNo) {
+                                entry.set = set;
+                                entry.no = setNo;
+                            }
                             if (comment)
                                 entry.comment = comment;
                             ret.items.push(entry);
@@ -9605,7 +9612,7 @@ var API;
             removeExtendData(deck) {
                 deck = JSON.clone(deck);
                 this.traverse(deck, (entry) => {
-                    const ret = { quantity: entry.quantity, name: entry.name };
+                    const ret = { quantity: entry.quantity, name: entry.name, set: entry.set, no: entry.no };
                     if (entry.comment)
                         ret.comment = entry.comment;
                     return ret;
@@ -9652,27 +9659,36 @@ var API;
                     main = API.collapse(deck);
                 else
                     main = deck;
-                let textCommanders = "";
+                let text = "";
                 if (commanders.length > 0) {
+                    text += "// Commander";
                     for (const commander of commanders) {
-                        textCommanders += "1 " + commander + "\r\n";
                         const entry = main.first(x => x.name == commander);
+                        text += this.writeLine(1, entry);
                         entry.quantity -= 1;
                         if (entry.quantity == 0)
                             main.remove(entry);
                     }
-                    textCommanders += "\r\n";
+                    // text += "\r\n"; breaks tabletop simulator
                 }
-                let text = "";
+                if (text)
+                    text += "// Mainboard";
                 for (const entry of main.sortBy(x => x.name))
-                    text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
+                    text += this.writeLine(entry.quantity, entry);
                 if (side && side.length > 0) {
                     text += "\r\n";
                     text += "Sideboard\r\n";
                     for (const entry of side.sortBy(x => x.name))
-                        text += entry.quantity.toFixed() + " " + entry.name + "\r\n";
+                        text += this.writeLine(entry.quantity, entry);
                 }
-                return textCommanders + text;
+                return text;
+            }
+            writeLine(quantity, card) {
+                let ret = "";
+                ret += quantity.toFixed() + " " + card.name;
+                ret += " (" + card.set + ") " + card.no;
+                ret += "\r\n";
+                return ret;
             }
             async load(text) {
                 const lines = text.splitLines().map(x => x.trim());
