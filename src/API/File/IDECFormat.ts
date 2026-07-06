@@ -102,7 +102,7 @@ namespace API.File
         }
 
         private sectionRegex = /^\s*(?<title>[^:]+)\s*:\s*$/;
-        private lineRegex = /^\s*(?<quantity>[0-9]+)?\s+(?<name>[^\(\)]+)\s+((?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
+        private lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^\(\)]+)(\s+(?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
         private loadSection(p: token): Section
         {
             const ret = { items: [] } as Section;
@@ -120,20 +120,26 @@ namespace API.File
                         break;
                     case "item":
                         const line = token.text.match(this.lineRegex);
-                        const quantity = parseInt(line.groups.quantity?.trim() ?? "1");
-                        const name = line.groups.name.trim();
-                        const set = line.groups.set?.substring(1).substrEnd(1);
-                        const no = line.groups.no;
-                        const comment = this.getComment(token);
-
-                        const entry = { quantity, name } as Entry;
-                        if (set && no)
+                        try
                         {
-                            entry.set = set;
-                            entry.no = no;
+                            const quantity = parseInt(line.groups.quantity?.trim() ?? "1");
+                            const name = line.groups.name.trim();
+                            const set = line.groups.set?.substring(1).substrEnd(1);
+                            const no = line.groups.no;
+                            const comment = this.getComment(token);
+
+                            const entry = { quantity, name } as Entry;
+                            if (set && no)
+                            {
+                                entry.set = set;
+                                entry.no = no;
+                            }
+                            if (comment) entry.comment = comment;
+                            ret.items.push(entry);
+                        } catch (error)
+                        {
+
                         }
-                        if (comment) entry.comment = comment;
-                        ret.items.push(entry);
                         break;
                 }
             }

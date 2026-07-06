@@ -103,7 +103,7 @@ namespace API.File
             return deck;
         }
 
-        private lineRegex = /^\s*(?<quantity>[0-9]+)?\s+(?<name>[^\(\)]+)\s+((?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
+        private lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^\(\)]+)(\s+(?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
         private parseLine(line: string): { quantity: number, name: string; set?: string; no?: string; }
         {
             const match = line.match(this.lineRegex);
