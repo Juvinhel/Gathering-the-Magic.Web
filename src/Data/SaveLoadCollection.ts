@@ -20,7 +20,7 @@ namespace Data
             const collections: API.Collection[] = [];
             for (const file of files)
             {
-                const collection = await API.File.CSVFile.load(file.text);
+                const collection = await API.File.CSVFormat.load(file.text);
                 collection.name = file.name;
                 if (file.lastModified) collection.importDate = file.lastModified;
                 collections.push(collection);
@@ -40,7 +40,7 @@ namespace Data
             const collections: API.Collection[] = [];
             for (const file of files)
             {
-                const collection = await API.File.CSVFile.load(file.text);
+                const collection = await API.File.CSVFormat.load(file.text);
                 collection.name = file.name;
                 if (file.lastModified) collection.importDate = file.lastModified;
                 collections.push(collection);
@@ -72,7 +72,7 @@ namespace Data
             const collections: API.Collection[] = [];
             for (const file of files)
             {
-                const collection = await API.File.CSVFile.load(file.text);
+                const collection = await API.File.CSVFormat.load(file.text);
                 collection.name = file.name;
                 if (file.lastModified) collection.importDate = file.lastModified;
                 collections.push(collection);

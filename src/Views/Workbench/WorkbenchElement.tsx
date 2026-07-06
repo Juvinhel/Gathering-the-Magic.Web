@@ -54,7 +54,7 @@ namespace Views.Workbench
             }
         }
 
-        public async loadData(deck: API.Deck)
+        public async loadData(deck: API.Deck, clearUnsaved: boolean = true)
         {
             if (deck.sections == null) deck.sections = [] as any;
             if (deck.sections.some(s => s.title === "main") == false) deck.sections.push({ title: "main", items: [] });
@@ -77,6 +77,16 @@ namespace Views.Workbench
             commanderList.clearChildren();
             if (deck.commanders)
                 commanderList.append(...deck.commanders.map(x => <li ondblclick={ (event: Event) => (event.currentTarget as HTMLElement).remove() }>{ x }</li>));
+
+            if (clearUnsaved)
+            {
+                const editor = this.closest("my-editor") as Editor.EditorElement;
+                if (editor)
+                {
+                    const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
+                    unsavedProgress.classList.toggle("none", true);
+                }
+            }
         }
 
         public getData(): API.Deck

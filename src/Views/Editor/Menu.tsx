@@ -115,9 +115,6 @@ namespace Views.Editor
                         items: [{ title: "Creatures", items: [] }, { title: "Artifacts & Enchantments", items: [] }, { title: "Sorceries & Instants", items: [] }, { title: "Lands", items: [] }]
                     }]
             });
-
-            const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
-            unsavedProgress.classList.toggle("none", true);
         }
         catch (error)
         {
@@ -179,9 +176,6 @@ namespace Views.Editor
             if (!deck) return;
 
             await workbench.loadData(deck);
-
-            const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
-            unsavedProgress.classList.toggle("none", true);
         }
         catch (error)
         {
@@ -201,21 +195,13 @@ namespace Views.Editor
 
             await UI.Dialog.show(deckImport, { title: "Import Deck", allowClose: true, icon: "img/icons/import-export-dialog.svg" });
 
-            const ok = deckImport.classList.contains("ok");
-            if (ok)
+            const deck = deckImport["deck"] as API.Deck;
+            if (deck)
             {
-                const format = (deckImport.querySelector(".format-select") as HTMLSelectElement).value;
-                const text = (deckImport.querySelector(".text-input") as HTMLTextAreaElement).value;
-
-                const deck = await API.File.loadDeck(text, format);
-
                 await workbench.loadData(deck);
 
                 //TODO: make abstract
                 localStorage.set("current-deck-file-path", null);
-
-                const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
-                unsavedProgress.classList.toggle("none", true);
             }
         }
         catch (error)
@@ -296,7 +282,7 @@ namespace Views.Editor
             section.items.push(...sections);
         }
 
-        workbench.loadData(deck);
+        workbench.loadData(deck, false);
     }
 
     async function showMissingCards(event: Event)

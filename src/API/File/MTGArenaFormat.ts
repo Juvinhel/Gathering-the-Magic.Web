@@ -1,8 +1,8 @@
 namespace API.File
 {
-    export const TXTFile = new class TXTFile implements File<Deck>
+    export const MTGArenaFormat = new class MTGArenaFormat implements Format<Deck>
     {
-        public name = "TXT";
+        public name = "MTG Arena";
         public extensions = ["txt"];
         public mimeTypes = ["text/plain"];
 
@@ -24,10 +24,9 @@ namespace API.File
             else if ("title" in deck) main = API.collapse(deck);
             else main = deck;
 
-            let text = "";
+            let text = "Deck\r\n";
             if (commanders.length > 0)
             {
-                text += "// Commander" + "\r\n";
                 for (const commander of commanders)
                 {
                     const entry = main.first(x => x.name == commander);
@@ -36,18 +35,16 @@ namespace API.File
                     entry.quantity -= 1;
                     if (entry.quantity == 0) main.remove(entry);
                 }
-                // text += "\r\n"; breaks tabletop simulator
             }
 
-            if (text) text += "// Mainboard" + "\r\n";
-            for (const entry of main.sortBy(x => x.name))
+            for (const entry of main)
                 text += this.writeLine(entry.quantity, entry);
 
             if (side && side.length > 0)
             {
                 text += "\r\n";
                 text += "Sideboard\r\n";
-                for (const entry of side.sortBy(x => x.name))
+                for (const entry of side)
                     text += this.writeLine(entry.quantity, entry);
             }
 
@@ -65,9 +62,13 @@ namespace API.File
 
         public async load(text: string): Promise<Deck>
         {
-            const lines = text.splitLines().map(x => x.trim());
+            text = text.trim();
+            if (text.toLowerCase().startsWith("deck"))
+                text = text.substring("Deck".length).trim();
+
             let main: string[];
             let side: string[];
+            const lines = text.splitLines().map(x => x.trim());
             if (lines.some(x => x.equals("Sideboard", false)))
             {
                 const i = lines.findIndex(x => x.equals("Sideboard", false));
@@ -109,20 +110,28 @@ namespace API.File
             return deck;
         }
 
-        private lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^#]+)\s*$/;
-        private parseLine(line: string): { quantity: number, name: string; }
+        private lineRegex = /^\s*(?<quantity>[0-9]+)?\s+(?<name>[^\(\)]+)\s+((?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
+        private parseLine(line: string): { quantity: number, name: string; set?: string; no?: string; }
         {
             const match = line.match(this.lineRegex);
             if (match)
             {
                 const quantity = parseInt(match.groups.quantity?.trim() ?? "1");
                 const name = match.groups["name"].trim();
+                const set = match.groups.set?.substring(1).substrEnd(1);
+                const no = match.groups.no;
 
-                return { quantity, name };
+                const ret: { quantity: number, name: string; set?: string; no?: string; } = { quantity, name };
+                if (set)
+                {
+                    ret.set = set;
+                    ret.no = no;
+                }
+                return ret;
             }
             return null;
         }
     }();
 
-    deckFileFormats.push(TXTFile);
+    deckFormats.push(MTGArenaFormat);
 }

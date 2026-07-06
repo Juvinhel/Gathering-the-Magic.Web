@@ -4,12 +4,11 @@ namespace Views.Dialogs
     {
         return <div class="import-deck">
             <select class="format-select">
-                <option value="cod">COD</option>
-                <option value="dec">DEC</option>
-                <option value="json">JSON</option>
-                <option value="txt" selected={ true }>TXT</option>
-                <option value="yaml">YAML</option>
-                <option value="idec">IDEC</option>
+                {
+                    API.File.deckFormats.map(x =>
+                        <option format={ x } selected={ x.name == "Text" }>{ x.name } ({ x.extensions.first() })</option>
+                    )
+                }
             </select>
             <textarea class="text-input" placeholder="input text" />
             <button class="ok-button" onclick={ okClick }>OK</button>
@@ -17,12 +16,21 @@ namespace Views.Dialogs
         </div>;
     }
 
-    function okClick(event: Event)
+    async function okClick(event: Event)
     {
         const target = event.currentTarget as HTMLElement;
-        const openDeck = target.closest(".import-deck");
-        openDeck.classList.toggle("ok", true);
-        UI.Dialog.close(openDeck);
+        const importDeck = target.closest(".import-deck");
+        const select = importDeck.querySelector(".format-select") as HTMLSelectElement;
+        const option = select.selectedOptions[0] as HTMLOptionElement;
+        const textInput = importDeck.querySelector(".text-input") as HTMLTextAreaElement;
+
+        const format = option["format"] as API.File.Format<API.Deck>;
+        const text = textInput.value;
+
+        const deck = await API.File.loadDeck(text, format);
+        importDeck["deck"] = deck;
+
+        UI.Dialog.close(importDeck);
     }
 
     function cancelClick(event: Event)

@@ -4,15 +4,13 @@ namespace Views.Dialogs
     {
         return <div class="export-deck">
             <select class="format-select" onchange={ (event: Event) => selectFormat(event, args.deck) } >
-                <option value="cod">COD</option>
-                <option value="dec">DEC</option>
-                <option value="json">JSON</option>
-                <option value="txt" selected={ true }>TXT</option>
-                <option value="txtnoprint">TXT without print</option>
-                <option value="yaml">YAML</option>
-                <option value="idec">IDEC</option>
+                {
+                    API.File.deckFormats.map(x =>
+                        <option format={ x } selected={ x.name == "Text" }>{ x.name } ({ x.extensions.first() })</option>
+                    )
+                }
             </select>
-            <textarea class="text-output" readOnly={ true } value={ API.File.TXTFile.create(args.deck) } />
+            <textarea class="text-output" readOnly={ true } value={ API.File.TXTFormat.create(args.deck) } />
             <div class="actions">
                 <a class="link-button" onclick={ selectAllText } title="Select all text"><color-icon src="img/icons/select.svg" /><span>Select</span></a>
             </div>
@@ -21,17 +19,13 @@ namespace Views.Dialogs
 
     async function selectFormat(event: Event, deck: API.Deck)
     {
-        const target = event.currentTarget as HTMLSelectElement;
-        const exportDeck = target.closest(".export-deck") as HTMLElement;
-
-        const format = target.value;
-        let file: { format: string, text: string; };
-        if (format == "txtnoprint")
-            file = await API.File.saveDeck(API.File.JSONFile.removeExtendData(deck, true), "txt");
-        else
-            file = await API.File.saveDeck(deck, format);
-
+        const select = event.currentTarget as HTMLSelectElement;
+        const option = select.selectedOptions[0] as HTMLOptionElement;
+        const exportDeck = select.closest(".export-deck") as HTMLElement;
         const textOutput = exportDeck.querySelector("textarea");
+
+        const format = option["format"] as API.File.Format<API.Deck>;
+        const file = await API.File.saveDeck(deck, format);
         textOutput.value = file.text;
     }
 

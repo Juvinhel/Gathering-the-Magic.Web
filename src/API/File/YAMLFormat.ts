@@ -1,6 +1,6 @@
 namespace API.File
 {
-    export const YAMLFile = new class YAMLFile implements File<Deck>
+    export const YAMLFormat = new class YAMLFormat implements Format<Deck>
     {
         public name = "YAML";
         public extensions = ["yaml", "yml"];
@@ -94,5 +94,5 @@ namespace API.File
         }.bind(this);
     }();
 
-    deckFileFormats.push(YAMLFile);
+    deckFormats.push(YAMLFormat);
 }

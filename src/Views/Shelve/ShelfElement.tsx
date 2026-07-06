@@ -31,8 +31,8 @@ namespace Views.Shelf
             this.loadFolder(this.root);
         }
 
-        private deckExtensions: string[] = API.File.deckFileFormats.mapMany(x => x.extensions);
-        private collectionsExtensions: string[] = API.File.collectionFileFormats.mapMany(x => x.extensions);
+        private deckExtensions: string[] = API.File.deckFormats.mapMany(x => x.extensions);
+        private collectionsExtensions: string[] = API.File.collectionFormats.mapMany(x => x.extensions);
 
         private async loadFolder(url: string)
         {
@@ -135,9 +135,6 @@ namespace Views.Shelf
                     const workbench = editor.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
                     await workbench.loadData(deck);
 
-                    const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
-                    unsavedProgress.classList.toggle("none", true);
-
                     UI.Dialog.show(editor, { title: "", mode: "fill", allowClose: true });
                 } }>
                 <img />
@@ -156,7 +153,7 @@ namespace Views.Shelf
 
                     const response = await fetch(url);
                     const text = await response.text();
-                    const collection = await API.File.CSVFile.load(text);
+                    const collection = await API.File.CSVFormat.load(text);
                     collection.name = name;
                     for (const key in App.collections)
                         delete App.collections[key];
@@ -181,7 +178,7 @@ namespace Views.Shelf
             UI.ContextMenu.show(event,
                 <menu-button title="Copy TXT" onclick={ async () =>
                 {
-                    const file = await API.File.saveDeck(deck, API.File.TXTFile);
+                    const file = await API.File.saveDeck(deck, API.File.TXTFormat);
                     navigator.clipboard.writeText(file.text);
                 } }><color-icon src="img/icons/clipboard.svg" /><span>Copy TXT</span></menu-button>
             );

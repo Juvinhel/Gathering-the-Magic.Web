@@ -44,9 +44,6 @@ class App
             }
 
             await workbench.loadData(deck);
-
-            const unsavedProgress = editor.querySelector(".unsaved-progress") as HTMLElement;
-            unsavedProgress.classList.toggle("none", true);
         }
     }
 
@@ -93,7 +90,7 @@ class App
             const workbench = editor.querySelector("my-workbench") as Views.Workbench.WorkbenchElement;
             const deck: API.Deck = workbench.getData();
 
-            localStorage.set("last-deck", API.File.JSONFile.removeExtendData(deck));
+            localStorage.set("last-deck", API.File.JSONFormat.removeExtendData(deck));
         }
     }.bind(this);
 

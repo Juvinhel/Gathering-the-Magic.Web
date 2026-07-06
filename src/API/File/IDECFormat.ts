@@ -1,8 +1,8 @@
 namespace API.File
 {
-    export const IDECFile = new class IDECFile implements File<Deck>
+    export const IDECFormat = new class IDECFormat implements Format<Deck>
     {
-        public name = "IDEC";
+        public name = "Ideal Deck";
         public extensions = ["idec"];
         public mimeTypes = ["application/idec"];
 
@@ -102,7 +102,7 @@ namespace API.File
         }
 
         private sectionRegex = /^\s*(?<title>[^:]+)\s*:\s*$/;
-        private lineRegex = /^\s*(?<quantity>[0-9]+)?\s*(?<name>[^\(\)]*)\s*((?<set>\(\s*[^\(\)]+\s*\))\s*(?<setno>.*)?)?\s*$/;
+        private lineRegex = /^\s*(?<quantity>[0-9]+)?\s+(?<name>[^\(\)]+)\s+((?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
         private loadSection(p: token): Section
         {
             const ret = { items: [] } as Section;
@@ -122,15 +122,15 @@ namespace API.File
                         const line = token.text.match(this.lineRegex);
                         const quantity = parseInt(line.groups.quantity?.trim() ?? "1");
                         const name = line.groups.name.trim();
-                        const set = line.groups.set?.substring(1).substrEnd(1); // not needed yet
-                        const setNo = line.groups.setno; // not needed yet
+                        const set = line.groups.set?.substring(1).substrEnd(1);
+                        const no = line.groups.no;
                         const comment = this.getComment(token);
 
                         const entry = { quantity, name } as Entry;
-                        if (set && setNo)
+                        if (set && no)
                         {
                             entry.set = set;
-                            entry.no = setNo;
+                            entry.no = no;
                         }
                         if (comment) entry.comment = comment;
                         ret.items.push(entry);
@@ -203,10 +203,9 @@ namespace API.File
         }
     }();
 
-    deckFileFormats.push(IDECFile);
+    deckFormats.push(IDECFormat);
 }
 
-//type parserPrimitive = { indention: number, text: string, items: parserPrimitive[]; };
 type token = { type: "property" | "item" | "comment", text: string, tokens: token[]; };
 type propertyToken = token & { key: string, value?: string; };
 

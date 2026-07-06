@@ -1,33 +1,24 @@
 namespace API.File
 {
-    export const deckFileFormats: File<Deck>[] = [];
-    export const collectionFileFormats: File<Collection>[] = [];
+    export const deckFormats: Format<Deck>[] = [];
+    export const collectionFormats: Format<Collection>[] = [];
 
-    export async function saveDeck(deck: Deck, format: string | File<Deck> = "YAML"): Promise<{ format: string, text: string; }>
+    export async function saveDeck(deck: API.Deck, format: string | Format<Deck> = "YAML"): Promise<{ format: string, text: string; }>
     {
-        let file: File<Deck>;
-        if (typeof format == "string")
-            file = deckFileFormats.first(x => x.name.equals(format, false));
-        else
-            file = format;
+        format = typeof format === "object" ? format : deckFormats.first(x => x.name.equals(format as string, false));
 
-        return { format: file.name, text: await file.save(deck) };
+        return { format: format.name, text: await format.save(deck) };
     }
 
-    export async function loadDeck(text: string, format: string | File<Deck> = "YAML", full: boolean = true): Promise<Deck>
+    export async function loadDeck(text: string, format: string | Format<Deck> = "YAML", full: boolean = true): Promise<API.Deck>
     {
+        format = typeof format === "object" ? format : deckFormats.first(x => x.name.equals(format as string, false));
         text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
 
-        let file: File<Deck>;
-        if (typeof format == "string")
-            file = deckFileFormats.first(x => x.name.equals(format, false));
-        else
-            file = format;
-
-        const deck = await file.load(text);
+        const deck = await format.load(text);
         if (full) await populateEntriesFromIdentifiers(deck);
 
-        return deck;
+        return deck as API.Deck;
     }
 
     export async function populateEntriesFromIdentifiers(deck: Deck)
@@ -52,15 +43,5 @@ namespace API.File
         {
             progressDialog.close();
         }
-    }
-
-    export interface File<T>
-    {
-        name: string;
-        extensions: string[];
-        mimeTypes: string[];
-
-        save(data: T): Promise<string>;
-        load(text: string): Promise<T>;
     }
 }

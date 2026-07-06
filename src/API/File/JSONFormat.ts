@@ -1,8 +1,8 @@
 namespace API.File
 {
-    export const JSONFile = new class JSONFile implements File<Deck>
+    export const JSONFormat = new class JSONFormat implements Format<Deck>
     {
-        public name = "JSON";
+        public name = "Javascript Object";
         public extensions = ["json"];
         public mimeTypes = ["application/json", "text/json"];
 
@@ -55,5 +55,5 @@ namespace API.File
         }
     }();
 
-    deckFileFormats.push(JSONFile);
+    deckFormats.push(JSONFormat);
 }

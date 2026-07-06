@@ -2,9 +2,9 @@
 
 namespace API.File
 {
-    export const CODFile = new class CODFile implements File<Deck>
+    export const CODFormat = new class CODFormat implements Format<Deck>
     {
-        public name = "COD";
+        public name = "Cockatrice";
         public extensions = ["cod"];
         public mimeTypes = ["application/cod"];
 
@@ -138,5 +138,5 @@ namespace API.File
         }
     }();
 
-    deckFileFormats.push(CODFile);
+    deckFormats.push(CODFormat);
 }

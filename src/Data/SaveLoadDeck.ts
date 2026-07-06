@@ -38,7 +38,7 @@ namespace Data
             if (!filePath) return null;
 
             const { name, extension } = this.splitFilePath(filePath);
-            const format = API.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            const format = API.File.deckFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
 
             const text = await Bridge.DoOpenDeck(filePath);
 
@@ -56,7 +56,7 @@ namespace Data
             if (!filePath) return false;
 
             const { name, extension } = this.splitFilePath(filePath);
-            const format = API.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            const format = API.File.deckFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
 
             deck.name ??= name;
             const file = await API.File.saveDeck(deck, format);
@@ -74,7 +74,7 @@ namespace Data
             if (!filePath) return false;
 
             const { name, extension } = this.splitFilePath(filePath);
-            const format = API.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            const format = API.File.deckFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
 
             deck.name ??= name;
             const text = (await API.File.saveDeck(deck, format)).text;
@@ -111,13 +111,13 @@ namespace Data
 
         public async open(): Promise<API.Deck>
         {
-            const accept = API.File.deckFileFormats.map(x => x.extensions.map(e => "." + e).join(", ")).join(", ");
+            const accept = API.File.deckFormats.mapMany(x => x.extensions).distinct().map(e => "." + e).join(", ");
             const uploadedFile = (await UI.Dialog.upload({ title: "Upload Deck File", accept: accept }))?.[0];
             if (!uploadedFile) return null;
 
             const [name, extension] = uploadedFile.name.splitLast(".");
             const text = (await uploadedFile.text());
-            const format = API.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            const format = API.File.deckFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
             const deck = await API.File.loadDeck(text, format);
             deck.name ??= name;
 
@@ -126,9 +126,9 @@ namespace Data
 
         public async saveAs(deck: API.Deck): Promise<boolean>
         {
-            const formatName = await UI.Dialog.options({ options: API.File.deckFileFormats.map(x => x.name), title: "Select File Format!", allowEmpty: true });
+            const formatName = await UI.Dialog.options({ options: API.File.deckFormats.map(x => x.name), title: "Select File Format!", allowEmpty: true });
             if (!formatName) return false;
-            const format = API.File.deckFileFormats.first(x => x.name == formatName);
+            const format = API.File.deckFormats.first(x => x.name == formatName);
             const fileName = deck.name + "." + format.extensions[0];
 
             const file = await API.File.saveDeck(deck, format);

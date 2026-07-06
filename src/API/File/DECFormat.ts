@@ -2,7 +2,7 @@
 
 namespace API.File
 {
-    export const DECFile = new class DECFile implements File<Deck>
+    export const DECFormat = new class DECFormat implements Format<Deck>
     {
         public name = "DEC";
         public extensions = ["dec"];
@@ -136,5 +136,5 @@ namespace API.File
         }
     }();
 
-    deckFileFormats.push(DECFile);
+    deckFormats.push(DECFormat);
 }

@@ -2,9 +2,9 @@
 
 namespace API.File
 {
-    export const CSVFile = new class CSVFile implements File<Collection>
+    export const CSVFormat = new class CSVFormat implements Format<Collection>
     {
-        public name = "CSV";
+        public name = "Comma Separated Values";
         public extensions = ["csv"];
         public mimeTypes = ["application/csv", "text/csv"];
 
@@ -49,5 +49,5 @@ namespace API.File
         return -1;
     }
 
-    collectionFileFormats.push(CSVFile);
+    collectionFormats.push(CSVFormat);
 }
