@@ -8581,8 +8581,6 @@ class App {
                 await API.File.populateEntriesFromIdentifiers(deck);
             }
             await workbench.loadData(deck);
-            const unsavedProgress = editor.querySelector(".unsaved-progress");
-            unsavedProgress.classList.toggle("none", true);
         }
     }
     static async StartShelf() {
@@ -8615,7 +8613,7 @@ class App {
             const editor = document.querySelector("my-editor");
             const workbench = editor.querySelector("my-workbench");
             const deck = workbench.getData();
-            localStorage.set("last-deck", API.File.JSONFile.removeExtendData(deck));
+            localStorage.set("last-deck", API.File.JSONFormat.removeExtendData(deck));
         }
     }.bind(this);
     static symbols;
@@ -8886,6 +8884,7 @@ var API;
             faces: [],
         };
         if (scryfallCard.card_faces && scryfallCard.card_faces.length > 0) {
+            card.imgCrop ??= scryfallCard.card_faces[0].image_uris?.art_crop;
             for (const cardFace of scryfallCard.card_faces) {
                 card.faces.push({
                     name: cardFace.name,
@@ -9099,25 +9098,22 @@ var API;
 (function (API) {
     var File;
     (function (File) {
-        File.deckFileFormats = [];
-        File.collectionFileFormats = [];
+        File.deckFormats = [];
+        File.collectionFormats = [];
+        function getDeckFormat(nameOrExtension) {
+            return File.deckFormats.first(f => f.name.equals(nameOrExtension, false) || f.extensions.some(e => e.equals(nameOrExtension, false)));
+        }
+        File.getDeckFormat = getDeckFormat;
         async function saveDeck(deck, format = "YAML") {
-            let file;
-            if (typeof format == "string")
-                file = File.deckFileFormats.first(x => x.name.equals(format, false));
-            else
-                file = format;
-            return { format: file.name, text: await file.save(deck) };
+            format = typeof format === "object" ? format : getDeckFormat(format);
+            const text = await format.save(deck);
+            return { format: format.name, text };
         }
         File.saveDeck = saveDeck;
         async function loadDeck(text, format = "YAML", full = true) {
+            format = typeof format === "object" ? format : getDeckFormat(format);
             text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
-            let file;
-            if (typeof format == "string")
-                file = File.deckFileFormats.first(x => x.name.equals(format, false));
-            else
-                file = format;
-            const deck = await file.load(text);
+            const deck = await format.load(text);
             if (full)
                 await populateEntriesFromIdentifiers(deck);
             return deck;
@@ -9149,8 +9145,8 @@ var API;
 (function (API) {
     var File;
     (function (File) {
-        File.CODFile = new class CODFile {
-            name = "COD";
+        File.CODFormat = new class CODFormat {
+            name = "Cockatrice";
             extensions = ["cod"];
             mimeTypes = ["application/cod"];
             async save(deck) {
@@ -9248,7 +9244,7 @@ var API;
                 return deck;
             }
         }();
-        File.deckFileFormats.push(File.CODFile);
+        File.deckFormats.push(File.CODFormat);
     })(File = API.File || (API.File = {}));
 })(API || (API = {}));
 /// <reference path="File.ts" />
@@ -9256,8 +9252,8 @@ var API;
 (function (API) {
     var File;
     (function (File) {
-        File.CSVFile = new class CSVFile {
-            name = "CSV";
+        File.CSVFormat = new class CSVFormat {
+            name = "Comma Separated Values";
             extensions = ["csv"];
             mimeTypes = ["application/csv", "text/csv"];
             async save(collection) {
@@ -9292,7 +9288,7 @@ var API;
             }
             return -1;
         }
-        File.collectionFileFormats.push(File.CSVFile);
+        File.collectionFormats.push(File.CSVFormat);
     })(File = API.File || (API.File = {}));
 })(API || (API = {}));
 /// <reference path="File.ts" />
@@ -9300,7 +9296,7 @@ var API;
 (function (API) {
     var File;
     (function (File) {
-        File.DECFile = new class DECFile {
+        File.DECFormat = new class DECFormat {
             name = "DEC";
             extensions = ["dec"];
             mimeTypes = ["application/dec"];
@@ -9408,15 +9404,15 @@ var API;
                 return deck;
             }
         }();
-        File.deckFileFormats.push(File.DECFile);
+        File.deckFormats.push(File.DECFormat);
     })(File = API.File || (API.File = {}));
 })(API || (API = {}));
 var API;
 (function (API) {
     var File;
     (function (File) {
-        File.IDECFile = new class IDECFile {
-            name = "IDEC";
+        File.IDECFormat = new class IDECFormat {
+            name = "Ideal Deck";
             extensions = ["idec"];
             mimeTypes = ["application/idec"];
             async save(deck) {
@@ -9459,7 +9455,8 @@ var API;
             writeEntry(indention, entry) {
                 let ret = "";
                 ret += "  ".repeat(indention) + "- " + entry.quantity + " " + entry.name;
-                ret += " (" + entry.set + ") " + entry.no;
+                if (entry.set)
+                    ret += " (" + entry.set + ") " + entry.no;
                 ret += "\r\n";
                 if (entry.comment)
                     for (const commentLine of entry.comment.splitLines())
@@ -9503,7 +9500,7 @@ var API;
                 return ret;
             }
             sectionRegex = /^\s*(?<title>[^:]+)\s*:\s*$/;
-            lineRegex = /^\s*(?<quantity>[0-9]+)?\s*(?<name>[^\(\)]*)\s*((?<set>\(\s*[^\(\)]+\s*\))\s*(?<setno>.*)?)?\s*$/;
+            lineRegex = /^\s*(?<quantity>[0-9]+)?\s+(?<name>[^\(\)]+)\s+((?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
             loadSection(p) {
                 const ret = { items: [] };
                 const section = p.text.match(this.sectionRegex);
@@ -9520,13 +9517,13 @@ var API;
                             const line = token.text.match(this.lineRegex);
                             const quantity = parseInt(line.groups.quantity?.trim() ?? "1");
                             const name = line.groups.name.trim();
-                            const set = line.groups.set?.substring(1).substrEnd(1); // not needed yet
-                            const setNo = line.groups.setno; // not needed yet
+                            const set = line.groups.set?.substring(1).substrEnd(1);
+                            const no = line.groups.no;
                             const comment = this.getComment(token);
                             const entry = { quantity, name };
-                            if (set && setNo) {
+                            if (set && no) {
                                 entry.set = set;
-                                entry.no = setNo;
+                                entry.no = no;
                             }
                             if (comment)
                                 entry.comment = comment;
@@ -9583,7 +9580,7 @@ var API;
                 return [i / 2, line.trimRight()];
             }
         }();
-        File.deckFileFormats.push(File.IDECFile);
+        File.deckFormats.push(File.IDECFormat);
     })(File = API.File || (API.File = {}));
 })(API || (API = {}));
 function isProperty(token) {
@@ -9596,8 +9593,8 @@ var API;
 (function (API) {
     var File;
     (function (File) {
-        File.JSONFile = new class JSONFile {
-            name = "JSON";
+        File.JSONFormat = new class JSONFormat {
+            name = "Javascript Object";
             extensions = ["json"];
             mimeTypes = ["application/json", "text/json"];
             async save(deck) {
@@ -9609,10 +9606,14 @@ var API;
                 const deck = JSON.parse(text);
                 return deck;
             }
-            removeExtendData(deck) {
+            removeExtendData(deck, removeSet) {
                 deck = JSON.clone(deck);
                 this.traverse(deck, (entry) => {
-                    const ret = { quantity: entry.quantity, name: entry.name, set: entry.set, no: entry.no };
+                    const ret = { quantity: entry.quantity, name: entry.name };
+                    if (!removeSet && entry.set) {
+                        ret.set = entry.set;
+                        ret.no = entry.no;
+                    }
                     if (entry.comment)
                         ret.comment = entry.comment;
                     return ret;
@@ -9633,15 +9634,128 @@ var API;
                 }
             }
         }();
-        File.deckFileFormats.push(File.JSONFile);
+        File.deckFormats.push(File.JSONFormat);
     })(File = API.File || (API.File = {}));
 })(API || (API = {}));
 var API;
 (function (API) {
     var File;
     (function (File) {
-        File.TXTFile = new class TXTFile {
-            name = "TXT";
+        File.MTGArenaFormat = new class MTGArenaFormat {
+            name = "MTG Arena";
+            extensions = ["txt"];
+            mimeTypes = ["text/plain"];
+            async save(deck) {
+                return this.create(deck);
+            }
+            create(deck) {
+                const commanders = ("commanders" in deck) ? deck.commanders : [];
+                let main;
+                let side;
+                if ("sections" in deck) {
+                    main = API.collapse(deck.sections.first(s => s.title == "main"));
+                    side = API.collapse(deck.sections.first(s => s.title == "side"));
+                }
+                else if ("title" in deck)
+                    main = API.collapse(deck);
+                else
+                    main = deck;
+                let text = "Deck\r\n";
+                if (commanders.length > 0) {
+                    for (const commander of commanders) {
+                        const entry = main.first(x => x.name == commander);
+                        text += this.writeLine(1, entry);
+                        entry.quantity -= 1;
+                        if (entry.quantity == 0)
+                            main.remove(entry);
+                    }
+                }
+                for (const entry of main)
+                    text += this.writeLine(entry.quantity, entry);
+                if (side && side.length > 0) {
+                    text += "\r\n";
+                    text += "Sideboard\r\n";
+                    for (const entry of side)
+                        text += this.writeLine(entry.quantity, entry);
+                }
+                return text;
+            }
+            writeLine(quantity, card) {
+                let ret = "";
+                ret += quantity.toFixed() + " " + card.name;
+                if (card.set)
+                    ret += " (" + card.set + ") " + card.no;
+                ret += "\r\n";
+                return ret;
+            }
+            async load(text) {
+                text = text.trim();
+                if (text.toLowerCase().startsWith("deck"))
+                    text = text.substring("Deck".length).trim();
+                let main;
+                let side;
+                const lines = text.splitLines().map(x => x.trim());
+                if (lines.some(x => x.equals("Sideboard", false))) {
+                    const i = lines.findIndex(x => x.equals("Sideboard", false));
+                    main = lines.slice(0, i);
+                    side = lines.slice(i + 1);
+                }
+                else
+                    main = lines;
+                const deck = {
+                    name: null,
+                    description: null,
+                    commanders: [],
+                    tags: [],
+                    sections: [
+                        { title: "main", items: [] },
+                        { title: "side", items: [] },
+                        { title: "maybe", items: [] },
+                    ],
+                };
+                const mainSection = deck.sections.first(s => s.title == "main");
+                for (const line of main) {
+                    const entry = this.parseLine(line);
+                    if (entry)
+                        mainSection.items.push(entry);
+                }
+                if (side) {
+                    const sideSection = deck.sections.first(s => s.title == "side");
+                    for (const line of side) {
+                        const entry = this.parseLine(line);
+                        if (entry)
+                            sideSection.items.push(entry);
+                    }
+                }
+                return deck;
+            }
+            lineRegex = /^\s*(?<quantity>[0-9]+)?\s+(?<name>[^\(\)]+)\s+((?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
+            parseLine(line) {
+                const match = line.match(this.lineRegex);
+                if (match) {
+                    const quantity = parseInt(match.groups.quantity?.trim() ?? "1");
+                    const name = match.groups["name"].trim();
+                    const set = match.groups.set?.substring(1).substrEnd(1);
+                    const no = match.groups.no;
+                    const ret = { quantity, name };
+                    if (set) {
+                        ret.set = set;
+                        ret.no = no;
+                    }
+                    return ret;
+                }
+                return null;
+            }
+        }();
+        File.deckFormats.push(File.MTGArenaFormat);
+    })(File = API.File || (API.File = {}));
+})(API || (API = {}));
+var API;
+(function (API) {
+    var File;
+    (function (File) {
+        File.TXTFormat = new class TXTFormat {
+            name = "Text";
             extensions = ["txt"];
             mimeTypes = ["text/plain"];
             async save(deck) {
@@ -9661,7 +9775,6 @@ var API;
                     main = deck;
                 let text = "";
                 if (commanders.length > 0) {
-                    text += "// Commander";
                     for (const commander of commanders) {
                         const entry = main.first(x => x.name == commander);
                         text += this.writeLine(1, entry);
@@ -9669,10 +9782,8 @@ var API;
                         if (entry.quantity == 0)
                             main.remove(entry);
                     }
-                    // text += "\r\n"; breaks tabletop simulator
+                    text += "\r\n";
                 }
-                if (text)
-                    text += "// Mainboard";
                 for (const entry of main.sortBy(x => x.name))
                     text += this.writeLine(entry.quantity, entry);
                 if (side && side.length > 0) {
@@ -9684,11 +9795,7 @@ var API;
                 return text;
             }
             writeLine(quantity, card) {
-                let ret = "";
-                ret += quantity.toFixed() + " " + card.name;
-                ret += " (" + card.set + ") " + card.no;
-                ret += "\r\n";
-                return ret;
+                return quantity.toFixed() + " " + card.name + "\r\n";
             }
             async load(text) {
                 const lines = text.splitLines().map(x => x.trim());
@@ -9728,25 +9835,32 @@ var API;
                 }
                 return deck;
             }
-            lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^#]+)\s*$/;
+            lineRegex = /^\s*(?<quantity>[0-9]+)?\s+(?<name>[^\(\)]+)\s+((?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
             parseLine(line) {
                 const match = line.match(this.lineRegex);
                 if (match) {
                     const quantity = parseInt(match.groups.quantity?.trim() ?? "1");
                     const name = match.groups["name"].trim();
-                    return { quantity, name };
+                    const set = match.groups.set?.substring(1).substrEnd(1);
+                    const no = match.groups.no;
+                    const ret = { quantity, name };
+                    if (set) {
+                        ret.set = set;
+                        ret.no = no;
+                    }
+                    return ret;
                 }
                 return null;
             }
         }();
-        File.deckFileFormats.push(File.TXTFile);
+        File.deckFormats.push(File.TXTFormat);
     })(File = API.File || (API.File = {}));
 })(API || (API = {}));
 var API;
 (function (API) {
     var File;
     (function (File) {
-        File.YAMLFile = new class YAMLFile {
+        File.YAMLFormat = new class YAMLFormat {
             name = "YAML";
             extensions = ["yaml", "yml"];
             mimeTypes = ["application/yaml"];
@@ -9829,7 +9943,7 @@ var API;
                 }
             }.bind(this);
         }();
-        File.deckFileFormats.push(File.YAMLFile);
+        File.deckFormats.push(File.YAMLFormat);
     })(File = API.File || (API.File = {}));
 })(API || (API = {}));
 var API;
@@ -10085,7 +10199,7 @@ var Data;
                 files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
             const collections = [];
             for (const file of files) {
-                const collection = await API.File.CSVFile.load(file.text);
+                const collection = await API.File.CSVFormat.load(file.text);
                 collection.name = file.name;
                 if (file.lastModified)
                     collection.importDate = file.lastModified;
@@ -10103,7 +10217,7 @@ var Data;
                 files.push({ name: await fileResult.Name, extension: (await fileResult.Extension).toLowerCase(), text: await fileResult.Load(), lastModified: new Date(await fileResult.LastModified) });
             const collections = [];
             for (const file of files) {
-                const collection = await API.File.CSVFile.load(file.text);
+                const collection = await API.File.CSVFormat.load(file.text);
                 collection.name = file.name;
                 if (file.lastModified)
                     collection.importDate = file.lastModified;
@@ -10130,7 +10244,7 @@ var Data;
             }
             const collections = [];
             for (const file of files) {
-                const collection = await API.File.CSVFile.load(file.text);
+                const collection = await API.File.CSVFormat.load(file.text);
                 collection.name = file.name;
                 if (file.lastModified)
                     collection.importDate = file.lastModified;
@@ -10163,7 +10277,7 @@ var Data;
             if (!filePath)
                 return null;
             const { name, extension } = this.splitFilePath(filePath);
-            const format = API.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            const format = API.File.deckFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
             const text = await Data.Bridge.DoOpenDeck(filePath);
             const deck = await API.File.loadDeck(text, format);
             deck.name ??= name;
@@ -10175,7 +10289,7 @@ var Data;
             if (!filePath)
                 return false;
             const { name, extension } = this.splitFilePath(filePath);
-            const format = API.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            const format = API.File.deckFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
             deck.name ??= name;
             const file = await API.File.saveDeck(deck, format);
             await Data.Bridge.DoSaveDeck(filePath, file.text);
@@ -10187,7 +10301,7 @@ var Data;
             if (!filePath)
                 return false;
             const { name, extension } = this.splitFilePath(filePath);
-            const format = API.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            const format = API.File.deckFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
             deck.name ??= name;
             const text = (await API.File.saveDeck(deck, format)).text;
             await Data.Bridge.DoSaveDeck(filePath, text);
@@ -10210,22 +10324,22 @@ var Data;
             return ret;
         }
         async open() {
-            const accept = API.File.deckFileFormats.map(x => x.extensions.map(e => "." + e).join(", ")).join(", ");
+            const accept = API.File.deckFormats.mapMany(x => x.extensions).distinct().map(e => "." + e).join(", ");
             const uploadedFile = (await UI.Dialog.upload({ title: "Upload Deck File", accept: accept }))?.[0];
             if (!uploadedFile)
                 return null;
             const [name, extension] = uploadedFile.name.splitLast(".");
             const text = (await uploadedFile.text());
-            const format = API.File.deckFileFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
+            const format = API.File.deckFormats.first(x => x.extensions.some(e => e.equals(extension, false)));
             const deck = await API.File.loadDeck(text, format);
             deck.name ??= name;
             return deck;
         }
         async saveAs(deck) {
-            const formatName = await UI.Dialog.options({ options: API.File.deckFileFormats.map(x => x.name), title: "Select File Format!", allowEmpty: true });
+            const formatName = await UI.Dialog.options({ options: API.File.deckFormats.map(x => x.name), title: "Select File Format!", allowEmpty: true });
             if (!formatName)
                 return false;
-            const format = API.File.deckFileFormats.first(x => x.name == formatName);
+            const format = API.File.deckFormats.first(x => x.name == formatName);
             const fileName = deck.name + "." + format.extensions[0];
             const file = await API.File.saveDeck(deck, format);
             DownloadHelper.downloadData(fileName, file.text, format.mimeTypes[0]);
@@ -10363,6 +10477,56 @@ var Views;
         });
     }
     Views.parseSymbolText = parseSymbolText;
+})(Views || (Views = {}));
+var Views;
+(function (Views) {
+    var Dialogs;
+    (function (Dialogs) {
+        function ArtworkSelectDialog(entry) {
+            return UI.Generator.Hyperscript("div", { class: "artwork-select", oninserted: (e) => load(e, entry), entry: entry },
+                UI.Generator.Hyperscript("div", { class: "list" }),
+                UI.Generator.Hyperscript("div", { class: "actions" },
+                    UI.Generator.Hyperscript("button", { class: "cancel-button", onclick: cancelClick }, "Cancel"),
+                    UI.Generator.Hyperscript("button", { class: "ok-button", onclick: okClick }, "OK")));
+        }
+        Dialogs.ArtworkSelectDialog = ArtworkSelectDialog;
+        async function load(e, entry) {
+            const artworkSelect = e.currentTarget;
+            const list = artworkSelect.querySelector(".list");
+            const query = "!\"" + entry.name + "\" unique:prints";
+            for await (const card of API.search(query))
+                list.append(artworkTile(card, card.id == entry.id));
+        }
+        function artworkTile(card, selected = false) {
+            return UI.Generator.Hyperscript("div", { class: "artwork-tile", card: card, selected: selected, onclick: artworkTileClick },
+                UI.Generator.Hyperscript("div", { class: ["card-tile", "card"] },
+                    UI.Generator.Hyperscript("img", { src: "img/card-back.png", "lazy-image": card.img })));
+        }
+        function artworkTileClick(e) {
+            const currentArtworkTile = e.currentTarget;
+            const list = currentArtworkTile.closest(".list");
+            for (const artworkTile of list.querySelectorAll(".artwork-tile"))
+                artworkTile.setAttribute("selected", (currentArtworkTile == artworkTile).toString());
+        }
+        async function okClick(event) {
+            const target = event.currentTarget;
+            const artworkSelect = target.closest(".artwork-select");
+            const entry = artworkSelect["entry"];
+            const artworkTile = artworkSelect.querySelector(".artwork-tile[selected='true']");
+            const card = artworkTile["card"];
+            for (const key of Object.keys(entry))
+                if (key != "quantity" && key != "comment")
+                    delete entry[key];
+            for (const key of Object.keys(card))
+                entry[key] = card[key];
+            UI.Dialog.close(artworkSelect);
+        }
+        function cancelClick(event) {
+            const target = event.currentTarget;
+            const artworkSelect = target.closest(".artwork-select");
+            UI.Dialog.close(artworkSelect);
+        }
+    })(Dialogs = Views.Dialogs || (Views.Dialogs = {}));
 })(Views || (Views = {}));
 var Views;
 (function (Views) {
@@ -10893,14 +11057,12 @@ var Views;
     (function (Dialogs) {
         function ExportDeck(args) {
             return UI.Generator.Hyperscript("div", { class: "export-deck" },
-                UI.Generator.Hyperscript("select", { class: "format-select", onchange: (event) => selectFormat(event, args.deck) },
-                    UI.Generator.Hyperscript("option", { value: "cod" }, "COD"),
-                    UI.Generator.Hyperscript("option", { value: "dec" }, "DEC"),
-                    UI.Generator.Hyperscript("option", { value: "json" }, "JSON"),
-                    UI.Generator.Hyperscript("option", { value: "txt", selected: true }, "TXT"),
-                    UI.Generator.Hyperscript("option", { value: "yaml" }, "YAML"),
-                    UI.Generator.Hyperscript("option", { value: "idec" }, "IDEC")),
-                UI.Generator.Hyperscript("textarea", { class: "text-output", readOnly: true, value: API.File.TXTFile.create(args.deck) }),
+                UI.Generator.Hyperscript("select", { class: "format-select", onchange: (event) => selectFormat(event, args.deck) }, API.File.deckFormats.map(x => UI.Generator.Hyperscript("option", { format: x, selected: x.name == "Text" },
+                    x.name,
+                    " (",
+                    x.extensions.first(),
+                    ")"))),
+                UI.Generator.Hyperscript("textarea", { class: "text-output", readOnly: true, value: API.File.TXTFormat.create(args.deck) }),
                 UI.Generator.Hyperscript("div", { class: "actions" },
                     UI.Generator.Hyperscript("a", { class: "link-button", onclick: selectAllText, title: "Select all text" },
                         UI.Generator.Hyperscript("color-icon", { src: "img/icons/select.svg" }),
@@ -10908,11 +11070,12 @@ var Views;
         }
         Dialogs.ExportDeck = ExportDeck;
         async function selectFormat(event, deck) {
-            const target = event.currentTarget;
-            const exportDeck = target.closest(".export-deck");
-            const format = target.value;
-            const file = await API.File.saveDeck(deck, format);
+            const select = event.currentTarget;
+            const option = select.selectedOptions[0];
+            const exportDeck = select.closest(".export-deck");
             const textOutput = exportDeck.querySelector("textarea");
+            const format = option["format"];
+            const file = await API.File.saveDeck(deck, format);
             textOutput.value = file.text;
         }
         function selectAllText(event) {
@@ -10929,23 +11092,27 @@ var Views;
     (function (Dialogs) {
         function ImportDeck() {
             return UI.Generator.Hyperscript("div", { class: "import-deck" },
-                UI.Generator.Hyperscript("select", { class: "format-select" },
-                    UI.Generator.Hyperscript("option", { value: "cod" }, "COD"),
-                    UI.Generator.Hyperscript("option", { value: "dec" }, "DEC"),
-                    UI.Generator.Hyperscript("option", { value: "json" }, "JSON"),
-                    UI.Generator.Hyperscript("option", { value: "txt", selected: true }, "TXT"),
-                    UI.Generator.Hyperscript("option", { value: "yaml" }, "YAML"),
-                    UI.Generator.Hyperscript("option", { value: "idec" }, "IDEC")),
+                UI.Generator.Hyperscript("select", { class: "format-select" }, API.File.deckFormats.map(x => UI.Generator.Hyperscript("option", { format: x, selected: x.name == "Text" },
+                    x.name,
+                    " (",
+                    x.extensions.first(),
+                    ")"))),
                 UI.Generator.Hyperscript("textarea", { class: "text-input", placeholder: "input text" }),
                 UI.Generator.Hyperscript("button", { class: "ok-button", onclick: okClick }, "OK"),
                 UI.Generator.Hyperscript("button", { class: "cancel-button", onclick: cancelClick }, "Cancel"));
         }
         Dialogs.ImportDeck = ImportDeck;
-        function okClick(event) {
+        async function okClick(event) {
             const target = event.currentTarget;
-            const openDeck = target.closest(".import-deck");
-            openDeck.classList.toggle("ok", true);
-            UI.Dialog.close(openDeck);
+            const importDeck = target.closest(".import-deck");
+            const select = importDeck.querySelector(".format-select");
+            const option = select.selectedOptions[0];
+            const textInput = importDeck.querySelector(".text-input");
+            const format = option["format"];
+            const text = textInput.value;
+            const deck = await API.File.loadDeck(text, format);
+            importDeck["deck"] = deck;
+            UI.Dialog.close(importDeck);
         }
         function cancelClick(event) {
             const target = event.currentTarget;
@@ -11412,8 +11579,6 @@ var Views;
                         }
                     ]
                 });
-                const unsavedProgress = editor.querySelector(".unsaved-progress");
-                unsavedProgress.classList.toggle("none", true);
             }
             catch (error) {
                 UI.Dialog.error(error);
@@ -11456,8 +11621,6 @@ var Views;
                 if (!deck)
                     return;
                 await workbench.loadData(deck);
-                const unsavedProgress = editor.querySelector(".unsaved-progress");
-                unsavedProgress.classList.toggle("none", true);
             }
             catch (error) {
                 UI.Dialog.error(error);
@@ -11470,16 +11633,11 @@ var Views;
             try {
                 const deckImport = Views.Dialogs.ImportDeck();
                 await UI.Dialog.show(deckImport, { title: "Import Deck", allowClose: true, icon: "img/icons/import-export-dialog.svg" });
-                const ok = deckImport.classList.contains("ok");
-                if (ok) {
-                    const format = deckImport.querySelector(".format-select").value;
-                    const text = deckImport.querySelector(".text-input").value;
-                    const deck = await API.File.loadDeck(text, format);
+                const deck = deckImport["deck"];
+                if (deck) {
                     await workbench.loadData(deck);
                     //TODO: make abstract
                     localStorage.set("current-deck-file-path", null);
-                    const unsavedProgress = editor.querySelector(".unsaved-progress");
-                    unsavedProgress.classList.toggle("none", true);
                 }
             }
             catch (error) {
@@ -11540,7 +11698,7 @@ var Views;
                 section.items.push(...entries.orderBy(selector, compare));
                 section.items.push(...sections);
             }
-            workbench.loadData(deck);
+            workbench.loadData(deck, false);
         }
         async function showMissingCards(event) {
             const target = event.currentTarget;
@@ -12744,8 +12902,8 @@ var Views;
             async connectedCallback() {
                 this.loadFolder(this.root);
             }
-            deckExtensions = API.File.deckFileFormats.mapMany(x => x.extensions);
-            collectionsExtensions = API.File.collectionFileFormats.mapMany(x => x.extensions);
+            deckExtensions = API.File.deckFormats.mapMany(x => x.extensions);
+            collectionsExtensions = API.File.collectionFormats.mapMany(x => x.extensions);
             async loadFolder(url) {
                 url = new URL(url, location.toString()).toString();
                 this.folderListElement.clearChildren();
@@ -12824,8 +12982,6 @@ var Views;
                         editor.style.height = "calc(100% + 2em)";
                         const workbench = editor.querySelector("my-workbench");
                         await workbench.loadData(deck);
-                        const unsavedProgress = editor.querySelector(".unsaved-progress");
-                        unsavedProgress.classList.toggle("none", true);
                         UI.Dialog.show(editor, { title: "", mode: "fill", allowClose: true });
                     } },
                     UI.Generator.Hyperscript("img", null),
@@ -12839,7 +12995,7 @@ var Views;
                             delete App.collections[key];
                         const response = await fetch(url);
                         const text = await response.text();
-                        const collection = await API.File.CSVFile.load(text);
+                        const collection = await API.File.CSVFormat.load(text);
                         collection.name = name;
                         for (const key in App.collections)
                             delete App.collections[key];
@@ -12857,7 +13013,7 @@ var Views;
                 const sender = event.currentTarget;
                 const deck = sender["deck"];
                 UI.ContextMenu.show(event, UI.Generator.Hyperscript("menu-button", { title: "Copy TXT", onclick: async () => {
-                        const file = await API.File.saveDeck(deck, API.File.TXTFile);
+                        const file = await API.File.saveDeck(deck, API.File.TXTFormat);
                         navigator.clipboard.writeText(file.text);
                     } },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/clipboard.svg" }),
@@ -13252,6 +13408,11 @@ var Views;
             delete() {
                 this.remove();
             }
+            refresh() {
+                this.clearChildren();
+                this.title = this.enter.name;
+                this.append(...this.build());
+            }
             async moveTo() {
                 const workbench = this.closest("my-workbench");
                 const sectionElements = [...workbench.querySelectorAll("my-section")];
@@ -13356,7 +13517,9 @@ var Views;
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/helmet.svg" }),
                     UI.Generator.Hyperscript("span", null, "Set as Commander")), UI.Generator.Hyperscript("menu-button", { title: "Edit Comment", onclick: editComment.bind(this) },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/comment.svg" }),
-                    UI.Generator.Hyperscript("span", null, "Edit Comment")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Scryfall", onclick: () => window.open(this.entry.links.Scryfall, "_blank") },
+                    UI.Generator.Hyperscript("span", null, "Edit Comment")), UI.Generator.Hyperscript("menu-button", { title: "Set Artwork", onclick: setArtwork.bind(this) },
+                    UI.Generator.Hyperscript("color-icon", { src: "img/icons/palette.svg" }),
+                    UI.Generator.Hyperscript("span", null, "Set Artwork")), UI.Generator.Hyperscript("hr", null), UI.Generator.Hyperscript("menu-button", { title: "Scryfall", onclick: () => window.open(this.entry.links.Scryfall, "_blank") },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/scryfall-black.svg" }),
                     UI.Generator.Hyperscript("span", null, "Scryfall")), this.entry.links.EDHREC ? UI.Generator.Hyperscript("menu-button", { title: "EDHREC", onclick: () => window.open(this.entry.links.EDHREC, "_blank") },
                     UI.Generator.Hyperscript("color-icon", { src: "img/icons/edhrec.svg" }),
@@ -13603,6 +13766,10 @@ var Views;
         async function editComment() {
             const text = await Views.Dialogs.TextEdit("Edit Comment", this.comment);
             this.comment = text?.trim() ?? null;
+        }
+        async function setArtwork() {
+            await UI.Dialog.show(Views.Dialogs.ArtworkSelectDialog(this.entry), { title: "Set Artwork", allowClose: true, mode: "fill" });
+            this.refresh();
         }
     })(Workbench = Views.Workbench || (Views.Workbench = {}));
 })(Views || (Views = {}));
@@ -13975,7 +14142,7 @@ var Views;
                     list.classList.toggle("grid", true);
                 }
             }
-            async loadData(deck) {
+            async loadData(deck, clearUnsaved = true) {
                 if (deck.sections == null)
                     deck.sections = [];
                 if (deck.sections.some(s => s.title === "main") == false)
@@ -14000,6 +14167,13 @@ var Views;
                 commanderList.clearChildren();
                 if (deck.commanders)
                     commanderList.append(...deck.commanders.map(x => UI.Generator.Hyperscript("li", { ondblclick: (event) => event.currentTarget.remove() }, x)));
+                if (clearUnsaved) {
+                    const editor = this.closest("my-editor");
+                    if (editor) {
+                        const unsavedProgress = editor.querySelector(".unsaved-progress");
+                        unsavedProgress.classList.toggle("none", true);
+                    }
+                }
             }
             getData() {
                 return getDataFromElement(this);
