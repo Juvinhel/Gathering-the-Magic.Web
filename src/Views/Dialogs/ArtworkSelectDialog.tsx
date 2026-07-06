@@ -17,7 +17,7 @@ namespace Views.Dialogs
     {
         const artworkSelect = e.currentTarget as HTMLDivElement;
         const list = artworkSelect.querySelector(".list") as HTMLDivElement;
-        const query = "!\"" + entry.name + "\" unique:prints";
+        const query = "!\"" + entry.name + "\" unique:prints -set:prm";
         for await (const card of API.search(query))
             list.append(artworkTile(card, card.id == entry.id));
     }
