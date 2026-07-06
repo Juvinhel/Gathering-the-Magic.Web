@@ -19,7 +19,8 @@ namespace Views.Dialogs
         const list = artworkSelect.querySelector(".list") as HTMLDivElement;
         const query = "!\"" + entry.name + "\" unique:prints -set:prm";
         for await (const card of API.search(query))
-            list.append(artworkTile(card, card.id == entry.id));
+            if (!Object.values(card.legalities).every(x => x == "non-legal"))
+                list.append(artworkTile(card, card.id == entry.id));
     }
 
     function artworkTile(card: API.Card, selected: boolean = false)
