@@ -9500,7 +9500,7 @@ var API;
                 return ret;
             }
             sectionRegex = /^\s*(?<title>[^:]+)\s*:\s*$/;
-            lineRegex = /^\s*(?<quantity>[0-9]+)?\s+(?<name>[^\(\)]+)\s+((?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
+            lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^\(\)]+)(\s+(?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
             loadSection(p) {
                 const ret = { items: [] };
                 const section = p.text.match(this.sectionRegex);
@@ -9515,19 +9515,23 @@ var API;
                             break;
                         case "item":
                             const line = token.text.match(this.lineRegex);
-                            const quantity = parseInt(line.groups.quantity?.trim() ?? "1");
-                            const name = line.groups.name.trim();
-                            const set = line.groups.set?.substring(1).substrEnd(1);
-                            const no = line.groups.no;
-                            const comment = this.getComment(token);
-                            const entry = { quantity, name };
-                            if (set && no) {
-                                entry.set = set;
-                                entry.no = no;
+                            try {
+                                const quantity = parseInt(line.groups.quantity?.trim() ?? "1");
+                                const name = line.groups.name.trim();
+                                const set = line.groups.set?.substring(1).substrEnd(1);
+                                const no = line.groups.no;
+                                const comment = this.getComment(token);
+                                const entry = { quantity, name };
+                                if (set && no) {
+                                    entry.set = set;
+                                    entry.no = no;
+                                }
+                                if (comment)
+                                    entry.comment = comment;
+                                ret.items.push(entry);
                             }
-                            if (comment)
-                                entry.comment = comment;
-                            ret.items.push(entry);
+                            catch (error) {
+                            }
                             break;
                     }
                 }
@@ -9729,7 +9733,7 @@ var API;
                 }
                 return deck;
             }
-            lineRegex = /^\s*(?<quantity>[0-9]+)?\s+(?<name>[^\(\)]+)\s+((?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
+            lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^\(\)]+)(\s+(?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
             parseLine(line) {
                 const match = line.match(this.lineRegex);
                 if (match) {
@@ -9835,7 +9839,7 @@ var API;
                 }
                 return deck;
             }
-            lineRegex = /^\s*(?<quantity>[0-9]+)?\s+(?<name>[^\(\)]+)\s+((?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
+            lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^\(\)]+)(\s+(?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
             parseLine(line) {
                 const match = line.match(this.lineRegex);
                 if (match) {
