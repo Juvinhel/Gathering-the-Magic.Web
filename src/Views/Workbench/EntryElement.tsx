@@ -137,6 +137,13 @@ namespace Views.Workbench
             this.remove();
         }
 
+        public refresh()
+        {
+            this.clearChildren();
+            this.title = this.enter.name;
+            this.append(...this.build());
+        }
+
         public async moveTo()
         {
             const workbench = this.closest("my-workbench") as WorkbenchElement;

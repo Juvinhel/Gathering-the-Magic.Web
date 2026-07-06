@@ -29,6 +29,7 @@ namespace Views.Workbench
                 <menu-button title="Delete Line" onclick={ this.delete.bind(this) }><color-icon src="img/icons/delete.svg" /><span>Delete Line</span></menu-button>,
                 <menu-button title="Set as Commander" onclick={ this.setAsCommander.bind(this) }><color-icon src="img/icons/helmet.svg" /><span>Set as Commander</span></menu-button>,
                 <menu-button title="Edit Comment" onclick={ editComment.bind(this) }><color-icon src="img/icons/comment.svg" /><span>Edit Comment</span></menu-button>,
+                <menu-button title="Set Artwork" onclick={ setArtwork.bind(this) }><color-icon src="img/icons/palette.svg" /><span>Set Artwork</span></menu-button>,
                 <hr />,
                 <menu-button title="Scryfall" onclick={ () => window.open(this.entry.links.Scryfall, "_blank") }><color-icon src="img/icons/scryfall-black.svg" /><span>Scryfall</span></menu-button>,
                 this.entry.links.EDHREC ? <menu-button title="EDHREC" onclick={ () => window.open(this.entry.links.EDHREC, "_blank") }><color-icon src="img/icons/edhrec.svg" /><span>EDHREC</span></menu-button> : null,
@@ -273,5 +274,11 @@ namespace Views.Workbench
     {
         const text = await Dialogs.TextEdit("Edit Comment", this.comment);
         this.comment = text?.trim() ?? null;
+    }
+
+    async function setArtwork(this: EntryElement)
+    {
+        await UI.Dialog.show(Views.Dialogs.ArtworkSelectDialog(this.entry), { title: "Set Artwork", allowClose: true, mode: "fill" });
+        this.refresh();
     }
 }

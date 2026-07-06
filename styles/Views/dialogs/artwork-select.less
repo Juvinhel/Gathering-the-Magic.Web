@@ -1,0 +1,52 @@
+.artwork-select
+{
+    display: grid;
+    grid-template-rows: 1fr auto;
+    grid-template-columns: 1fr;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow-y: auto;
+
+    > .list
+    {
+        display: flex;
+        flex-direction: row;
+        flex-flow: wrap;
+        align-content: start;
+        justify-content: start;
+        height: max-content;
+        gap: 0.5em;
+
+        > .artwork-tile
+        {
+            padding: 0.5em;
+            border-radius: var(--corner-radius);
+            background-color: transparent;
+            cursor: pointer;
+
+            &[selected="true"]
+            {
+                background-color: var(--highlight-color);
+            }
+        }
+    }
+
+    > .actions
+    {
+        display: grid;
+        position: sticky;
+        bottom: 0;
+        grid-template-rows: 1fr;
+        grid-auto-columns: 1fr;
+        grid-auto-flow: column;
+        align-items: center;
+        justify-content: right;
+        justify-self: end;
+        width: max-content;
+        height: 2em;
+        padding: 0.25em;
+        gap: 0.25em;
+        background-color: var(--background-color);
+        font-size: 1.125em;
+    }
+}
