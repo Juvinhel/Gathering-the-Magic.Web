@@ -6,7 +6,7 @@ namespace Views.Dialogs
             <select class="format-select" onchange={ (event: Event) => selectFormat(event, args.deck) } >
                 {
                     API.File.deckFormats.map(x =>
-                        <option format={ x } selected={ x.name == "Text" }>{ x.name } ({ x.extensions.first() })</option>
+                        <option format={ x } selected={ x.name == "Simple Text" }>{ x.name } ({ x.extensions.first() })</option>
                     )
                 }
             </select>

@@ -139,14 +139,14 @@ namespace API
         throw new DataError("Unknown Card in url", { url });
     }
 
-    export function search(query: string): AsyncIterablePromise<Card>
+    export function search(query: string, order?: string): AsyncIterablePromise<Card>
     {
-        return new AsyncIterablePromise(doSearch(query));
+        return new AsyncIterablePromise(doSearch(query, order));
     }
 
-    async function* doSearch(query: string)
+    async function* doSearch(query: string, order?: string)
     {
-        for await (const scryfallCard of Scryfall.search(query))
+        for await (const scryfallCard of Scryfall.search(query, order))
             yield buildCard(scryfallCard);
     }
 

@@ -65,6 +65,7 @@ class App
             API.sets(),
             API.keywords(),
         ]);
+        this.flatSets = App.sets.fullFlatMap(set => set.subSets);
 
         initChartJS();
         UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
@@ -97,6 +98,7 @@ class App
     public static symbols: API.Symbol[];
     public static types: API.Typology;
     public static sets: API.Set[];
+    public static flatSets: API.Set[];
     public static keywords: string[];
 
     public static collections: { [name: string]: API.Collection; } = {};

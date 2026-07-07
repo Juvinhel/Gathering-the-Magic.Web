@@ -96,14 +96,15 @@ namespace API.Scryfall
         }
     }
 
-    export function search(query: string): AsyncIterablePromise<Card>
+    export function search(query: string, order?: string): AsyncIterablePromise<Card>
     {
-        return new AsyncIterablePromise(doSearch(query));
+        return new AsyncIterablePromise(doSearch(query, order));
     }
 
-    async function* doSearch(query: string)
+    async function* doSearch(query: string, order?: string)
     {
         let next = `${baseUrl}/cards/search?q=` + encodeURIComponent(query);
+        if (order) next += "&order=" + order;
         while (next)
         {
             const response = await fetch(next);

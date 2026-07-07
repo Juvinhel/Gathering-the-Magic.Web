@@ -3,6 +3,10 @@ namespace Views.Dialogs
     export function ArtworkSelectDialog(entry: API.Entry)
     {
         return <div class="artwork-select" oninserted={ (e: Event) => load(e, entry) } entry={ entry }>
+            <div class="filters">
+                <span>Filter: </span>
+                <multi-select class="set-select-filter" onchange={ (event: Event) => filterChange(event) } />
+            </div>
             <div class="list">
 
             </div>
@@ -17,15 +21,48 @@ namespace Views.Dialogs
     {
         const artworkSelect = e.currentTarget as HTMLDivElement;
         const list = artworkSelect.querySelector(".list") as HTMLDivElement;
-        const query = "!\"" + entry.name + "\" unique:prints -set:prm";
-        for await (const card of API.search(query))
+        const setSelectFilter = artworkSelect.querySelector(".set-select-filter") as HTMLMultiSelect;
+
+        const sets: string[] = [];
+        const query = "!\"" + entry.name + "\" unique:art -set:prm";
+        for await (const card of API.search(query, "released"))
             if (!Object.values(card.legalities).every(x => x == "non-legal"))
-                list.append(artworkTile(card, card.id == entry.id));
+            {
+                const filterSet = getTopSet(card.set);
+                list.append(artworkTile(card, filterSet.code, card.id == entry.id));
+                if (!sets.includes(card.set)) sets.push(card.set);
+                console.log("card", card);
+            }
+
+
+        const topSets: { title: string, value: string; }[] = sets.map(s => getTopSet(s)).distinct().map(x => ({ title: x.name, value: x.code }));
+        setSelectFilter.options = topSets;
     }
 
-    function artworkTile(card: API.Card, selected: boolean = false)
+    function getTopSet(code: string): API.Set
     {
-        return <div class="artwork-tile" card={ card } selected={ selected } onclick={ artworkTileClick }>
+        let set = App.flatSets.first(x => x.code == code);
+        while (set.parent) set = set.parent;
+        return set;
+    }
+
+    function filterChange(event: Event)
+    {
+        const filterSelect = event.currentTarget as HTMLMultiSelect;
+        const artworkSelect = filterSelect.closest(".artwork-select");
+        const list = artworkSelect.querySelector(".list") as HTMLDivElement;
+
+        const setCodes = filterSelect.values;
+        for (const artworkTile of list.querySelectorAll(".artwork-tile") as NodeListOf<HTMLElement>)
+        {
+            const filterSet = artworkTile.getAttribute("filter-set");
+            artworkTile.style.display = setCodes.length == 0 || setCodes.includes(filterSet) ? "initial" : "none";
+        }
+    }
+
+    function artworkTile(card: API.Card, filterSet: string, selected: boolean = false)
+    {
+        return <div class="artwork-tile" card={ card } filter-set={ filterSet } selected={ selected } onclick={ artworkTileClick }>
             <div class={ ["card-tile", "card"] } >
                 <img src="img/card-back.png" lazy-image={ card.img } />
             </div>

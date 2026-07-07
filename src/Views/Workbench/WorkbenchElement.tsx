@@ -64,9 +64,9 @@ namespace Views.Workbench
             const nameElement = this.querySelector(".deck-name") as EditBoxElement;
             nameElement.text = deck.name;
             const descriptionElement = this.querySelector(".deck-description") as EditBoxElement;
-            if (deck.description) descriptionElement.text = deck.description?.trim();
+            descriptionElement.text = deck.description?.trim() ?? "";
             const tagListElement = this.querySelector(".deck-tag-list") as TagListElement;
-            if (deck.tags) tagListElement.tags = deck.tags;
+            tagListElement.tags = deck.tags ?? [];
 
             const listElement = this.querySelector(".list");
             listElement.clearChildren();

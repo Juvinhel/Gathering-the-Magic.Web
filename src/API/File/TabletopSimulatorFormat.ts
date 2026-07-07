@@ -1,8 +1,8 @@
 namespace API.File
 {
-    export const MTGArenaFormat = new class MTGArenaFormat implements Format<Deck>
+    export const TabletopSimulatorFormat = new class TabletopSimulatorFormat implements Format<Deck>
     {
-        public name = "MTG Arena";
+        public name = "Tabletop Simulator";
         public extensions = ["txt"];
         public mimeTypes = ["text/plain"];
 
@@ -11,19 +11,22 @@ namespace API.File
             return this.create(deck);
         }
 
-        public create(deck: API.Deck): string
+        public create(deck: API.Deck | API.Section | API.Entry[]): string
         {
             const commanders: string[] = ("commanders" in deck) ? deck.commanders : [];
-            let main: Entry[] = API.collapse(deck.sections.first(s => s.title == "main"));
-            let side: Entry[] = API.collapse(deck.sections.first(s => s.title == "side"));
+            let main: Entry[];
+            let side: Entry[];
+            if ("sections" in deck)
+            {
+                main = API.collapse(deck.sections.first(s => s.title == "main"));
+                side = API.collapse(deck.sections.first(s => s.title == "side"));
+            }
+            else if ("title" in deck) main = API.collapse(deck);
+            else main = deck;
 
-            let text = "About\r\n";
-            text += "Name " + deck.name + "\r\n";
-            text += "\r\n";
-
+            let text = "";
             if (commanders.length > 0)
             {
-                text += "Commander\r\n";
                 for (const commander of commanders)
                 {
                     const entry = main.first(x => x.name == commander);
@@ -32,10 +35,8 @@ namespace API.File
                     entry.quantity -= 1;
                     if (entry.quantity == 0) main.remove(entry);
                 }
-                text += "\r\n";
             }
 
-            text += "Deck\r\n";
             for (const entry of main)
                 text += this.writeLine(entry.quantity, entry);
 
@@ -59,9 +60,24 @@ namespace API.File
             return ret;
         }
 
-        private sectionsRegex = /^\s*(About(?<about>.*?))?(Commander(?<commander>.*?))?(Deck(?<deck>.*?))(Sideboard(?<sideboard>.*?))?\s*$/s;
         public async load(text: string): Promise<Deck>
         {
+            text = text.trim();
+            if (text.toLowerCase().startsWith("deck"))
+                text = text.substring("Deck".length).trim();
+
+            let main: string[];
+            let side: string[];
+            const lines = text.splitLines().map(x => x.trim());
+            if (lines.some(x => x.equals("Sideboard", false)))
+            {
+                const i = lines.findIndex(x => x.equals("Sideboard", false));
+                main = lines.slice(0, i);
+                side = lines.slice(i + 1);
+            }
+            else
+                main = lines;
+
             const deck: Deck = {
                 name: null,
                 description: null,
@@ -74,55 +90,17 @@ namespace API.File
                 ],
             };
 
-            text = text.trim();
-
-            const match = text.match(this.sectionsRegex);
-            let aboutSection: string;
-            let commanderSection: string;
-            let deckSection: string;
-            let sideboardSection: string;
-            if (match)
-            {
-                aboutSection = match.groups["about"];
-                commanderSection = match.groups["commander"];
-                deckSection = match.groups["deck"];
-                sideboardSection = match.groups["sideboard"];
-            }
-            else
-                deckSection = text;
-
-            if (aboutSection)
-            {
-                const header = this.parseAboutHeader(aboutSection);
-                if ("Name" in header)
-                    deck.name = header.Name;
-            }
-
-            if (commanderSection)
-            {
-                const mainSection: Section = deck.sections.first(s => s.title == "main");
-                for (const line of commanderSection.splitLines().map(x => x.trim()).filter(x => !!x))
-                {
-                    const entry = this.parseLine(line);
-                    if (entry)
-                    {
-                        mainSection.items.push(entry as Entry);
-                        deck.commanders.push(entry.name);
-                    }
-                }
-            }
-
             const mainSection: Section = deck.sections.first(s => s.title == "main");
-            for (const line of deckSection.splitLines().map(x => x.trim()).filter(x => !!x))
+            for (const line of main)
             {
                 const entry = this.parseLine(line);
                 if (entry) mainSection.items.push(entry as Entry);
             }
 
-            if (sideboardSection)
+            if (side)
             {
                 const sideSection: Section = deck.sections.first(s => s.title == "side");
-                for (const line of sideboardSection.splitLines().map(x => x.trim()).filter(x => !!x))
+                for (const line of side)
                 {
                     const entry = this.parseLine(line);
                     if (entry) sideSection.items.push(entry as Entry);
@@ -130,17 +108,6 @@ namespace API.File
             }
 
             return deck;
-        }
-
-        private parseAboutHeader(about: string): { [key: string]: string; }
-        {
-            const ret: { [key: string]: string; } = {};
-            for (const line of about.splitLines().map(x => x.trim()).filter(x => !!x))
-            {
-                const [key, value] = line.splitFirst(" ");
-                ret[key] = value?.trim();
-            }
-            return ret;
         }
 
         private lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^\(\)]+)(\s+(?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
@@ -166,5 +133,5 @@ namespace API.File
         }
     }();
 
-    deckFormats.push(MTGArenaFormat);
+    deckFormats.push(TabletopSimulatorFormat);
 }

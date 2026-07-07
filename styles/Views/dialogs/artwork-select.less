@@ -1,11 +1,34 @@
 .artwork-select
 {
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: max-content 1fr auto;
     grid-template-columns: 1fr;
     padding-top: 0;
     padding-bottom: 0;
     overflow-y: auto;
+
+    > .filters
+    {
+        display: grid;
+        z-index: 1000;
+        position: sticky;
+        top: 0;
+        grid-template-rows: 1fr;
+        grid-auto-columns: max-content;
+        grid-auto-flow: column;
+        align-items: end;
+        width: 100%;
+        padding: 0.25em 0;
+        gap: 0.25em;
+        background-color: var(--background-color);
+        font-size: 1.125em;
+
+        > multi-select
+        {
+            width: max-content;
+            max-width: 24em;
+        }
+    }
 
     > .list
     {
@@ -34,6 +57,7 @@
     > .actions
     {
         display: grid;
+        z-index: 1100;
         position: sticky;
         bottom: 0;
         grid-template-rows: 1fr;
@@ -41,10 +65,9 @@
         grid-auto-flow: column;
         align-items: center;
         justify-content: right;
-        justify-self: end;
-        width: max-content;
+        width: 100%;
         height: 2em;
-        padding: 0.25em;
+        padding: 0.25em 0;
         gap: 0.25em;
         background-color: var(--background-color);
         font-size: 1.125em;

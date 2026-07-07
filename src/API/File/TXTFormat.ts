@@ -2,7 +2,7 @@ namespace API.File
 {
     export const TXTFormat = new class TXTFormat implements Format<Deck>
     {
-        public name = "Text";
+        public name = "Simple Text";
         public extensions = ["txt"];
         public mimeTypes = ["text/plain"];
 
