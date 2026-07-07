@@ -183,6 +183,7 @@ namespace API
         card = {
             name: scryfallCard.name,
             id: scryfallCard.id,
+            "oracle-id": scryfallCard.oracle_id,
             set: scryfallCard.set,
             no: scryfallCard.collector_number,
 
@@ -338,6 +339,7 @@ namespace API
     export type Card = {
         name: string;
         id: string;
+        "oracle-id": string;
         set: string;
         no: string;
 

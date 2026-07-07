@@ -23,20 +23,17 @@ namespace Views.Dialogs
         const list = artworkSelect.querySelector(".list") as HTMLDivElement;
         const setSelectFilter = artworkSelect.querySelector(".set-select-filter") as HTMLMultiSelect;
 
-        const sets: string[] = [];
-        const query = "!\"" + entry.name + "\" unique:art -set:prm";
+        const sets: API.Set[] = [];
+        const query = "oracleid:" + entry["oracle-id"] + " unique:prints -set:prm";
         for await (const card of API.search(query, "released"))
-            if (!Object.values(card.legalities).every(x => x == "non-legal"))
-            {
-                const filterSet = getTopSet(card.set);
-                list.append(artworkTile(card, filterSet.code, card.id == entry.id));
-                if (!sets.includes(card.set)) sets.push(card.set);
-                console.log("card", card);
-            }
+        {
+            const set = getTopSet(card.set);
+            list.append(artworkTile(card, set.code, card.id == entry.id));
+            if (!sets.includes(set)) sets.push(set);
+            console.log("card", card);
+        }
 
-
-        const topSets: { title: string, value: string; }[] = sets.map(s => getTopSet(s)).distinct().map(x => ({ title: x.name, value: x.code }));
-        setSelectFilter.options = topSets;
+        setSelectFilter.options = sets.map(x => ({ title: x.name, value: x.code }));
     }
 
     function getTopSet(code: string): API.Set
