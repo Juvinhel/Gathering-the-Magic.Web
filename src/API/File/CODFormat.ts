@@ -58,9 +58,9 @@ namespace API.File
             }
 
             const serializer = new XMLSerializer();
-            const text = serializer.serializeToString(xmlDoc);
-
-            return "<?xml version=\"1.0\"?>\n" + text;
+            let text = "<?xml version=\"1.0\"?>\n" + serializer.serializeToString(xmlDoc);
+            text = text.replaceAll(/(?:\r\n|\r|\n)/, "\r\n");
+            return text;
         }
 
         public async load(xml: string): Promise<Deck>

@@ -15,7 +15,7 @@ namespace API.File
 
         public async load(text: string): Promise<Collection>
         {   // TODO: other options for loading: SetID + CardNo / ScryfallID / OracleID
-            text = text.replaceAll(/(?:\\r\\n|\\r|\\n)/, "\n");
+            text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
 
             const dataset = await CSV.fetch({ data: text });
 

@@ -11,7 +11,7 @@ namespace API.File
             return this.create(deck);
         }
 
-        public create(deck: API.Deck | API.Section | API.Entry[]): string
+        public create(deck: API.Deck): string
         {
             const commanders: string[] = ("commanders" in deck) ? deck.commanders : [];
             let main: Entry[];
@@ -48,6 +48,7 @@ namespace API.File
                     text += this.writeLine(entry.quantity, entry);
             }
 
+            text = text.replaceAll(/(?:\r\n|\r|\n)/, "\r\n");
             return text;
         }
 
@@ -56,12 +57,13 @@ namespace API.File
             let ret = "";
             ret += quantity.toFixed() + " " + card.name;
             if (card.set) ret += " (" + card.set + ") " + card.no;
-            ret += "\r\n";
+            ret += "\n";
             return ret;
         }
 
         public async load(text: string): Promise<Deck>
         {
+            text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
             text = text.trim();
             if (text.toLowerCase().startsWith("deck"))
                 text = text.substring("Deck".length).trim();

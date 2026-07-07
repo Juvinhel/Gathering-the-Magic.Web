@@ -14,7 +14,6 @@ namespace API.File
 
         public async load(text: string): Promise<Deck>
         {
-            text = text.replaceAll(/(?:\r\n|\r|\n)/, "");
             const deck = JSON.parse(text);
             return deck;
         }

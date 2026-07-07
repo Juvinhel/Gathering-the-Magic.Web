@@ -30,7 +30,10 @@ namespace API.File
             for (const section of deck.sections)
                 if (section.items && section.items.length > 0)
                     addSection(data, section);
-            return YAML.stringify(data);
+
+            let text = YAML.stringify(data);
+            text = text.replaceAll(/(?:\r\n|\r|\n)/, "\r\n");
+            return text;
         }
 
         public async load(yaml: string): Promise<Deck>

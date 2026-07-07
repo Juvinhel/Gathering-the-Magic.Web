@@ -8,39 +8,41 @@ namespace API.File
 
         public async save(deck: Deck): Promise<string>
         {
-            let ret = "";
-            ret += "name: " + deck.name + "\r\n";
+            let text = "";
+            text += "name: " + deck.name + "\n";
             if (deck.description)
             {
                 const lines = deck.description.splitLines();
-                ret += "description: " + lines[0] + "\r\n";
+                text += "description: " + lines[0] + "\n";
                 for (const line of lines.skip(1))
-                    ret += "# " + line + "\r\n";
+                    text += "# " + line + "\n";
             }
             if (deck.commanders && deck.commanders.length > 0)
             {
-                ret += "commanders: " + "\r\n";
+                text += "commanders: " + "\n";
                 for (const commander of deck.commanders)
-                    ret += "  - " + commander + "\r\n";
+                    text += "  - " + commander + "\n";
             }
             if (deck.tags && deck.tags.length > 0)
             {
-                ret += "tags: " + "\r\n";
+                text += "tags: " + "\n";
                 for (const tag of deck.tags)
-                    ret += "  - " + tag + "\r\n";
+                    text += "  - " + tag + "\n";
             }
             for (const section of deck.sections)
                 if (section.items && section.items.length > 0)
-                    ret += this.writeSection(0, section);
-            return ret;
+                    text += this.writeSection(0, section);
+
+            text = text.replaceAll(/(?:\r\n|\r|\n)/, "\r\n");
+            return text;
         }
 
         private writeSection(indention: number, section: Section): string
         {
-            let ret = "  ".repeat(indention) + section.title + ":\r\n";
+            let ret = "  ".repeat(indention) + section.title + ":\n";
             if (section.comment)
                 for (const commentLine of section.comment.splitLines())
-                    ret += "  ".repeat(indention + 1) + "# " + commentLine + "\r\n";
+                    ret += "  ".repeat(indention + 1) + "# " + commentLine + "\n";
 
             if (section.items)
                 for (const item of section.items)
@@ -56,15 +58,17 @@ namespace API.File
             let ret = "";
             ret += "  ".repeat(indention) + "- " + entry.quantity + " " + entry.name;
             if (entry.set) ret += " (" + entry.set + ") " + entry.no;
-            ret += "\r\n";
+            ret += "\n";
             if (entry.comment)
                 for (const commentLine of entry.comment.splitLines())
-                    ret += "  ".repeat(indention + 1) + "# " + commentLine + "\r\n";
+                    ret += "  ".repeat(indention + 1) + "# " + commentLine + "\n";
             return ret;
         }
 
         public async load(text: string): Promise<Deck>
         {
+            text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
+
             const ret = { sections: [] } as any as Deck;
             const result = this.parse(text);
 

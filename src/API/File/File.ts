@@ -19,7 +19,6 @@ namespace API.File
     export async function loadDeck(text: string, format: string | Format<Deck> = "YAML", full: boolean = true): Promise<API.Deck>
     {
         format = typeof format === "object" ? format : getDeckFormat(format);
-        text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
 
         const deck = await format.load(text);
         if (full) await populateEntriesFromIdentifiers(deck);

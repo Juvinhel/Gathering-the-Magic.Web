@@ -10,19 +10,19 @@ namespace API.File
 
         public async save(deck: Deck): Promise<string>
         {
-            let ret = "";
-            ret += "//Name: " + deck.name + "\n";
+            let text = "";
+            text += "//Name: " + deck.name + "\n";
 
-            ret += "\n";
-            ret += "//Main\n";
+            text += "\n";
+            text += "//Main\n";
             const mainSection = deck.sections.first(x => x.title == "main");
             const addLine = (entry: API.Entry, sideboard?: boolean) =>
             {
-                if (sideboard) ret += "SB:";
-                ret += entry.quantity + " " + entry.name;
+                if (sideboard) text += "SB:";
+                text += entry.quantity + " " + entry.name;
                 if (deck.commanders && deck.commanders.includes(entry.name))
-                    ret += " # !Commander";
-                ret += "\n";
+                    text += " # !Commander";
+                text += "\n";
             };
             for (const item of mainSection.items)
                 if ("name" in item)
@@ -31,8 +31,8 @@ namespace API.File
             for (const item of mainSection.items)
                 if ("title" in item)
                 {
-                    ret += "\n";
-                    ret += "//" + item.title + "\n";
+                    text += "\n";
+                    text += "//" + item.title + "\n";
                     for (const entry of getEntries(item))
                         addLine(entry);
                 }
@@ -40,8 +40,8 @@ namespace API.File
             const sideSection = deck.sections.first(x => x.title == "side");
             if (sideSection.items.length > 0)
             {
-                ret += "\n";
-                ret += "//Sideboard\n";
+                text += "\n";
+                text += "//Sideboard\n";
                 for (const item of sideSection.items)
                     if ("name" in item)
                         addLine(item, true);
@@ -49,18 +49,21 @@ namespace API.File
                 for (const item of sideSection.items)
                     if ("title" in item)
                     {
-                        ret += "\n";
-                        ret += "//" + item.title + "\n";
+                        text += "\n";
+                        text += "//" + item.title + "\n";
                         for (const entry of getEntries(item))
                             addLine(entry, true);
                     }
             }
 
-            return ret;
+            text = text.replaceAll(/(?:\r\n|\r|\n)/, "\r\n");
+            return text;
         }
 
         public async load(text: string): Promise<Deck>
         {
+            text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
+
             const lines = text.splitLines().map(x => x.trim());
             let name: string = null;
             let group: string = "";

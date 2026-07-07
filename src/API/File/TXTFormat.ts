@@ -35,7 +35,7 @@ namespace API.File
                     entry.quantity -= 1;
                     if (entry.quantity == 0) main.remove(entry);
                 }
-                text += "\r\n";
+                text += "\n";
             }
 
             for (const entry of main.sortBy(x => x.name))
@@ -43,22 +43,24 @@ namespace API.File
 
             if (side && side.length > 0)
             {
-                text += "\r\n";
+                text += "\n";
                 text += "Sideboard\r\n";
                 for (const entry of side.sortBy(x => x.name))
                     text += this.writeLine(entry.quantity, entry);
             }
 
+            text = text.replaceAll(/(?:\r\n|\r|\n)/, "\r\n");
             return text;
         }
 
         private writeLine(quantity: number, card: API.Card): string
         {
-            return quantity.toFixed() + " " + card.name + "\r\n";
+            return quantity.toFixed() + " " + card.name + "\n";
         }
 
         public async load(text: string): Promise<Deck>
         {
+            text = text?.replaceAll(/(?:\r\n|\r|\n)/, "\n");
             const lines = text.splitLines().map(x => x.trim());
             let main: string[];
             let side: string[];
