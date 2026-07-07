@@ -212,6 +212,16 @@ Array.prototype.mapAndFilter = function (callbackfn, excludeNull) {
         return filtered;
     }, []);
 };
+Array.prototype.fullFlatMap = function (callbackfn) {
+    const ret = [];
+    for (const item of this) {
+        ret.push(item);
+        const subItems = callbackfn(item);
+        if (subItems)
+            ret.push(...subItems.fullFlatMap(callbackfn));
+    }
+    return ret;
+};
 class ArrayHelper {
     static Create2Dimensional(w, h) {
         const ret = new Array(w);
@@ -8597,6 +8607,7 @@ class App {
             API.sets(),
             API.keywords(),
         ]);
+        this.flatSets = App.sets.fullFlatMap(set => set.subSets);
         initChartJS();
         UI.LazyLoad.ErrorImageUrl = "img/icons/not-found.png";
         UI.LazyLoad.LoadingImageUrl = "img/icons/spinner.svg";
@@ -8619,6 +8630,7 @@ class App {
     static symbols;
     static types;
     static sets;
+    static flatSets;
     static keywords;
     static collections = {};
     static config;
@@ -8821,12 +8833,12 @@ var API;
         throw new DataError("Unknown Card in url", { url });
     }
     API.getIdentifierFromUrl = getIdentifierFromUrl;
-    function search(query) {
-        return new AsyncIterablePromise(doSearch(query));
+    function search(query, order) {
+        return new AsyncIterablePromise(doSearch(query, order));
     }
     API.search = search;
-    async function* doSearch(query) {
-        for await (const scryfallCard of API.Scryfall.search(query))
+    async function* doSearch(query, order) {
+        for await (const scryfallCard of API.Scryfall.search(query, order))
             yield buildCard(scryfallCard);
     }
     async function getCard(identifier) {
@@ -9654,18 +9666,13 @@ var API;
             }
             create(deck) {
                 const commanders = ("commanders" in deck) ? deck.commanders : [];
-                let main;
-                let side;
-                if ("sections" in deck) {
-                    main = API.collapse(deck.sections.first(s => s.title == "main"));
-                    side = API.collapse(deck.sections.first(s => s.title == "side"));
-                }
-                else if ("title" in deck)
-                    main = API.collapse(deck);
-                else
-                    main = deck;
-                let text = "Deck\r\n";
+                let main = API.collapse(deck.sections.first(s => s.title == "main"));
+                let side = API.collapse(deck.sections.first(s => s.title == "side"));
+                let text = "About\r\n";
+                text += "Name " + deck.name + "\r\n";
+                text += "\r\n";
                 if (commanders.length > 0) {
+                    text += "Commander\r\n";
                     for (const commander of commanders) {
                         const entry = main.first(x => x.name == commander);
                         text += this.writeLine(1, entry);
@@ -9673,7 +9680,9 @@ var API;
                         if (entry.quantity == 0)
                             main.remove(entry);
                     }
+                    text += "\r\n";
                 }
+                text += "Deck\r\n";
                 for (const entry of main)
                     text += this.writeLine(entry.quantity, entry);
                 if (side && side.length > 0) {
@@ -9692,20 +9701,8 @@ var API;
                 ret += "\r\n";
                 return ret;
             }
+            sectionsRegex = /^\s*(About(?<about>.*?))?(Commander(?<commander>.*?))?(Deck(?<deck>.*?))(Sideboard(?<sideboard>.*?))?\s*$/s;
             async load(text) {
-                text = text.trim();
-                if (text.toLowerCase().startsWith("deck"))
-                    text = text.substring("Deck".length).trim();
-                let main;
-                let side;
-                const lines = text.splitLines().map(x => x.trim());
-                if (lines.some(x => x.equals("Sideboard", false))) {
-                    const i = lines.findIndex(x => x.equals("Sideboard", false));
-                    main = lines.slice(0, i);
-                    side = lines.slice(i + 1);
-                }
-                else
-                    main = lines;
                 const deck = {
                     name: null,
                     description: null,
@@ -9717,21 +9714,58 @@ var API;
                         { title: "maybe", items: [] },
                     ],
                 };
+                text = text.trim();
+                const match = text.match(this.sectionsRegex);
+                let aboutSection;
+                let commanderSection;
+                let deckSection;
+                let sideboardSection;
+                if (match) {
+                    aboutSection = match.groups["about"];
+                    commanderSection = match.groups["commander"];
+                    deckSection = match.groups["deck"];
+                    sideboardSection = match.groups["sideboard"];
+                }
+                else
+                    deckSection = text;
+                if (aboutSection) {
+                    const header = this.parseAboutHeader(aboutSection);
+                    if ("Name" in header)
+                        deck.name = header.Name;
+                }
+                if (commanderSection) {
+                    const mainSection = deck.sections.first(s => s.title == "main");
+                    for (const line of commanderSection.splitLines().map(x => x.trim()).filter(x => !!x)) {
+                        const entry = this.parseLine(line);
+                        if (entry) {
+                            mainSection.items.push(entry);
+                            deck.commanders.push(entry.name);
+                        }
+                    }
+                }
                 const mainSection = deck.sections.first(s => s.title == "main");
-                for (const line of main) {
+                for (const line of deckSection.splitLines().map(x => x.trim()).filter(x => !!x)) {
                     const entry = this.parseLine(line);
                     if (entry)
                         mainSection.items.push(entry);
                 }
-                if (side) {
+                if (sideboardSection) {
                     const sideSection = deck.sections.first(s => s.title == "side");
-                    for (const line of side) {
+                    for (const line of sideboardSection.splitLines().map(x => x.trim()).filter(x => !!x)) {
                         const entry = this.parseLine(line);
                         if (entry)
                             sideSection.items.push(entry);
                     }
                 }
                 return deck;
+            }
+            parseAboutHeader(about) {
+                const ret = {};
+                for (const line of about.splitLines().map(x => x.trim()).filter(x => !!x)) {
+                    const [key, value] = line.splitFirst(" ");
+                    ret[key] = value?.trim();
+                }
+                return ret;
             }
             lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^\(\)]+)(\s+(?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
             parseLine(line) {
@@ -9759,7 +9793,7 @@ var API;
     var File;
     (function (File) {
         File.TXTFormat = new class TXTFormat {
-            name = "Text";
+            name = "Simple Text";
             extensions = ["txt"];
             mimeTypes = ["text/plain"];
             async save(deck) {
@@ -9858,6 +9892,119 @@ var API;
             }
         }();
         File.deckFormats.push(File.TXTFormat);
+    })(File = API.File || (API.File = {}));
+})(API || (API = {}));
+var API;
+(function (API) {
+    var File;
+    (function (File) {
+        File.TabletopSimulatorFormat = new class TabletopSimulatorFormat {
+            name = "Tabletop Simulator";
+            extensions = ["txt"];
+            mimeTypes = ["text/plain"];
+            async save(deck) {
+                return this.create(deck);
+            }
+            create(deck) {
+                const commanders = ("commanders" in deck) ? deck.commanders : [];
+                let main;
+                let side;
+                if ("sections" in deck) {
+                    main = API.collapse(deck.sections.first(s => s.title == "main"));
+                    side = API.collapse(deck.sections.first(s => s.title == "side"));
+                }
+                else if ("title" in deck)
+                    main = API.collapse(deck);
+                else
+                    main = deck;
+                let text = "";
+                if (commanders.length > 0) {
+                    for (const commander of commanders) {
+                        const entry = main.first(x => x.name == commander);
+                        text += this.writeLine(1, entry);
+                        entry.quantity -= 1;
+                        if (entry.quantity == 0)
+                            main.remove(entry);
+                    }
+                }
+                for (const entry of main)
+                    text += this.writeLine(entry.quantity, entry);
+                if (side && side.length > 0) {
+                    text += "\r\n";
+                    text += "Sideboard\r\n";
+                    for (const entry of side)
+                        text += this.writeLine(entry.quantity, entry);
+                }
+                return text;
+            }
+            writeLine(quantity, card) {
+                let ret = "";
+                ret += quantity.toFixed() + " " + card.name;
+                if (card.set)
+                    ret += " (" + card.set + ") " + card.no;
+                ret += "\r\n";
+                return ret;
+            }
+            async load(text) {
+                text = text.trim();
+                if (text.toLowerCase().startsWith("deck"))
+                    text = text.substring("Deck".length).trim();
+                let main;
+                let side;
+                const lines = text.splitLines().map(x => x.trim());
+                if (lines.some(x => x.equals("Sideboard", false))) {
+                    const i = lines.findIndex(x => x.equals("Sideboard", false));
+                    main = lines.slice(0, i);
+                    side = lines.slice(i + 1);
+                }
+                else
+                    main = lines;
+                const deck = {
+                    name: null,
+                    description: null,
+                    commanders: [],
+                    tags: [],
+                    sections: [
+                        { title: "main", items: [] },
+                        { title: "side", items: [] },
+                        { title: "maybe", items: [] },
+                    ],
+                };
+                const mainSection = deck.sections.first(s => s.title == "main");
+                for (const line of main) {
+                    const entry = this.parseLine(line);
+                    if (entry)
+                        mainSection.items.push(entry);
+                }
+                if (side) {
+                    const sideSection = deck.sections.first(s => s.title == "side");
+                    for (const line of side) {
+                        const entry = this.parseLine(line);
+                        if (entry)
+                            sideSection.items.push(entry);
+                    }
+                }
+                return deck;
+            }
+            lineRegex = /^\s*((?<quantity>[0-9]+)\s+)?(?<name>[^\(\)]+)(\s+(?<set>\(\s*[^\(\)]+\s*\))\s+(?<no>.*)?)?\s*$/;
+            parseLine(line) {
+                const match = line.match(this.lineRegex);
+                if (match) {
+                    const quantity = parseInt(match.groups.quantity?.trim() ?? "1");
+                    const name = match.groups["name"].trim();
+                    const set = match.groups.set?.substring(1).substrEnd(1);
+                    const no = match.groups.no;
+                    const ret = { quantity, name };
+                    if (set) {
+                        ret.set = set;
+                        ret.no = no;
+                    }
+                    return ret;
+                }
+                return null;
+            }
+        }();
+        File.deckFormats.push(File.TabletopSimulatorFormat);
     })(File = API.File || (API.File = {}));
 })(API || (API = {}));
 var API;
@@ -10044,12 +10191,14 @@ var API;
                 }
             }
         }
-        function search(query) {
-            return new AsyncIterablePromise(doSearch(query));
+        function search(query, order) {
+            return new AsyncIterablePromise(doSearch(query, order));
         }
         Scryfall.search = search;
-        async function* doSearch(query) {
+        async function* doSearch(query, order) {
             let next = `${baseUrl}/cards/search?q=` + encodeURIComponent(query);
+            if (order)
+                next += "&order=" + order;
             while (next) {
                 const response = await fetch(next);
                 const data = await response.json();
@@ -10488,6 +10637,9 @@ var Views;
     (function (Dialogs) {
         function ArtworkSelectDialog(entry) {
             return UI.Generator.Hyperscript("div", { class: "artwork-select", oninserted: (e) => load(e, entry), entry: entry },
+                UI.Generator.Hyperscript("div", { class: "filters" },
+                    UI.Generator.Hyperscript("span", null, "Filter: "),
+                    UI.Generator.Hyperscript("multi-select", { class: "set-select-filter", onchange: (event) => filterChange(event) })),
                 UI.Generator.Hyperscript("div", { class: "list" }),
                 UI.Generator.Hyperscript("div", { class: "actions" },
                     UI.Generator.Hyperscript("button", { class: "cancel-button", onclick: cancelClick }, "Cancel"),
@@ -10497,12 +10649,38 @@ var Views;
         async function load(e, entry) {
             const artworkSelect = e.currentTarget;
             const list = artworkSelect.querySelector(".list");
-            const query = "!\"" + entry.name + "\" unique:prints";
-            for await (const card of API.search(query))
-                list.append(artworkTile(card, card.id == entry.id));
+            const setSelectFilter = artworkSelect.querySelector(".set-select-filter");
+            const sets = [];
+            const query = "!\"" + entry.name + "\" unique:art -set:prm";
+            for await (const card of API.search(query, "released"))
+                if (!Object.values(card.legalities).every(x => x == "non-legal")) {
+                    const filterSet = getTopSet(card.set);
+                    list.append(artworkTile(card, filterSet.code, card.id == entry.id));
+                    if (!sets.includes(card.set))
+                        sets.push(card.set);
+                    console.log("card", card);
+                }
+            const topSets = sets.map(s => getTopSet(s)).distinct().map(x => ({ title: x.name, value: x.code }));
+            setSelectFilter.options = topSets;
         }
-        function artworkTile(card, selected = false) {
-            return UI.Generator.Hyperscript("div", { class: "artwork-tile", card: card, selected: selected, onclick: artworkTileClick },
+        function getTopSet(code) {
+            let set = App.flatSets.first(x => x.code == code);
+            while (set.parent)
+                set = set.parent;
+            return set;
+        }
+        function filterChange(event) {
+            const filterSelect = event.currentTarget;
+            const artworkSelect = filterSelect.closest(".artwork-select");
+            const list = artworkSelect.querySelector(".list");
+            const setCodes = filterSelect.values;
+            for (const artworkTile of list.querySelectorAll(".artwork-tile")) {
+                const filterSet = artworkTile.getAttribute("filter-set");
+                artworkTile.style.display = setCodes.length == 0 || setCodes.includes(filterSet) ? "initial" : "none";
+            }
+        }
+        function artworkTile(card, filterSet, selected = false) {
+            return UI.Generator.Hyperscript("div", { class: "artwork-tile", card: card, "filter-set": filterSet, selected: selected, onclick: artworkTileClick },
                 UI.Generator.Hyperscript("div", { class: ["card-tile", "card"] },
                     UI.Generator.Hyperscript("img", { src: "img/card-back.png", "lazy-image": card.img })));
         }
@@ -11061,7 +11239,7 @@ var Views;
     (function (Dialogs) {
         function ExportDeck(args) {
             return UI.Generator.Hyperscript("div", { class: "export-deck" },
-                UI.Generator.Hyperscript("select", { class: "format-select", onchange: (event) => selectFormat(event, args.deck) }, API.File.deckFormats.map(x => UI.Generator.Hyperscript("option", { format: x, selected: x.name == "Text" },
+                UI.Generator.Hyperscript("select", { class: "format-select", onchange: (event) => selectFormat(event, args.deck) }, API.File.deckFormats.map(x => UI.Generator.Hyperscript("option", { format: x, selected: x.name == "Simple Text" },
                     x.name,
                     " (",
                     x.extensions.first(),
@@ -11096,7 +11274,7 @@ var Views;
     (function (Dialogs) {
         function ImportDeck() {
             return UI.Generator.Hyperscript("div", { class: "import-deck" },
-                UI.Generator.Hyperscript("select", { class: "format-select" }, API.File.deckFormats.map(x => UI.Generator.Hyperscript("option", { format: x, selected: x.name == "Text" },
+                UI.Generator.Hyperscript("select", { class: "format-select" }, API.File.deckFormats.map(x => UI.Generator.Hyperscript("option", { format: x, selected: x.name == "Simple Text" },
                     x.name,
                     " (",
                     x.extensions.first(),
@@ -14158,11 +14336,9 @@ var Views;
                 const nameElement = this.querySelector(".deck-name");
                 nameElement.text = deck.name;
                 const descriptionElement = this.querySelector(".deck-description");
-                if (deck.description)
-                    descriptionElement.text = deck.description?.trim();
+                descriptionElement.text = deck.description?.trim() ?? "";
                 const tagListElement = this.querySelector(".deck-tag-list");
-                if (deck.tags)
-                    tagListElement.tags = deck.tags;
+                tagListElement.tags = deck.tags ?? [];
                 const listElement = this.querySelector(".list");
                 listElement.clearChildren();
                 for (const section of deck.sections)
